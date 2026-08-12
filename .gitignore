@@ -1,0 +1,39 @@
+# 가상환경 (1.4GB, 각자 로컬에서 생성)
+.venv/
+venv/
+env/
+
+# 개인정보 — 사업자등록증 이미지, 사용자 프로필
+# 실제 파일은 저장소 밖 ../_private_hwaseong/ 에 보관한다
+users/
+*.jpg
+*.jpeg
+*.png
+!docs/**/*.png
+
+# 파이썬
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# 로그 / 임시
+*.log
+*.tmp
+*.corrupt_*.json
+
+# OS / 에디터
+desktop.ini
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# 모델 가중치 (용량이 커서 저장소에 올리지 않는다)
+*.pth
+*.bin
+*.safetensors
+
+# Claude Code 로컬 설정
+.claude/settings.local.json

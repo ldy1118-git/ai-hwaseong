@@ -1,0 +1,34 @@
+﻿{
+    "notice_id":  "HS-2026-053",
+    "policy_id":  "HS_NON_YOUTH_FOOD_STARTUP",
+    "title":  "화성시 만 35세 이상 음식점 창업 컨설팅",
+    "apply_period":  {
+                         "start":  "2026-03-10",
+                         "end":  "2026-04-20"
+                     },
+    "eligibility":  {
+                        "min_age":  35,
+                        "regions":  [
+                                        "화성시"
+                                    ],
+                        "business_status":  [
+                                                "예비창업자"
+                                            ],
+                        "categories":  [
+                                           "음식점"
+                                       ]
+                    },
+    "documents":  [
+                      {
+                          "name":  "컨설팅 신청서",
+                          "type":  "common",
+                          "confidence":  "confirmed"
+                      },
+                      {
+                          "name":  "창업 아이템 설명서",
+                          "type":  "common",
+                          "confidence":  "estimated",
+                          "reason":  "창업 컨설팅 사전 진단 자료"
+                      }
+                  ]
+}
