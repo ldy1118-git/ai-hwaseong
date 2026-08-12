@@ -17,7 +17,7 @@ AI_hwasung_limdaeyun/
 │   ├── OCR.py             사업자등록증 OCR 및 필드 추출
 │   ├── index.html         채팅형 프론트엔드
 │   └── notices/           공고 JSON 19건
-├── llm/                 LLM / RAG (담당: 작성자)
+├── llm/                 LLM / RAG (담당: 서희)
 ├── policy_data/         공고 수집·요건 추출·용어 사전 (담당: 대윤)
 ├── scripts/
 │   ├── run_server.sh      리눅스 서버 실행
