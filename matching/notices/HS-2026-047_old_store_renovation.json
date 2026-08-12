@@ -1,0 +1,36 @@
+﻿{
+    "notice_id":  "HS-2026-047",
+    "policy_id":  "HS_OLD_STORE_RENOVATION",
+    "title":  "화성시 5년 이상 노후점포 환경개선 지원",
+    "apply_period":  {
+                         "start":  "2026-10-01",
+                         "end":  "2026-11-15"
+                     },
+    "eligibility":  {
+                        "regions":  [
+                                        "화성시"
+                                    ],
+                        "business_status":  [
+                                                "운영중"
+                                            ],
+                        "min_business_months":  60
+                    },
+    "documents":  [
+                      {
+                          "name":  "사업자등록증명",
+                          "type":  "common",
+                          "confidence":  "confirmed"
+                      },
+                      {
+                          "name":  "시공 전 사진",
+                          "type":  "common",
+                          "confidence":  "estimated",
+                          "reason":  "노후점포 환경개선 심사 자료"
+                      },
+                      {
+                          "name":  "공사 견적서",
+                          "type":  "common",
+                          "confidence":  "confirmed"
+                      }
+                  ]
+}
