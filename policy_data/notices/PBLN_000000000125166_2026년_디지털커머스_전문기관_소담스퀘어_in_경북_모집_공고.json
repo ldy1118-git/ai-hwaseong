@@ -1,0 +1,25 @@
+{
+ "notice_id": "PBLN_000000000125166",
+ "title": "2026년 디지털커머스 전문기관(소담스퀘어 in 경북) 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000125166",
+ "summary": "소상공인 디지털 콘텐츠 제작 및 온라인시장 진출을 위해 필요한 장비ㆍ시설을 구축하고 전문인력, 사업지원 등을 통한 소상공인 디지털 전환 촉진을 위한 사업입니다. ☞ 디지털커머스 역량강화를 필요로 하는「소상공인기본법」제2조에 따른 소상공인 ☞ AI플랫폼 활용 디지털 커머스 역량강화 교육 및 컨설팅  - AI플랫폼 활용 홍보 및 광고 콘텐츠 제작 실습  - 디지털커머스 전환 및 역량강화를 위한 정책연계 컨설팅 - 온라인 유통 플랫폼 입점지원(별도 사업 연계지원)",
+ "apply_period": {
+  "start": "2026-08-05",
+  "end": "2026-10-30"
+ },
+ "eligibility": {},
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ]
+}
