@@ -1,0 +1,38 @@
+{
+ "notice_id": "PBLN_000000000125162",
+ "title": "2026년 해외 온라인 플랫폼 입점지원 사업 참여 소상공인 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000125162",
+ "summary": "(아마존, 쇼피, 큐텐 등) □ 기 입점 상태이나, 본 사업으로 타 플랫폼 신규 입점 예정\n 별도 메뉴판 없음 입점 여부\n입점 지원 ▶ - 기 입점 플랫폼명 :\n - 공단이 선임한 전문기관을 통해 플랫폼 입점 서비스 지원 입점 예정\n 플랫폼명 ※ 본 사업을 통해 입점하고자 하는 플랫폼명 작성(최대 2개)\n 플랫폼\n (선택) 국내 판매 URL\n 디자인 개발 홈페이지 개발\n ①제품 사진(첨부) ②제품명\n 제품소개 ③제품 특·장점\n 콘텐츠 인플루언서 활용, SNS·온라인 사업 참여 예정 제품\n ▶ 홍보/광고 ※ 타 제품과는 차별화되는 자사만의 제품 경쟁력에 대하여\n 제작 광고 등 마케팅 서비스 500자 이내 작성(시장성, 가격경쟁력, 품질 및 기술력,\n 디자인 및 창의성 등 기술)\n 홍보 동영상 - □ 콘텐츠 제",
+ "apply_period": {
+  "start": "2026-08-04",
+  "end": "2026-08-18"
+ },
+ "eligibility": {
+  "business_status": [
+   "운영중"
+  ]
+ },
+ "documents": [
+  {
+   "name": "중소기업 소상공인 확인서 국세",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "지방세납세증명서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 지방세 완납증명서"
+  },
+  {
+   "name": "제공 동의서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "4대보험료 완납증명원",
+   "type": "common",
+   "confidence": "confirmed"
+  }
+ ]
+}
