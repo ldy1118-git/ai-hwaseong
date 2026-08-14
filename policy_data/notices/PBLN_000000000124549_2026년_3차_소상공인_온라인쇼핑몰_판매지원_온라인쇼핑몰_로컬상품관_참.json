@@ -42,5 +42,10 @@
    "type": "common",
    "confidence": "confirmed"
   }
- ]
+ ],
+ "apply_url": "https://fanfandaero.kr/portal/v2/readUcenterNtcBbsView.do?nttId=20238",
+ "apply_method": "온라인 접수 (판판대로)",
+ "contact": "온판상담소 1899-0309",
+ "organizer": "중소벤처기업부",
+ "operator": "한국중소벤처기업유통원"
 }

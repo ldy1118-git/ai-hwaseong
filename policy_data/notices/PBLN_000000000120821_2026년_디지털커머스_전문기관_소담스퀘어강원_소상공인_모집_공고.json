@@ -21,5 +21,10 @@
    "confidence": "estimated",
    "reason": "공고 붙임 서식을 사용한다"
   }
- ]
+ ],
+ "apply_url": "https://fanfandaero.kr/portal/v2/preSprtBizPbanc.do",
+ "apply_method": "온라인 접수 (판판대로)",
+ "contact": "강원특별자치도 경제진흥원 033-241-7737, gwsodam@naver.com",
+ "organizer": "중소벤처기업부",
+ "operator": "강원특별자치도경제진흥원"
 }

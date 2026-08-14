@@ -32,5 +32,10 @@
    "type": "common",
    "confidence": "confirmed"
   }
- ]
+ ],
+ "apply_url": "https://pms.kocca.kr/pblanc/pblancListPage.do",
+ "apply_method": "온라인 접수 (한국콘텐츠진흥원 사업관리시스템)",
+ "contact": "(사업 문의) 콘텐츠IP전략팀 061-900-6231, sstar5@kocca.kr / (사업관리시스템 문의) IDC 담당자 061-900-9089",
+ "organizer": "문화체육관광부",
+ "operator": "한국콘텐츠진흥원"
 }

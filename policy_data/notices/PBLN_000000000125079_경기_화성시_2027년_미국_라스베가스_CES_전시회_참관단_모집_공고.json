@@ -72,5 +72,9 @@
    "type": "common",
    "confidence": "confirmed"
   }
- ]
+ ],
+ "apply_method": "이메일 접수(info@hstrade.or.kr)",
+ "contact": "화성시수출업무지원센터(참관단) 031-350-7951 / 화성시청 기업지원과 031-5189-2102",
+ "organizer": "경기도",
+ "operator": "기초자치단체"
 }

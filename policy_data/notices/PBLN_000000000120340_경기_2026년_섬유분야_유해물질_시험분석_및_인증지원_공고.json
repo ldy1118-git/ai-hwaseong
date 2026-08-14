@@ -19,5 +19,9 @@
    "type": "common",
    "confidence": "confirmed"
   }
- ]
+ ],
+ "apply_method": "방문 및 우편, 이메일 접수\r\n- 접수처 : 경기도 양주시 남면 검준길 170, 한국섬유소재연구원 시험평가센터\r\n- 이메일 : test@koteri.re.kr",
+ "contact": "한국섬유소재연구원 시험평가센터 031-860-0939",
+ "organizer": "경기도",
+ "operator": "한국섬유소재연구원"
 }

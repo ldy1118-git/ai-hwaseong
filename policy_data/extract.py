@@ -317,9 +317,19 @@ def build_notice(entry: dict, doc_text: str) -> tuple[dict, list[str]]:
                          (("start", to_iso(period, 0)), ("end", to_iso(period, 1))) if v},
         "eligibility": eligibility,
         "documents": documents,
+        # 신청까지 안내하는 게 이 서비스의 목적이라 접수처 정보를 같이 담는다.
+        # source_url(기업마당 공고 페이지)과 apply_url(실제 접수 사이트)은 다르다.
+        "apply_url": field(entry, "rceptEngnHmpgUrl"),
+        "apply_method": clean(field(entry, "reqstMthPapersCn")),
+        "contact": clean(field(entry, "refrncNm")),
+        "organizer": field(entry, "jrsdInsttNm", "author"),
+        "operator": field(entry, "excInsttNm"),
     }
     if not notice["apply_period"]:
         notice.pop("apply_period")
+    for key in ("apply_url", "apply_method", "contact", "organizer", "operator"):
+        if not notice[key]:
+            notice.pop(key)
     return notice, evidence
 
 
