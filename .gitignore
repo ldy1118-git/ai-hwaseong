@@ -23,6 +23,10 @@ users/
 *.tmp
 *.corrupt_*.json
 
+# 기업마당 API 원본 응답 (4MB, 매일 바뀜)
+# collect.py --raw 로 각자 다시 받는다. 가공된 notices/ 만 저장소에 둔다.
+policy_data/raw/
+
 # OS / 에디터
 desktop.ini
 .DS_Store
