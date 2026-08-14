@@ -39,6 +39,10 @@ DOCUMENT_TYPE_ALIASES = {
     "if_applicable": "해당시제출",
 }
 
+# 신청 안내에 쓰는 필드. 조건 판정에는 관여하지 않고 화면까지 그대로 넘긴다.
+# 규격은 policy_data/schema.md 참고.
+APPLICATION_FIELDS = ("apply_url", "apply_method", "contact", "organizer", "operator")
+
 BASE_DIR = Path(__file__).resolve().parent
 USERS_DIR = BASE_DIR / "users"
 USER_RECORD_LOCK = RLock()
@@ -431,6 +435,10 @@ def normalize_policy(policy: dict[str, Any]) -> dict[str, Any]:
         "conditions": conditions,
         "expected_documents": documents,
     }
+    # 신청 안내 정보. 판정에는 쓰지 않지만 화면까지 그대로 전달한다.
+    # source_url(공고 페이지)과 apply_url(실제 접수처)은 서로 다르다.
+    for key in APPLICATION_FIELDS:
+        normalized[key] = policy.get(key)
     return {key: value for key, value in normalized.items() if value not in (None, {}, [])}
 
 
@@ -478,6 +486,9 @@ def match_policy(policy: dict[str, Any], user_profile: dict[str, Any]) -> dict[s
         result["source_url"] = policy["source_url"]
     if policy.get("apply_period"):
         result["apply_period"] = policy["apply_period"]
+    for key in APPLICATION_FIELDS:
+        if policy.get(key):
+            result[key] = policy[key]
 
     application_period = _application_period_status(policy.get("apply_period"))
 
