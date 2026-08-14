@@ -1,0 +1,25 @@
+{
+  "notice_id": "HS-2026-442",
+  "title": "2026년 화성시 소상공인 자금지원사업 공고",
+  "summary": "화성시 관내 소상공인에게 특례보증 및 이차보전 방식으로 운영·창업 자금을 지원합니다. 지원 한도는 5천만원이며 보증 수수료 1%를 최초 1회 시에서 부담합니다.",
+  "apply_period": { "start": "2026-01-02", "end": "2026-12-31" },
+  "eligibility": {
+    "region": "화성시",
+    "business_status": ["운영중"],
+    "categories": ["카페", "음식점", "소매업", "기타"],
+    "min_operation_months": 2,
+    "income_asset": null
+  },
+  "documents": [
+    { "name": "사업자등록증명", "type": "common", "confidence": "confirmed", "reason": "공고 본문 명시" },
+    { "name": "중소기업확인서", "type": "common", "confidence": "confirmed", "reason": "공고 본문 명시" },
+    { "name": "국세납세증명서", "type": "common", "confidence": "confirmed", "reason": "공고 본문 명시" },
+    { "name": "지방세납세증명서", "type": "common", "confidence": "confirmed", "reason": "공고 본문 명시" },
+    { "name": "임대차계약서", "type": "conditional", "confidence": "confirmed", "reason": "사업장 임차인 해당 시 제출" }
+  ],
+  "apply_url": "https://www.hscity.go.kr",
+  "apply_method": "경기신용보증재단 화성지점 방문 또는 협약은행 창구 접수",
+  "contact": "경기신용보증재단 화성지점 031-359-6840",
+  "organizer": "화성시",
+  "operator": "경기신용보증재단"
+}

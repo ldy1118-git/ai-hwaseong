@@ -1,0 +1,23 @@
+{
+  "notice_id": "PBLN_000000000120801",
+  "title": "2026년 화성시 소상공인 클린케어 지원사업",
+  "summary": "화성특례시소상공인연합회가 주관하는 사업으로, 소상공인 사업장의 위생·청결 환경 개선을 위한 시설 개선비를 최대 200만원 지원합니다. 선착순 접수이며 자부담 20%가 있습니다.",
+  "apply_period": { "start": "2026-03-01", "end": "2026-11-30" },
+  "eligibility": {
+    "region": "화성시",
+    "business_status": ["운영중"],
+    "categories": ["음식점", "카페"],
+    "min_operation_months": 6
+  },
+  "documents": [
+    { "name": "사업자등록증", "type": "common", "confidence": "confirmed", "reason": "공고 명시" },
+    { "name": "임대차계약서", "type": "conditional", "confidence": "estimated", "reason": "임차 사업장인 경우 — 원문 확인 필요" },
+    { "name": "견적서", "type": "common", "confidence": "confirmed", "reason": "시설 개선 업체 견적서 (사업자번호·직인 필수)" },
+    { "name": "현장 사진", "type": "common", "confidence": "confirmed", "reason": "시공 전 사진 필수 — 공사 시작 전에 반드시 촬영" }
+  ],
+  "apply_url": "https://www.hscity.go.kr",
+  "apply_method": "화성특례시소상공인연합회 방문 또는 이메일 접수",
+  "contact": "화성특례시소상공인연합회 031-227-3456",
+  "organizer": "경기도",
+  "operator": "화성특례시소상공인연합회"
+}
