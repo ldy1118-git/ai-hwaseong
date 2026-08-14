@@ -36,6 +36,30 @@
 | `apply_period` | 선택 | `start` / `end` 를 `YYYY-MM-DD` 로. 둘 중 하나만 있어도 된다 |
 | `eligibility` | 선택 | 아래 표의 키만 인식된다 |
 | `documents` | 선택 | 제출 서류 목록 |
+| `apply_url` | 선택 | **실제 접수하는 사이트.** `source_url`(공고 페이지)과 다르다 |
+| `apply_method` | 선택 | 온라인/방문/이메일 등 접수 방법 |
+| `contact` | 선택 | 문의처. 담당부서·전화·이메일 |
+| `organizer` | 선택 | 소관기관 (사업을 만든 곳) |
+| `operator` | 선택 | 수행기관 (실제 접수·문의를 받는 곳) |
+
+### 신청 안내 5개 필드는 아직 화면까지 안 간다
+
+`matching.py` 의 `match_policy()` 는 결과에 실을 키를 **정해진 목록에서만**
+가져온다. 지금 통과하는 건 `notice_id`, `policy_id`, `title`, `source_url`,
+`apply_period` 뿐이다. 파일에 적어둬도 조용히 사라진다.
+
+```python
+# matching.py 472줄 근처
+result = {"notice_id": policy["notice_id"]}
+if policy.get("title"):      result["notice_title"] = policy["title"]
+if policy.get("source_url"): result["source_url"] = policy["source_url"]
+# apply_url, apply_method, contact 는 여기에 없다
+```
+
+**성현에게 요청할 것:** 위 5개를 `result` 에 그대로 실어주기 (3~5줄).
+"신청까지 동행"이 서비스 컨셉인데 정작 신청 주소가 화면에 안 간다.
+
+`validate.py` 가 이걸 매번 경고로 알려준다.
 
 `apply_period`가 없으면 "기간미상"으로 처리된다. 기간이 지났으면 "지원기간종료"로
 표시되지만 매칭 자체는 계속 된다 (지난 공고도 참고용으로 보여주기 위함).

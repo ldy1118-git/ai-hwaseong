@@ -30,5 +30,10 @@
    "confidence": "confirmed",
    "reason": "공고문 표기: 확인서"
   }
- ]
+ ],
+ "apply_url": "https://fanfandaero.kr/portal/v2/preSprtBizPbancDetail.do?sprtBizCd=202616020300&sprtBizTrgtYn=N&groupNo=",
+ "apply_method": "온라인 접수 (판판대로)",
+ "contact": "한국중소벤처기업유통원 마케팅기획팀 02-6678-9345, 9346",
+ "organizer": "중소벤처기업부",
+ "operator": "한국중소벤처기업유통원"
 }

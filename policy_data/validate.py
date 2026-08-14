@@ -49,6 +49,14 @@ TOP_LEVEL_KEYS = {
     "notice_id", "policy_id", "title", "source_url", "summary",
     "apply_period", "eligibility", "documents", "expected_documents",
     "conditions", "_source_file",
+    # 신청 안내용. 매칭 판정에는 안 쓰이지만 화면에 필요하다.
+    "apply_url", "apply_method", "contact", "organizer", "operator",
+}
+
+# matching.py 의 match_policy() 가 결과에 실어주는 키. 여기 없으면 화면까지
+# 전달되지 않는다 — 파일에 적어둬도 조용히 사라진다.
+PASSED_THROUGH = {
+    "notice_id", "policy_id", "title", "source_url", "apply_period",
 }
 
 DOC_TYPES = {"common", "required", "conditional", "if_applicable"}
@@ -81,6 +89,20 @@ def check(path: Path) -> tuple[list[str], list[str]]:
     for field in ("source_url", "summary"):
         if not policy.get(field):
             warns.append(f"{field} 없음 — RAG가 원문을 검증할 때 필요합니다")
+
+    if not policy.get("apply_url") and not policy.get("apply_method"):
+        warns.append("신청 방법이 없음 — 신청 안내 화면에서 보여줄 게 없습니다")
+
+    # 적어뒀지만 매칭 엔진이 화면으로 넘겨주지 않는 키를 알려준다.
+    dropped = [k for k in policy
+               if k in TOP_LEVEL_KEYS and k not in PASSED_THROUGH
+               and k not in ("eligibility", "documents", "expected_documents",
+                             "conditions", "summary", "_source_file")]
+    if dropped:
+        warns.append(
+            f"{', '.join(dropped)} 는 matching.py 가 결과에 안 실어줍니다 "
+            f"— 성현에게 통과 요청 필요"
+        )
 
     period = policy.get("apply_period")
     if not period:
