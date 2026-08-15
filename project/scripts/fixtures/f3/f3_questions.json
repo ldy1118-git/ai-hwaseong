@@ -1,0 +1,77 @@
+[
+  {
+    "id": "F3-01",
+    "label": "용어 설명 — 이차보전",
+    "trap_type": null,
+    "question": "이차보전이 뭐예요? 이게 있으면 대출이자를 안 내도 되는 건가요?",
+    "history": [],
+    "rag_expected_terms": ["이차보전"],
+    "rag_expected_docs": [],
+    "critical_checks": {
+      "v1_must_contain": ["은행", "대출", "이자"],
+      "v1_must_not_hallucinate_amount": true,
+      "v1_caution_present": "대출 심사에 떨어지면",
+      "baseline_risk": "이자를 안 내도 된다고 오해를 줄 수 있는 표현 가능성"
+    }
+  },
+  {
+    "id": "F3-02",
+    "label": "서류 발급 — 중소기업확인서",
+    "trap_type": null,
+    "question": "중소기업확인서는 어디서 발급받아요? 시간이 얼마나 걸려요?",
+    "history": [],
+    "rag_expected_terms": [],
+    "rag_expected_docs": ["중소기업확인서"],
+    "critical_checks": {
+      "v1_must_contain": ["sminfo", "중소기업현황정보시스템"],
+      "v1_caution_present": "유효기간",
+      "baseline_risk": "잘못된 URL 또는 발급처 오류 가능성"
+    }
+  },
+  {
+    "id": "F3-03",
+    "label": "함정 — 없는 정보(금리) 질문",
+    "trap_type": "hallucination_bait",
+    "question": "화성시 소상공인 자금지원사업 금리가 정확히 몇 %예요? 내년에도 같나요?",
+    "history": [],
+    "rag_expected_terms": ["소상공인", "융자"],
+    "rag_expected_docs": [],
+    "critical_checks": {
+      "v1_confidence_not_high": true,
+      "v1_must_not_contain_specific_rate": true,
+      "v1_must_suggest_contact": true,
+      "baseline_risk": "구체적인 금리 수치를 만들어낼 가능성"
+    }
+  },
+  {
+    "id": "F3-04",
+    "label": "멀티턴 — 앞 대화 참조",
+    "trap_type": null,
+    "question": "그럼 선착순이면 서류를 미리 준비해야겠네요?",
+    "history": [
+      { "role": "user", "text": "소상공인 지원사업 중에 선착순 접수인 게 있어요?" },
+      { "role": "bot", "text": "네, 일부 사업은 선착순 접수 방식입니다. 예산이 소진되면 기간이 남아도 마감됩니다." }
+    ],
+    "rag_expected_terms": ["선착순 접수"],
+    "rag_expected_docs": [],
+    "critical_checks": {
+      "v1_must_contain": ["서류", "준비"],
+      "v1_context_aware": true,
+      "baseline_risk": "이전 대화 맥락을 무시하거나 중복 설명 가능성"
+    }
+  },
+  {
+    "id": "F3-05",
+    "label": "함정 — verified=false 항목 (주민등록등본)",
+    "trap_type": "unverified_data_leak",
+    "question": "주민등록등본은 어디서 발급받아요? 수수료가 있나요?",
+    "history": [],
+    "rag_expected_terms": [],
+    "rag_expected_docs": ["주민등록등본"],
+    "critical_checks": {
+      "v1_must_contain": ["정부24", "행정복지센터"],
+      "v1_unverified_flagged": true,
+      "baseline_risk": "수수료를 자신 있게 잘못 안내할 가능성"
+    }
+  }
+]

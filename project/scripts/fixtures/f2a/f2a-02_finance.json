@@ -1,0 +1,49 @@
+{
+ "notice_id": "PBLN_000000000122952",
+ "title": "2026년 영세 소상공인 중소금융권 금융비용 지원사업 재공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000122952",
+ "summary": "’25. 1. 1. ~ 12. 31.까지, \n제2금융권*\n에서 신규(갱신 제외)로\n사업자 대출 (가계대출 제외)을 받은 \n개인사업자\n(법인사업자\n제외)\n로서\n5%이상 금리\n로 대출을 받은 \n소상공인\n* \n저축은행, 여신금융전문회사(카드사, 캐피탈), 상호금융(신협, 지역농수협,산림조합, 새마을금고\n), \n보험사\n ❍ 대출기준 : 사업자 대출로 대출용도가 ‘가계’ ‘주택’인 경우 제외\n&lt; 지원제외 대상 &gt;\n 󰋻\n사행산업 등 국민정서상 지원이 부적절한 업종\n (도박 및 사행성, 불건전 오락기구 도․소매업, 사치․향락, 건강유해 업종 등)\n 󰋻공고일 현재 휴․폐업 업종, 단 재해․재난을 직접 원인으로 휴업중인 소상공인 제외\n 󰊲\n 지원내용\n❍ 지원내용 : \n’25년도 신규 대출자가 \n’25~‘26년 ",
+ "apply_period": {
+  "start": "2026-06-08",
+  "end": "2026-11-30"
+ },
+ "eligibility": {
+  "business_status": [
+   "운영중"
+  ]
+ },
+ "documents": [
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 사업신청서"
+  },
+  {
+   "name": "금융거래 확인서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "부가가치세 과세표준증명",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 부가가치세과세표준증명원"
+  },
+  {
+   "name": "서식 1",
+   "type": "common",
+   "confidence": "confirmed"
+  }
+ ],
+ "apply_url": "https://gjbizinfo.or.kr",
+ "apply_method": "온라인 접수 (광주기업지원시스템)\r\n※ 온라인 신청 원칙, 온라인 신청 어려울 시 오프라인 신청 가능(방문 접수)\r\n- 접수처 : 광주경제진흥상생일자리재단 3층 소상공인디지털전환실",
+ "contact": "광주경제진흥상생일자리재단 소상공인디지털전환실 062-960-2636",
+ "organizer": "전남광주통합특별시",
+ "operator": "광주경제진흥상생일자리재단"
+}

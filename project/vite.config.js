@@ -6,8 +6,8 @@ export default defineConfig({
   base: './',
   server: {
     host: true,
-    port: 3000,
-    allowedHosts: ['ahnbi3.suwon.ac.kr'],
+    port: 3001,
+    allowedHosts: true,
     watch: {
       usePolling: true,
     },
