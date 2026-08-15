@@ -79,6 +79,32 @@ OCR은 CPU로만 돌리므로(`gpu=False`) CPU 빌드 torch면 충분하다.
 | POST | `/api/user/load` | 기기별 프로필·채팅기록 조회 |
 | POST | `/api/user/save` | 프로필·채팅기록 저장 |
 | POST | `/api/business-registration` | 사업자등록증 업로드 → OCR → 프로필 자동 반영 |
+| GET | `/api/terms` | 행정용어 사전 원본 (용어 31 + 서류 26) |
+| POST | `/api/terms/lookup` | 공고문에 나온 용어만 + 서류 발급 방법 |
+
+### 용어 사전은 복사하지 말 것
+
+`terms.json` 을 프론트로 복사해 두면 사전을 고쳤을 때 복사본이 조용히
+낡는다. `GET /api/terms` 로 받아 쓰면 원본 하나만 남는다.
+
+`POST /api/terms/lookup` 은 공고문에 **실제로 등장한** 용어만 골라준다.
+사전 전체를 LLM 프롬프트에 넣으면 토큰도 낭비고 엉뚱한 용어까지 끌어온다.
+
+```js
+const res = await fetch("http://127.0.0.1:8000/api/terms/lookup", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    text: notice.summary,                              // 공고문
+    documents: result.expected_documents.map(d => d.name),  // 매칭 결과의 서류명
+  }),
+})
+const { terms, documents, glossary } = await res.json()
+```
+
+- `terms` — 등장한 용어. 쉬운 설명·주의사항이 붙어 있다
+- `documents` — 서류별 발급처·비용·소요시간 (`issue` 필드)
+- `glossary` — 위 내용을 LLM 프롬프트에 바로 넣을 수 있게 만든 문자열
 
 ### 다른 포트에서 부를 때 (React 등)
 
