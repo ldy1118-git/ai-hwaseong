@@ -48,7 +48,7 @@ USERS_DIR = BASE_DIR / "users"
 USER_RECORD_LOCK = RLock()
 
 # 실제 공고는 policy_data/notices/ 에 있다 (기업마당에서 수집한 25건).
-# matching/notices/ 는 형식 참고용 샘플 19건이라 실제 공고가 아니다.
+# backend/notices/ 는 형식 참고용 샘플 19건이라 실제 공고가 아니다.
 # 수집 결과가 없으면 샘플로 물러난다 — 저장소만 받은 사람도 돌려볼 수 있게.
 REAL_NOTICES = BASE_DIR.parent / "policy_data" / "notices"
 SAMPLE_NOTICES = BASE_DIR / "notices"

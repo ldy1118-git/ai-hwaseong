@@ -142,7 +142,7 @@ marital_status       미혼 | 기혼
 ```bash
 python3 policy_data/validate.py                      # policy_data/notices/ 전체
 python3 policy_data/validate.py 파일.json             # 특정 파일
-python3 policy_data/validate.py --dir matching/notices  # 다른 폴더
+python3 policy_data/validate.py --dir backend/notices  # 다른 폴더
 ```
 
 형식 검사만 하는 게 아니라 **실제 매칭 엔진에 넣어서 조건이 살아있는지 확인**한다.
@@ -152,6 +152,6 @@ python3 policy_data/validate.py --dir matching/notices  # 다른 폴더
 
 ## 참고
 
-- 실제 예시: `matching/notices/bizinfo_PBLN_000000000120801_clean_care.json`
-- 성현이 만든 샘플 19건: `matching/notices/` — 형식 참고용이지 실제 공고가 아니다
+- 실제 예시: `backend/notices/bizinfo_PBLN_000000000120801_clean_care.json`
+- 성현이 만든 샘플 19건: `backend/notices/` — 형식 참고용이지 실제 공고가 아니다
 - 매칭 엔진 출력 스키마는 노션 「매칭알고리즘」 페이지 참고

@@ -6,7 +6,7 @@
 
     python3 policy_data/validate.py                        policy_data/notices/ 전체
     python3 policy_data/validate.py 파일.json               특정 파일
-    python3 policy_data/validate.py --dir matching/notices  다른 폴더
+    python3 policy_data/validate.py --dir backend/notices  다른 폴더
 
 규격은 policy_data/schema.md 참고.
 """
@@ -18,13 +18,13 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "matching"))
+sys.path.insert(0, str(ROOT / "backend"))
 
 try:
     from matching import normalize_policy, match_policy
 except ImportError as error:  # pragma: no cover
     print(f"matching.py 를 불러오지 못했습니다: {error}", file=sys.stderr)
-    print(f"  기대한 위치: {ROOT / 'matching' / 'matching.py'}", file=sys.stderr)
+    print(f"  기대한 위치: {ROOT / 'backend' / 'matching.py'}", file=sys.stderr)
     raise SystemExit(1)
 
 

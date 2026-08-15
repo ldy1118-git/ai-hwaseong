@@ -9,7 +9,7 @@
 
 ```
 main                    항상 동작하는 상태. 여기가 깨지면 다 같이 멈춘다
-├── feat/matching       성현   — matching/
+├── feat/matching       성현   — backend/
 ├── feat/llm            서희   — llm/, 통합 UI
 └── feat/policy         대윤   — policy_data/
 ```
@@ -77,7 +77,7 @@ GitHub에서 Pull Request를 만들어 머지해도 된다. 리뷰를 기다릴 
 
 ### 1. 화면(index.html)
 
-`matching/index.html`은 **성현의 테스트용 페이지**다. 그대로 둔다.
+`backend/index.html`은 **성현의 테스트용 페이지**다. 그대로 둔다.
 실제 서비스 UI는 서희가 별도 폴더에서 새로 만든다.
 같은 파일을 둘이 고치는 상황을 아예 만들지 않는 게 목적이다.
 
@@ -85,7 +85,7 @@ GitHub에서 Pull Request를 만들어 머지해도 된다. 리뷰를 기다릴 
 
 | 위치 | 용도 | 주인 |
 |---|---|---|
-| `matching/notices/` | 성현이 손으로 만든 샘플 19건. 매칭 로직 테스트용 고정 데이터 | 성현 |
+| `backend/notices/` | 성현이 손으로 만든 샘플 19건. 매칭 로직 테스트용 고정 데이터 | 성현 |
 | `policy_data/notices/` | 대윤이 크롤링/API로 모은 실제 공고 | 대윤 |
 
 두 폴더를 분리해서 쓴다. 같은 폴더에 양쪽이 파일을 쏟아부으면 섞인다.
