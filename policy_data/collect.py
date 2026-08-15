@@ -152,6 +152,43 @@ SIGUNGU = re.compile(r"\s*([가-힣]+[시군구])")
 # 화성시 소상공인이 신청할 수 있는 범위
 USABLE = {"전국", "화성", "경기전체"}
 
+# 광역지자체가 소관인 공고는 그 지역 주민·사업자만 신청할 수 있다.
+# 기업마당이 제목에 [부산] 같은 표시를 항상 붙여주지는 않기 때문에
+# (실제로 5건이 표시 없이 들어왔다) 소관기관 이름으로 한 번 더 본다.
+GWANGYEOK = {
+    "서울": "서울", "부산": "부산", "대구": "대구", "인천": "인천",
+    "광주": "광주", "대전": "대전", "울산": "울산", "세종": "세종",
+    "강원": "강원", "충청북": "충북", "충북": "충북",
+    "충청남": "충남", "충남": "충남",
+    "전라북": "전북", "전북": "전북", "전라남": "전남", "전남": "전남",
+    "경상북": "경북", "경북": "경북", "경상남": "경남", "경남": "경남",
+    "제주": "제주",
+}
+
+# 광역지자체 소관이어도 일부 과제는 전국에서 신청할 수 있다.
+# 예: 부산 홍보영상 지원 — "매장영상은 부산 사업자만, 제품영상은 전국 가능".
+# 이런 문구가 있으면 지역 전용으로 잘라내지 않는다. 자르면 화성 소상공인이
+# 실제로 신청 가능한 과제까지 같이 사라진다.
+NATIONWIDE_HINT = re.compile(
+    r"전국\s*(?:의\s*)?소상공인|국내에\s*사업자를\s*둔[^\n]{0,20}모두|"
+    r"지역\s*제한\s*없|거주지\s*무관")
+
+
+def jurisdiction_region(entry: dict) -> str | None:
+    """소관기관이 광역지자체면 그 지역 이름을, 아니면 None을 돌려준다.
+
+    중앙부처(중소벤처기업부 등) 소관이면 None이다. 수행기관은 보지 않는다.
+    소담스퀘어처럼 중앙부처 사업을 지역 기관이 대행하는 경우가 있어서,
+    수행기관까지 보면 전국 사업을 지역 전용으로 잘못 자른다.
+    """
+    organizer = field(entry, "jrsdInsttNm", "author")
+    if not organizer or "부" in organizer[-1:]:  # 중소벤처기업부 등
+        return None
+    for keyword, name in GWANGYEOK.items():
+        if keyword in organizer:
+            return name
+    return None
+
 
 def scope(entry: dict) -> str:
     """이 공고를 화성시 소상공인이 신청할 수 있는지 지역 범위로 판정한다.
@@ -159,10 +196,18 @@ def scope(entry: dict) -> str:
     기업마당은 공고명 앞에 [경기] 처럼 시/도를 붙인다. 대괄호가 없으면
     중앙부처 공고라 전국 대상이다. [경기] 뒤에 다른 시군 이름이 붙으면
     (예: [경기] 시흥시 …) 그 시 주민만 신청할 수 있으므로 제외한다.
+
+    대괄호를 믿기만 하면 안 된다. 표시 없이 들어오는 지역 공고가 있어서
+    소관기관도 같이 본다.
     """
     title = field(entry, "pblancNm", "title")
     match = BRACKET.match(title)
     if match is None:
+        if "화성" in title:
+            return "화성"
+        region = jurisdiction_region(entry)
+        if region and not NATIONWIDE_HINT.search(haystack(entry)):
+            return f"타시도({region})"
         return "전국"
     tag = match.group(1).strip()
     if "화성" in title:
