@@ -1,0 +1,30 @@
+{
+ "notice_id": "PBLN_000000000120821",
+ "title": "2026년 디지털커머스 전문기관(소담스퀘어강원) 소상공인 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000120821",
+ "summary": "소상공인의 온라인시장 진출 및 판로개척 지원을 위한「2026년 디지털커머스 전문기관(소담스퀘어강원) 지원사업」을 다음과 같이 공고하오니, 소상공인의 많은 참여를 바랍니다. ☞ 소상공인 ☞ 맞춤형 1:1 컨설팅, 디지털전환 교육, 라이브커머스 운영, 온라인컨텐츠 제작, 우리기업알리기 TV방송프로그램 제작, 온라인기획전, 소상공인 프로필 촬영 지원",
+ "apply_period": {
+  "start": "2026-04-13",
+  "end": "2026-11-30"
+ },
+ "eligibility": {},
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_url": "https://fanfandaero.kr/portal/v2/preSprtBizPbanc.do",
+ "apply_method": "온라인 접수 (판판대로)",
+ "contact": "강원특별자치도 경제진흥원 033-241-7737, gwsodam@naver.com",
+ "organizer": "중소벤처기업부",
+ "operator": "강원특별자치도경제진흥원"
+}

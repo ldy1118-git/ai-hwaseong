@@ -1,0 +1,41 @@
+﻿{
+    "notice_id":  "HS-2026-014",
+    "policy_id":  "HS_YOUTH_STARTUP",
+    "title":  "화성시 청년 예비창업 초기지원 사업",
+    "apply_period":  {
+                         "start":  "2026-03-01",
+                         "end":  "2026-03-31"
+                     },
+    "eligibility":  {
+                        "max_age":  39,
+                        "regions":  [
+                                        "화성시"
+                                    ],
+                        "career_experience":  [
+                                                  "없음"
+                                              ],
+                        "asset_groups":  [
+                                             "기초생활수급자",
+                                             "차상위",
+                                             "일반"
+                                         ]
+                    },
+    "documents":  [
+                      {
+                          "name":  "주민등록등본",
+                          "type":  "common",
+                          "confidence":  "confirmed"
+                      },
+                      {
+                          "name":  "사업계획서",
+                          "type":  "common",
+                          "confidence":  "confirmed"
+                      },
+                      {
+                          "name":  "가족관계증명서",
+                          "type":  "conditional",
+                          "confidence":  "estimated",
+                          "reason":  "부모 동거 조건과 연결될 때만 필요 - 원문 확인 필요"
+                      }
+                  ]
+}

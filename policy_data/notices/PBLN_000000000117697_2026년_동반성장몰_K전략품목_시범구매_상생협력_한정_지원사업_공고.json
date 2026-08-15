@@ -1,0 +1,30 @@
+{
+ "notice_id": "PBLN_000000000117697",
+ "title": "2026년 동반성장몰(K전략품목ㆍ시범구매ㆍ상생협력 한정) 지원사업 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000117697",
+ "summary": "동반성장몰을 통한 K전략품목/시범구매제품/상생협력제품 판로지원 연계 및 홍보지원을 위한 사업입니다. ☞ 중기업, 소기업, 소상공인 ☞ 동반성장몰을 통한 K전략품목/시범구매제품/상생협력제품 판로지원 연계 및 홍보지원 - 우수 중소기업 제품을 동반성장몰(대기업, 공공기관 등이 도입)을 통해 판매할 수 있도록 지원 - 월별 도입기관 맞춤형 기획전 상시 운영",
+ "apply_period": {
+  "start": "2026-01-01",
+  "end": "2026-12-31"
+ },
+ "eligibility": {},
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_url": "https://fanfandaero.kr/portal/v2/preSprtBizPbancDetail.do?sprtBizCd=202604020000&sprtBizTrgtYn=N&groupNo=",
+ "apply_method": "온라인 접수 (판판대로 홈페이지)",
+ "contact": "중소기업유통센터 동반성장몰팀 [K전략품목 인증 관련 문의] 02-6678-9713, 9714 / [입점 관련 문의] 1522-6009 / [계정발금 및 전자계약 관련 문의] 02-6678-9822 / [동반성장몰 정산 관련 문의] 02-6678-9824",
+ "organizer": "중소벤처기업부",
+ "operator": "한국중소벤처기업유통원"
+}

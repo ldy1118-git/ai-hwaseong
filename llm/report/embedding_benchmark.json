@@ -1,0 +1,337 @@
+{
+  "keyword": {
+    "name": "키워드 베이스라인",
+    "metrics": {
+      "hit1": 1.0,
+      "hit3": 1.0,
+      "mrr": 1.0,
+      "details": [
+        {
+          "id": "F3-01",
+          "expected": [
+            "이차보전"
+          ],
+          "retrieved": [
+            "이차보전"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        },
+        {
+          "id": "F3-02",
+          "expected": [
+            "중소기업확인서"
+          ],
+          "retrieved": [
+            "중소기업확인서",
+            "건강보험료 납부확인서",
+            "소상공인"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        },
+        {
+          "id": "F3-03",
+          "expected": [
+            "소상공인",
+            "융자"
+          ],
+          "retrieved": [
+            "소상공인",
+            "중소기업확인서",
+            "융자"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        },
+        {
+          "id": "F3-04",
+          "expected": [
+            "선착순 접수"
+          ],
+          "retrieved": [
+            "선착순 접수",
+            "매출 증빙자료"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        },
+        {
+          "id": "F3-05",
+          "expected": [
+            "주민등록등본"
+          ],
+          "retrieved": [
+            "주민등록등본",
+            "공장등록증",
+            "사업자등록증"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        }
+      ]
+    },
+    "encode_ms": 0
+  },
+  "bge-m3": {
+    "name": "BGE-M3",
+    "hf": "BAAI/bge-m3",
+    "load_ms": 21153,
+    "encode_ms": 2129,
+    "metrics": {
+      "hit1": 0.8,
+      "hit3": 1.0,
+      "mrr": 0.9,
+      "details": [
+        {
+          "id": "F3-01",
+          "expected": [
+            "이차보전"
+          ],
+          "retrieved": [
+            "이차보전",
+            "특례보증",
+            "융자"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        },
+        {
+          "id": "F3-02",
+          "expected": [
+            "중소기업확인서"
+          ],
+          "retrieved": [
+            "중소기업확인서",
+            "사업자등록증명",
+            "소득금액증명"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        },
+        {
+          "id": "F3-03",
+          "expected": [
+            "소상공인",
+            "융자"
+          ],
+          "retrieved": [
+            "미소금융",
+            "융자",
+            "신용보증재단"
+          ],
+          "hit1": 0,
+          "hit3": 1,
+          "rr": 0.5
+        },
+        {
+          "id": "F3-04",
+          "expected": [
+            "선착순 접수"
+          ],
+          "retrieved": [
+            "선착순 접수",
+            "신청서",
+            "붙임"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        },
+        {
+          "id": "F3-05",
+          "expected": [
+            "주민등록등본"
+          ],
+          "retrieved": [
+            "주민등록등본",
+            "사업자등록증",
+            "사업자등록증명"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        }
+      ]
+    }
+  },
+  "kure": {
+    "name": "KURE-v1",
+    "error": "401 Client Error. (Request ID: Root=1-6a7f5e73-18ced09324641e093eee388a;5d8cbf0b-4968-474c-9d86-9b97b39c315e)\n\nRepository Not Found for url: https://huggingface.co/upskyy/kure-roberta-small-v2/resolve/main/modules.json.\nPlease make sure you specified the correct `repo_id` and `repo_type`.\nIf you are trying to access a private or gated repo, make sure you are authenticated and your token has the required permissions.\nFor more details, see https://huggingface.co/docs/huggingface_hub/authentication\nInvalid username or password."
+  },
+  "kosimcse": {
+    "name": "KoSimCSE-RoBERTa",
+    "hf": "BM-K/KoSimCSE-roberta-multitask",
+    "load_ms": 3956,
+    "encode_ms": 172,
+    "metrics": {
+      "hit1": 0.8,
+      "hit3": 0.8,
+      "mrr": 0.8,
+      "details": [
+        {
+          "id": "F3-01",
+          "expected": [
+            "이차보전"
+          ],
+          "retrieved": [
+            "이차보전",
+            "융자",
+            "성실상환"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        },
+        {
+          "id": "F3-02",
+          "expected": [
+            "중소기업확인서"
+          ],
+          "retrieved": [
+            "중소기업확인서",
+            "공장등록증",
+            "사업자등록증"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        },
+        {
+          "id": "F3-03",
+          "expected": [
+            "소상공인",
+            "융자"
+          ],
+          "retrieved": [
+            "미소금융",
+            "기준 중위소득",
+            "국비"
+          ],
+          "hit1": 0,
+          "hit3": 0,
+          "rr": 0.0
+        },
+        {
+          "id": "F3-04",
+          "expected": [
+            "선착순 접수"
+          ],
+          "retrieved": [
+            "선착순 접수",
+            "사업량",
+            "고시"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        },
+        {
+          "id": "F3-05",
+          "expected": [
+            "주민등록등본"
+          ],
+          "retrieved": [
+            "주민등록등본",
+            "사업자등록증",
+            "사업자등록증명"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        }
+      ]
+    }
+  },
+  "kr-sbert": {
+    "name": "KR-SBERT",
+    "hf": "jhgan/ko-sroberta-multitask",
+    "load_ms": 15303,
+    "encode_ms": 158,
+    "metrics": {
+      "hit1": 0.8,
+      "hit3": 0.8,
+      "mrr": 0.8,
+      "details": [
+        {
+          "id": "F3-01",
+          "expected": [
+            "이차보전"
+          ],
+          "retrieved": [
+            "이차보전",
+            "융자",
+            "성실상환"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        },
+        {
+          "id": "F3-02",
+          "expected": [
+            "중소기업확인서"
+          ],
+          "retrieved": [
+            "중소기업확인서",
+            "공장등록증",
+            "소상공인"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        },
+        {
+          "id": "F3-03",
+          "expected": [
+            "소상공인",
+            "융자"
+          ],
+          "retrieved": [
+            "미소금융",
+            "관내",
+            "국비"
+          ],
+          "hit1": 0,
+          "hit3": 0,
+          "rr": 0.0
+        },
+        {
+          "id": "F3-04",
+          "expected": [
+            "선착순 접수"
+          ],
+          "retrieved": [
+            "선착순 접수",
+            "사업량",
+            "신청서"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        },
+        {
+          "id": "F3-05",
+          "expected": [
+            "주민등록등본"
+          ],
+          "retrieved": [
+            "주민등록등본",
+            "수급자 증명서",
+            "건강보험료 납부확인서"
+          ],
+          "hit1": 1,
+          "hit3": 1,
+          "rr": 1.0
+        }
+      ]
+    }
+  }
+}

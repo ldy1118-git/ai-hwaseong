@@ -1,0 +1,25 @@
+{
+  "notice_id": "HS-2026-YOUTH",
+  "title": "2026년 화성시 청년 예비창업자 지원사업",
+  "summary": "화성시 거주 만 39세 이하 예비창업자에게 창업 준비금을 지원합니다. 선착순 심사 후 50만원 상당 창업 바우처 지급. 창업 경험이 없어야 하며, 부모와 동거 중인 경우 가족관계증명서를 추가 제출합니다.",
+  "apply_period": { "start": "2026-08-01", "end": "2026-10-31" },
+  "eligibility": {
+    "region": "화성시",
+    "business_status": ["예비창업자"],
+    "max_age": 39,
+    "career_experience": "없음",
+    "income_asset": null
+  },
+  "documents": [
+    { "name": "신청서", "type": "common", "confidence": "confirmed", "reason": "공고 붙임 서식" },
+    { "name": "사업계획서", "type": "common", "confidence": "confirmed", "reason": "심사 선정 사업 — 붙임 양식" },
+    { "name": "주민등록등본", "type": "common", "confidence": "confirmed", "reason": "화성시 거주 확인" },
+    { "name": "가족관계증명서", "type": "conditional", "confidence": "estimated", "reason": "부모 동거 확인 — 부모 동거 조건과 연결, 원문 확인 필요" },
+    { "name": "개인정보 수집·이용 동의서", "type": "common", "confidence": "confirmed", "reason": "공고 붙임 서식" }
+  ],
+  "apply_url": "https://youth.hscity.go.kr",
+  "apply_method": "온라인 접수",
+  "contact": "화성시 소상공인지원팀 031-5189-3456",
+  "organizer": "화성시",
+  "operator": "화성시 일자리경제국"
+}
