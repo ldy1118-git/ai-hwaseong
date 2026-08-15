@@ -22,8 +22,8 @@ if [[ ! -x "$VENV_PYTHON" ]]; then
   exit 1
 fi
 
-echo "matching 웹 서버 시작 → http://127.0.0.1:$PORT/index.html"
+echo "backend 웹 서버 시작 → http://127.0.0.1:$PORT/index.html"
 echo "중지하려면 Ctrl+C"
 
-cd "$ROOT/matching"
+cd "$ROOT/backend"
 exec env OMP_NUM_THREADS=4 "$VENV_PYTHON" matching.py --serve --port "$PORT"

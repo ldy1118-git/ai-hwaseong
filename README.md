@@ -12,7 +12,7 @@
 
 ```
 AI_hwasung_limdaeyun/
-├── matching/            매칭 엔진 + 웹 서버 (담당: 성현)
+├── backend/             매칭 엔진 + API 서버 (담당: 성현·대윤)
 │   ├── matching.py        조건 판정·점수화·HTTP 서버
 │   ├── OCR.py             사업자등록증 OCR 및 필드 추출
 │   ├── index.html         채팅형 프론트엔드
@@ -30,7 +30,7 @@ AI_hwasung_limdaeyun/
 
 개인정보(사업자등록증 이미지, 사용자 프로필)는 저장소에 두지 않는다.
 실제 파일은 `../_private_hwaseong/users/` 에 있고 `.gitignore`로도 막아뒀다.
-서버는 `matching/users/` 를 필요할 때 자동으로 다시 만든다.
+서버는 `backend/users/` 를 필요할 때 자동으로 다시 만든다.
 
 ---
 
@@ -143,13 +143,13 @@ organizer      소관기관    operator  수행기관
 ### 어느 공고를 읽는가
 
 기본값은 `policy_data/notices/` — 기업마당에서 수집한 실제 공고다.
-`matching/notices/` 는 형식 참고용 샘플이라 실제 공고가 아니다.
+`backend/notices/` 는 형식 참고용 샘플이라 실제 공고가 아니다.
 샘플로 돌려보려면 요청에 `notices_folder: "notices"` 를 넣으면 된다.
 
 CLI로도 쓸 수 있다.
 
 ```bash
-cd matching
+cd backend
 python3 matching.py                 # 샘플 프로필로 추천 출력
 python3 matching.py --interactive   # 조건 직접 입력
 python3 matching.py --json          # 전체 결과 JSON
@@ -178,7 +178,7 @@ python3 OCR.py <이미지경로>          # OCR 단독 테스트
 |---|---|
 | 첫 OCR 요청 | 약 78초 (easyocr Reader 초기화 + 모델 로딩, 서버 프로세스당 1회) |
 | 이후 OCR 요청 | 약 17초 (전역 Reader 캐시) |
-| 공고 19건 매칭 | 1초 미만 |
+| 공고 25건 매칭 | 1초 미만 |
 
 ---
 

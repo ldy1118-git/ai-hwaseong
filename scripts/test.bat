@@ -1,7 +1,7 @@
 @echo off
 rem 윈도우에서 매칭 웹 서버를 띄우고 브라우저를 여는 스크립트
-rem 위치가 scripts/ 이므로 상위의 matching/ 으로 이동해서 실행한다
-cd /d "%~dp0..\matching"
+rem 위치가 scripts/ 이므로 상위의 backend/ 으로 이동해서 실행한다
+cd /d "%~dp0..\backend"
 
 set PORT=8000
 echo Checking EasyOCR...
