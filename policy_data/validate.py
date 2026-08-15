@@ -55,8 +55,10 @@ TOP_LEVEL_KEYS = {
 
 # matching.py 의 match_policy() 가 결과에 실어주는 키. 여기 없으면 화면까지
 # 전달되지 않는다 — 파일에 적어둬도 조용히 사라진다.
+# 신청 안내 5개 필드는 matching.py 의 APPLICATION_FIELDS 로 통과된다.
 PASSED_THROUGH = {
     "notice_id", "policy_id", "title", "source_url", "apply_period",
+    "apply_url", "apply_method", "contact", "organizer", "operator",
 }
 
 DOC_TYPES = {"common", "required", "conditional", "if_applicable"}

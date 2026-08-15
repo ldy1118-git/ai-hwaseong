@@ -299,9 +299,16 @@ def build_notice(entry: dict, doc_text: str) -> tuple[dict, list[str]]:
 
     # 화성시 전용 공고는 지역 조건이 실제로 있다. 전국·경기 공고는 조건을
     # 걸지 않는다 — 우리 사용자는 모두 화성시민이라 걸어봐야 전원 통과다.
-    if scope(entry) == "화성":
+    where = scope(entry)
+    if where == "화성":
         eligibility["regions"] = ["화성시", "화성특례시"]
         evidence.append('regions = ["화성시", "화성특례시"]  ← 화성시 전용 공고')
+    elif where.startswith("타시도"):
+        # 타지역 전용 공고는 지역 조건을 걸어야 '대상아님'으로 걸러진다.
+        # 안 걸면 조건이 하나도 없는 공고가 되어 100점 신청가능으로 뜬다.
+        region = where[len("타시도("):-1]
+        eligibility["regions"] = [region]
+        evidence.append(f'regions = ["{region}"]  ← {region} 지역 전용 공고')
 
     documents = build_documents(doc_section) if doc_section else []
     if not documents:
@@ -357,6 +364,12 @@ def main() -> int:
             if SOSANG.search(haystack(r)) and scope(r) in USABLE and is_open(r)]
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    # 지난 실행에서 남은 파일을 지운다. 안 지우면 걸러내기로 한 공고가
+    # 파일로 계속 살아남아 매칭에 들어간다. 실제로 광주·서울 전용 공고가
+    # 이렇게 남아서 화성 사용자에게 '신청가능'으로 떴다.
+    stale = {path.name for path in OUT_DIR.glob("*.json")}
+    written: set[str] = set()
+
     with_text = without_text = 0
     skipped: list[tuple[str, str]] = []
 
@@ -394,11 +407,23 @@ def main() -> int:
 
         if not review_only:
             slug = re.sub(r"[^0-9A-Za-z가-힣]+", "_", notice["title"])[:40].strip("_")
-            (OUT_DIR / f"{pblanc_id}_{slug}.json").write_text(
+            name = f"{pblanc_id}_{slug}.json"
+            written.add(name)
+            (OUT_DIR / name).write_text(
                 json.dumps(notice, ensure_ascii=False, indent=1), encoding="utf-8")
+
+    removed = sorted(stale - written)
+    if not review_only:
+        for name in removed:
+            (OUT_DIR / name).unlink()
 
     print()
     print("=" * 70)
+    if removed:
+        print(f"이번에 걸러져서 지운 공고 {len(removed)}건")
+        for name in removed:
+            print(f"  · {name}")
+        print()
     if skipped:
         print(f"제외한 공고 {len(skipped)}건")
         for title, reason in skipped:
