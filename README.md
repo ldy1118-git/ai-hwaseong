@@ -80,6 +80,46 @@ OCR은 CPU로만 돌리므로(`gpu=False`) CPU 빌드 torch면 충분하다.
 | POST | `/api/user/save` | 프로필·채팅기록 저장 |
 | POST | `/api/business-registration` | 사업자등록증 업로드 → OCR → 프로필 자동 반영 |
 
+### 다른 포트에서 부를 때 (React 등)
+
+CORS를 열어놨다. Vite(5173)에서 이 서버(8000)를 그대로 부르면 된다.
+`Content-Type: application/json` 을 붙인 POST 는 브라우저가 OPTIONS 를
+먼저 보내는데, 서버가 그것도 받는다.
+
+```js
+const res = await fetch("http://127.0.0.1:8000/api/match", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ device_id, user_profile }),
+})
+const { results } = await res.json()
+```
+
+`user_profile` 의 키 이름은 아래를 그대로 써야 한다. 다른 이름으로 보내면
+**에러 없이 조용히 무시되고** 그 조건이 통째로 빠진다.
+
+```
+region  business_status  category  career_experience  asset_group
+age  business_period_months  annual_revenue_krw  marital_status  living_with_parents
+```
+
+값 목록은 `policy_data/schema.md` 참고. 오타 하나면 아무도 매칭되지 않는다.
+
+결과 1건에 실려오는 신청 안내 필드는 이렇다. 없을 수도 있으니 확인하고 쓸 것.
+
+```
+apply_url      실제 접수 사이트 (source_url 은 공고 페이지라 다르다)
+apply_method   접수 방법
+contact        문의처
+organizer      소관기관    operator  수행기관
+```
+
+### 어느 공고를 읽는가
+
+기본값은 `policy_data/notices/` — 기업마당에서 수집한 실제 공고다.
+`matching/notices/` 는 형식 참고용 샘플이라 실제 공고가 아니다.
+샘플로 돌려보려면 요청에 `notices_folder: "notices"` 를 넣으면 된다.
+
 CLI로도 쓸 수 있다.
 
 ```bash

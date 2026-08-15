@@ -47,6 +47,25 @@ BASE_DIR = Path(__file__).resolve().parent
 USERS_DIR = BASE_DIR / "users"
 USER_RECORD_LOCK = RLock()
 
+# 실제 공고는 policy_data/notices/ 에 있다 (기업마당에서 수집한 25건).
+# matching/notices/ 는 형식 참고용 샘플 19건이라 실제 공고가 아니다.
+# 수집 결과가 없으면 샘플로 물러난다 — 저장소만 받은 사람도 돌려볼 수 있게.
+REAL_NOTICES = BASE_DIR.parent / "policy_data" / "notices"
+SAMPLE_NOTICES = BASE_DIR / "notices"
+
+
+def default_notices_folder() -> Path:
+    if REAL_NOTICES.is_dir() and any(REAL_NOTICES.glob("*.json")):
+        return REAL_NOTICES
+    return SAMPLE_NOTICES
+
+
+def resolve_notices_folder(requested: str | None) -> Path:
+    """요청이 폴더를 지정하면 그걸 쓰고, 없으면 실제 공고 폴더를 쓴다."""
+    if not requested:
+        return default_notices_folder()
+    return (BASE_DIR / requested).resolve()
+
 
 def _now_iso() -> str:
     return datetime.now(KST).replace(microsecond=0).isoformat()
@@ -880,11 +899,27 @@ def print_recommendations(results: list[dict[str, Any]], initial_limit: int = 3)
 class MatchingRequestHandler(BaseHTTPRequestHandler):
     server_version = "HwaseongMatching/1.0"
 
+    def _send_cors(self) -> None:
+        """프론트엔드가 다른 포트에서 돌기 때문에 필요하다.
+
+        React(Vite)는 5173, 이 서버는 8000 이라 브라우저가 다른 출처로 보고
+        응답을 막는다. 헤더가 없으면 fetch 가 전부 실패한다 — 서버 로그에는
+        200 이 찍히는데 브라우저 콘솔에만 CORS 오류가 뜨어서 원인을 찾기 어렵다.
+
+        해커톤 데모용이라 출처를 가리지 않는다. 실제 서비스라면 허용할
+        도메인을 정해서 넣어야 한다.
+        """
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Max-Age", "86400")
+
     def _send_json(self, payload: dict[str, Any] | list[Any], status: int = 200) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self._send_cors()
         self.end_headers()
         self.wfile.write(body)
 
@@ -893,8 +928,20 @@ class MatchingRequestHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self._send_cors()
         self.end_headers()
         self.wfile.write(body)
+
+    def do_OPTIONS(self) -> None:
+        """브라우저가 POST 전에 먼저 보내는 예비 요청(preflight).
+
+        Content-Type: application/json 을 붙인 POST 는 브라우저가 반드시
+        OPTIONS 를 먼저 던진다. 여기서 200 을 안 주면 본 요청이 아예 안 나간다.
+        """
+        self.send_response(204)
+        self._send_cors()
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def _serve_file(self, request_path: str) -> None:
         parsed_path = unquote(urlparse(request_path).path)
@@ -913,6 +960,7 @@ class MatchingRequestHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
+        self._send_cors()
         self.end_headers()
         self.wfile.write(body)
 
@@ -964,8 +1012,8 @@ class MatchingRequestHandler(BaseHTTPRequestHandler):
         try:
             device_id = payload.get("device_id")
             user_profile = payload.get("user_profile", payload)
-            notices_folder = payload.get("notices_folder", "notices")
-            policies = load_policies_from_folder(BASE_DIR / notices_folder)
+            policies = load_policies_from_folder(
+                resolve_notices_folder(payload.get("notices_folder")))
             results = match_policies(policies, user_profile)
             if device_id:
                 save_match_history(device_id, user_profile, results)
@@ -995,7 +1043,8 @@ def serve(host: str, port: int) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="화성시 소상공인 지원사업 매칭 엔진 테스트")
-    parser.add_argument("--notices", default="notices", help="공고문 JSON 폴더 경로")
+    parser.add_argument("--notices", default=None,
+                        help="공고문 JSON 폴더 경로 (기본값: policy_data/notices)")
     parser.add_argument("--profile", help="사용자 프로필 JSON 경로")
     parser.add_argument("--interactive", action="store_true", help="터미널에서 사용자 조건을 직접 입력")
     parser.add_argument("--json", action="store_true", help="추천 요약 대신 JSON 전체 출력")
@@ -1008,7 +1057,7 @@ def main() -> None:
         serve(args.host, args.port)
         return
 
-    policies = load_policies_from_folder(args.notices)
+    policies = load_policies_from_folder(resolve_notices_folder(args.notices))
     user_profile = input_user_profile() if args.interactive else load_user_profile(args.profile)
     results = match_policies(policies, user_profile)
 
