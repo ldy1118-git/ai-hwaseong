@@ -4,13 +4,45 @@
 
 ---
 
-## 프론트엔드
+## 프론트엔드 (Mars-Fit 리빌드 — 2026-08-16)
 
-- [x] 6개 화면 구현 (Landing, Onboarding, Dashboard, TaxSchedule, SupportPrograms, District, ServiceMap)
-- [x] 사이드바 + 챗봇 FAB (웹 레이아웃)
-- [x] Gemini API 챗봇 연동 (`gemini-3.6-flash`, 멀티턴) → Groq RAG 챗봇으로 교체 완료
-- [x] RAG 챗봇 프론트엔드 연결 (`generateChatbotResponseV1`, Groq + 키워드 RAG, followup 버튼 UI)
-- [x] JupyterHub 프록시 환경 서빙 (HashRouter + python http.server 3002)
+### 화면 구조 (React + Vite + Tailwind CSS)
+- [x] Landing — 히어로 + Mars 캐릭터 둥실 float 애니메이션 + 별 반짝임 + CTA 2개
+- [x] Auth — 회원가입/로그인 탭 전환, localStorage 임시 저장
+- [x] Onboarding — 4단계 마법사 (업종→창업상태→나이/지역→추가조건), localStorage 저장
+- [x] Home (대시보드) — MarsGreeting + OrbitDashboard + FloatingChatButton FAB
+- [x] ApplicationGuide (신청 동행) — AI 서류 체크리스트 + 진행률 원형 바
+- [x] MissionControl (챗봇 지령실) — 실시간 LLM 챗봇 + 행정용어 툴팁
+
+### 핵심 UI 컴포넌트
+- [x] Button, Card, Header, MarsAvatar, PageWrapper
+- [x] OrbitProgressBar — SVG 원호 애니메이션, 별 끝점
+- [x] ChatBubble — 행정용어 hover 툴팁 (클릭 → hover 방식으로 개선)
+- [x] FloatingChatButton — Mars 캐릭터 + 별 3개 float 애니메이션
+- [x] ChecklistSection — 체크 시 선긋기 + "완료" 배지 + 발급하기 URL 링크
+
+### 백엔드 연결
+- [x] `/api/match` (Python dev_server.py, CORS 래퍼) → OrbitDashboard 매칭 카드
+- [x] `generateChatbotResponseV1` + `terms.json` RAG → MissionControl 챗봇
+- [x] `generateChecklistV1` + `terms.json` RAG → ApplicationGuide AI 체크리스트
+- [x] JupyterHub 프록시 URL 자동 감지 (`getApiBase()`, 포트 교체 방식)
+- [x] LLM: `gemini-3.6-flash`, `dangerouslyAllowBrowser: true` (Groq 브라우저 호환)
+
+### 대시보드 카드 기능 (2026-08-16 추가)
+- [x] 정책명 + 정책 쉬운 설명 + 지원 내용 — 카드 렌더링 시 Gemini 개별 생성
+- [x] 매칭 점수 — 프로그레스 바 시각화
+- [x] 남은 기간 — D-Day 표시
+- [x] 매칭이유 ▼ — 클릭 시 Gemini가 자연어로 이유 설명 (조건 판정 기반)
+- [x] 자세히 → — 선택 프로그램을 localStorage에 저장 후 `/apply` 이동
+
+### 로딩 UX
+- [x] 대시보드 — 스켈레톤 카드 (매칭 로딩 중)
+- [x] 신청 동행 — search.png Mars 캐릭터 float 애니메이션 + "Mars가 필요한 서류 목록 탐구 중..."
+- [x] 챗봇 — 바운스 점 3개 "생각 중" 버블
+
+### 코드 정리 (2026-08-16)
+- [x] 미사용 파일 15개 삭제 (구버전 페이지·컴포넌트·유틸)
+- [x] Git 커밋 및 `ldy1118-git/ai-hwaseong` 레포 푸쉬 완료
 
 ---
 
