@@ -54,6 +54,23 @@ REAL_NOTICES = BASE_DIR.parent / "policy_data" / "notices"
 SAMPLE_NOTICES = BASE_DIR / "notices"
 
 
+def _terms_module():
+    """policy_data/terms.py 를 늦게 불러온다.
+
+    사전이 없어도 매칭은 돌아가야 하므로 import 실패를 예외로 두지 않는다.
+    사전 폴더가 없는 환경에서는 용어 API 만 404 가 된다.
+    """
+    import sys
+    path = str(BASE_DIR.parent / "policy_data")
+    if path not in sys.path:
+        sys.path.insert(0, path)
+    try:
+        import terms
+        return terms
+    except Exception:
+        return None
+
+
 def default_notices_folder() -> Path:
     if REAL_NOTICES.is_dir() and any(REAL_NOTICES.glob("*.json")):
         return REAL_NOTICES
@@ -965,14 +982,25 @@ class MatchingRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:
-        if urlparse(self.path).path == "/api/health":
+        path = urlparse(self.path).path
+        if path == "/api/health":
             self._send_json({"ok": True})
+            return
+        if path == "/api/terms":
+            # 사전 원본. 프론트는 terms.json 을 복사해 두지 말고 여기서 받는다.
+            # 복사본을 두면 사전을 고쳤을 때 복사본이 조용히 낡는다.
+            terms = _terms_module()
+            if terms is None:
+                self._send_json({"error": "용어 사전을 불러오지 못했습니다"}, 404)
+                return
+            self._send_json(terms.load())
             return
         self._serve_file(self.path)
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
-        if path not in {"/api/match", "/api/user/load", "/api/user/save", "/api/business-registration"}:
+        if path not in {"/api/match", "/api/user/load", "/api/user/save",
+                        "/api/business-registration", "/api/terms/lookup"}:
             self._send_text("Not found", 404)
             return
 
@@ -994,6 +1022,25 @@ class MatchingRequestHandler(BaseHTTPRequestHandler):
             profile = payload.get("profile", {})
             chat_history = payload.get("chat_history")
             self._send_json(replace_user_state(device_id, profile, chat_history))
+            return
+
+        if path == "/api/terms/lookup":
+            # 공고문에 실제로 나온 용어만 돌려준다. 사전 전체를 LLM 프롬프트에
+            # 넣으면 토큰도 낭비고 엉뚱한 용어까지 끌어온다.
+            # documents 에는 매칭 결과의 expected_documents 이름을 그대로 넣으면
+            # 발급처·비용·소요시간이 붙어서 돌아온다.
+            terms = _terms_module()
+            if terms is None:
+                self._send_json({"error": "용어 사전을 불러오지 못했습니다"}, 404)
+                return
+            text = payload.get("text") or ""
+            wanted = payload.get("documents") or []
+            found_docs = [doc for doc in (terms.find_document(name) for name in wanted) if doc]
+            self._send_json({
+                "terms": terms.find_terms(text),
+                "documents": found_docs,
+                "glossary": terms.glossary_for(text) if text else "",
+            })
             return
 
         if path == "/api/business-registration":
