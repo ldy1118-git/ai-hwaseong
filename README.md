@@ -11,14 +11,20 @@
 ## 폴더 구조
 
 ```
-AI_hwasung_limdaeyun/
+ai-hwaseong/
 ├── backend/             매칭 엔진 + API 서버 (담당: 성현·대윤)
 │   ├── matching.py        조건 판정·점수화·HTTP 서버
 │   ├── OCR.py             사업자등록증 OCR 및 필드 추출
-│   ├── index.html         채팅형 프론트엔드
-│   └── notices/           공고 JSON 19건
+│   ├── index.html         테스트용 화면 (버튼 문답식)
+│   └── notices/           형식 참고용 샘플 19건
+├── frontend/            React 화면 (담당: 서희)
+│   └── src/               페이지 7개 + 챗봇
 ├── llm/                 LLM / RAG (담당: 서희)
+│   ├── scripts/           모델 비교·평가 스크립트
+│   └── report/            벤치마크 결과
 ├── policy_data/         공고 수집·요건 추출·용어 사전 (담당: 대윤)
+│   ├── notices/           실제 공고 25건 ← 서버가 기본으로 읽는 곳
+│   └── terms.json         행정용어 31개 + 서류 26종
 ├── scripts/
 │   ├── run_server.sh      리눅스 서버 실행
 │   └── test.bat           윈도우 실행
