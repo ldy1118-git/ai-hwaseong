@@ -1,0 +1,31 @@
+﻿{
+    "notice_id":  "HS-2026-032",
+    "policy_id":  "HS_SCALEUP_3Y",
+    "title":  "화성시 3년 이상 소상공인 성장 지원",
+    "apply_period":  {
+                         "start":  "2026-09-01",
+                         "end":  "2026-10-15"
+                     },
+    "eligibility":  {
+                        "regions":  [
+                                        "화성시"
+                                    ],
+                        "business_status":  [
+                                                "운영중"
+                                            ],
+                        "min_business_months":  36
+                    },
+    "documents":  [
+                      {
+                          "name":  "사업자등록증",
+                          "type":  "common",
+                          "confidence":  "confirmed"
+                      },
+                      {
+                          "name":  "부가가치세 과세표준증명",
+                          "type":  "if_applicable",
+                          "confidence":  "estimated",
+                          "reason":  "운영 기간 및 매출 확인이 필요한 경우 제출"
+                      }
+                  ]
+}

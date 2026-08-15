@@ -1,0 +1,30 @@
+{
+ "notice_id": "PBLN_000000000117696",
+ "title": "2026년 동반성장몰 지원사업 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000117696",
+ "summary": "우수 중소기업 제품을 동반성장몰(대기업, 공공기관 등이 도입)을 통해 판매할 수 있도록 동반성장몰 구매실적을 통해 공공기관과 대중소기업의 동반성장지수, 중소기업 제품 구매실적, 사회적기업 제품 구매실적 등의 각종 실적인정 및 월별 도입기관 맞춤형 기획전 상시 운영을 지원해 드리는 사업입니다. ☞ 중ㆍ소기업, 소상공인   ☞ 우수 중소기업 제품을 동반성장몰(대기업, 공공기관 등이 도입)을 통해 판매할 수 있도록 지원 - 동반성장몰 구매실적을 통해 공공기관과 대중소기업의 동반성장지수, 중소기업 제품 구매실적, 사회적기업 제품 구매실적 등의 각종 실적인정 - 월별 도입기관 맞춤형 기획전 상시 운영",
+ "apply_period": {
+  "start": "2026-01-05",
+  "end": "2026-12-31"
+ },
+ "eligibility": {},
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_url": "https://fanfandaero.kr/portal/v2/preSprtBizPbancDetail.do?sprtBizCd=202604010000&sprtBizTrgtYn=N&groupNo=",
+ "apply_method": "온라인 접수 (판판대로 홈페이지)",
+ "contact": "중소기업유통센터 동반성장몰팀 헬프데스크 [입점 관련 문의] 1522-6009 / [계정발금 및 전자계약 관련 문의] 02-6678-9822 / [동반성장몰 정산 관련 문의] 02-6678-9824",
+ "organizer": "중소벤처기업부",
+ "operator": "한국중소벤처기업유통원"
+}

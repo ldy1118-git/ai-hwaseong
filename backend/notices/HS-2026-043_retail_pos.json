@@ -1,0 +1,33 @@
+﻿{
+    "notice_id":  "HS-2026-043",
+    "policy_id":  "HS_RETAIL_POS",
+    "title":  "화성시 소매업 스마트 POS 도입 지원",
+    "apply_period":  {
+                         "start":  "2026-05-01",
+                         "end":  "2026-05-31"
+                     },
+    "eligibility":  {
+                        "regions":  [
+                                        "화성시"
+                                    ],
+                        "categories":  [
+                                           "소매업"
+                                       ],
+                        "business_status":  [
+                                                "운영중"
+                                            ]
+                    },
+    "documents":  [
+                      {
+                          "name":  "사업자등록증",
+                          "type":  "common",
+                          "confidence":  "confirmed"
+                      },
+                      {
+                          "name":  "POS 도입 견적서",
+                          "type":  "conditional",
+                          "confidence":  "estimated",
+                          "reason":  "POS 또는 키오스크 도입 신청 시 필요"
+                      }
+                  ]
+}
