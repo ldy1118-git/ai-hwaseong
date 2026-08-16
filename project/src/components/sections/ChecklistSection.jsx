@@ -21,11 +21,11 @@ export default function ChecklistSection({ items, onToggle }) {
               className="mt-0.5 w-4.5 h-4.5 accent-sunset-orange flex-shrink-0 cursor-pointer"
             />
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium transition-all duration-150 ${item.checked ? 'line-through text-warm-gray' : 'text-navy'}`}>
+              <p className={`text-sm font-medium transition-all duration-150 ${item.checked ? 'line-through text-warm-text' : 'text-navy'}`}>
                 {item.label}
               </p>
               {item.desc && (
-                <p className="text-xs text-warm-gray mt-0.5">{item.desc}</p>
+                <p className="text-xs text-warm-text mt-0.5">{item.desc}</p>
               )}
               {item.url && !item.checked && (
                 <a

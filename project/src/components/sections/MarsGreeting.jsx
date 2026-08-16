@@ -6,7 +6,7 @@ export default function MarsGreeting({ userName = '사장님' }) {
       {/* 말풍선 */}
       <div className="relative bg-white border border-warm-gray/40 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm flex-1">
         <span className="absolute -bottom-2 left-5 w-0 h-0 border-l-8 border-l-transparent border-t-8 border-t-white border-r-8 border-r-transparent" />
-        <p className="text-sm text-warm-gray font-medium">안녕하세요, {userName}!</p>
+        <p className="text-sm text-warm-text font-medium">안녕하세요, {userName}!</p>
         <p className="text-base font-semibold text-navy leading-snug mt-0.5">
           오늘도 성공적인 궤도를 향해<br />출발할 준비 되셨나요?
         </p>

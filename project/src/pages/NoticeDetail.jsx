@@ -19,8 +19,8 @@ function StatusPill({ status }) {
   const style = {
     '신청가능': 'text-emerald-700 bg-emerald-50',
     '조건부':   'text-sunset-orange bg-sunset-orange/10',
-    '확인필요': 'text-warm-gray bg-warm-gray/20',
-  }[status] ?? 'text-warm-gray bg-warm-gray/20'
+    '확인필요': 'text-warm-text bg-warm-gray/20',
+  }[status] ?? 'text-warm-text bg-warm-gray/20'
   return <span className={`text-xs font-semibold rounded-full px-2.5 py-1 ${style}`}>{status}</span>
 }
 
@@ -93,7 +93,7 @@ export default function NoticeDetail() {
         <Header />
         <div className="max-w-2xl mx-auto px-5 py-16 flex flex-col items-center gap-3">
           <span className="w-8 h-8 rounded-full border-4 border-warm-gray/30 border-t-navy animate-spin" />
-          <p className="text-sm text-warm-gray">공고를 불러오고 있어요</p>
+          <p className="text-sm text-warm-text">공고를 불러오고 있어요</p>
         </div>
       </div>
     )
@@ -134,7 +134,7 @@ export default function NoticeDetail() {
               D-{days}
             </span>
           )}
-          <span className="text-xs text-warm-gray">{item.application_status}</span>
+          <span className="text-xs text-warm-text">{item.application_status}</span>
         </div>
 
         <h1 className="text-lg font-bold text-navy leading-snug">{item.notice_title}</h1>
@@ -149,7 +149,7 @@ export default function NoticeDetail() {
         <Section title="내 조건과 맞춰본 결과">
           <div className={BOX}>
             {(item.condition_results ?? []).length === 0 ? (
-              <p className="text-sm text-warm-gray">판정할 조건이 없어요.</p>
+              <p className="text-sm text-warm-text">판정할 조건이 없어요.</p>
             ) : (
               item.condition_results.map((c, i) => {
                 const ok = c.status === '충족'
@@ -195,7 +195,7 @@ export default function NoticeDetail() {
               {docs.map((d, i) => (
                 <div key={d.name} className={`py-2.5 ${i > 0 ? 'border-t border-warm-gray/20' : ''}`}>
                   <p className="text-sm font-semibold text-navy">{d.name}</p>
-                  {d.easy && <p className="text-xs text-warm-gray mt-0.5 leading-relaxed">{d.easy}</p>}
+                  {d.easy && <p className="text-xs text-warm-text mt-0.5 leading-relaxed">{d.easy}</p>}
                   {d.issue && (
                     <p className="text-xs text-gray-700 mt-1 leading-relaxed">
                       {(d.issue.online ?? []).join(' / ')}
@@ -219,7 +219,7 @@ export default function NoticeDetail() {
               ['수행기관', item.operator],
             ].filter(([, v]) => v).map(([label, value], i) => (
               <div key={label} className={`flex justify-between gap-4 py-2 ${i > 0 ? 'border-t border-warm-gray/20' : ''}`}>
-                <span className="text-sm text-warm-gray flex-shrink-0">{label}</span>
+                <span className="text-sm text-warm-text flex-shrink-0">{label}</span>
                 <span className="text-sm font-medium text-navy text-right">{value}</span>
               </div>
             ))}
@@ -228,7 +228,7 @@ export default function NoticeDetail() {
               <div className="mt-3 bg-sunset-orange/10 border border-sunset-orange/40 rounded-xl p-3">
                 <p className="text-xs font-bold text-sunset-orange">문의처가 따로 있어요</p>
                 <p className="text-sm text-gray-700 leading-relaxed mt-1">{item.contact}</p>
-                <p className="text-xs text-warm-gray mt-1.5">
+                <p className="text-xs text-warm-text mt-1.5">
                   공고를 낸 기관과 접수·문의를 받는 곳이 달라요. 여기로 물어보세요.
                 </p>
               </div>
@@ -239,7 +239,7 @@ export default function NoticeDetail() {
         {item.source_url && (
           <a
             href={item.source_url} target="_blank" rel="noreferrer"
-            className="inline-block mt-4 text-sm text-warm-gray hover:text-navy underline underline-offset-2"
+            className="inline-block mt-4 text-sm text-warm-text hover:text-navy underline underline-offset-2"
           >
             공고 원문 보기 →
           </a>
