@@ -120,7 +120,7 @@ export default function Landing() {
           <Button variant="outline" size="lg" fullWidth
             onClick={() => navigate('/auth')}
             className="border-white/40 text-white hover:bg-white/10">
-            회원가입 후 시작
+            카카오톡으로 시작
           </Button>
         </div>
       </section>
@@ -169,7 +169,7 @@ export default function Landing() {
         <p className="text-sm text-warm-gray mb-6">화성시 소재 소상공인이라면 누구나 무료로 이용할 수 있어요</p>
         <div className="flex flex-col items-center gap-3 w-full max-w-xs">
           <Button variant="navy" size="lg" fullWidth onClick={() => navigate('/auth')}>
-            회원가입 후 시작
+            카카오톡으로 시작
           </Button>
           <button
             onClick={() => navigate('/onboarding')}
