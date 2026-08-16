@@ -19,6 +19,45 @@ from _shared import Base, send_json
 
 import matching
 
+# 자기 점검용 가짜 회원번호. 카카오 회원번호는 전부 숫자라 절대 겹치지 않는다.
+SENTINEL = "__health_check__"
+
+
+def write_check() -> dict:
+    """회원 생성(INSERT)까지 실제로 해보고 지운다.  /api/health?deep=1
+
+    조회만 확인하면 sequences 권한 누락을 못 잡는다. 그 경우 SELECT 는
+    되는데 users INSERT 에서 id 자동 증가가 막혀서, 카카오 로그인 중
+    **신규 회원일 때만** 실패한다. 기존 회원은 멀쩡해서 찾기 어렵다.
+
+    남기지 않는다. 만들고 바로 지운다.
+    """
+    try:
+        user = _store.create_user(SENTINEL, "점검용")
+    except _store.StoreError as error:
+        message = str(error)
+        if "sequence" in message.lower() or "42501" in message:
+            return {"ok": False, "reason": "INSERT 권한 없음 — sequences GRANT 확인",
+                    "detail": message[:200]}
+        return {"ok": False, "reason": message[:200]}
+
+    try:
+        _store.upsert_profile(int(user["id"]), {"region": "점검"})
+        profile_ok = bool(_store.get_profile(int(user["id"])))
+    except _store.StoreError as error:
+        profile_ok = False
+        detail = str(error)[:200]
+    else:
+        detail = None
+    finally:
+        try:
+            _store._call("DELETE", "users", params={"provider_id": f"eq.{SENTINEL}"})
+        except _store.StoreError:
+            pass  # 남아도 로그인에 지장은 없다. 지워지면 좋고.
+
+    return {"ok": profile_ok, "users_insert": True,
+            "profiles_upsert": profile_ok, **({"detail": detail} if detail else {})}
+
 
 def database() -> dict:
     """Supabase 까지 실제로 붙어보고 결과를 돌려준다.
@@ -28,7 +67,7 @@ def database() -> dict:
     service_role 이 그대로 통과하는지는 붙여봐야 안다.
     """
     try:
-        _store.find_user_by_provider("__health_check__")
+        _store.find_user_by_provider(SENTINEL)
     except _store.StoreError as error:
         message = str(error)
         if "SUPABASE_URL" in message:
@@ -45,6 +84,7 @@ def database() -> dict:
 
 class handler(Base):  # noqa: N801
     def do_GET(self) -> None:  # noqa: N802
+        deep = "deep=1" in (self.path or "")
         try:
             folder = matching.default_notices_folder()
             count = len(matching.load_policies_from_folder(folder))
@@ -57,6 +97,7 @@ class handler(Base):  # noqa: N801
             "notices": count,
             "notices_source": "policy_data (실제 공고)" if using_real else "backend (샘플)",
             "database": database(),
+            **({"write_check": write_check()} if deep else {}),
             "configured": {
                 "GEMINI_API_KEY": bool(os.environ.get("GEMINI_API_KEY", "").strip()),
                 "JWT_SECRET": bool(os.environ.get("JWT_SECRET", "").strip()),
