@@ -237,7 +237,7 @@ export default function OrbitDashboard({ userProfile }) {
 
   function handleDetail(item) {
     localStorage.setItem('mars-fit-selected-match', JSON.stringify(item.raw))
-    navigate('/apply')
+    navigate('/notice')
   }
 
   if (error) {

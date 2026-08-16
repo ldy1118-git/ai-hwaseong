@@ -534,6 +534,9 @@ def match_policy(policy: dict[str, Any], user_profile: dict[str, Any]) -> dict[s
         result["notice_title"] = policy["title"]
     if policy.get("source_url"):
         result["source_url"] = policy["source_url"]
+    # 공고 상세 화면이 본문을 보여주고, 여기서 행정용어를 뽑아 설명한다.
+    if policy.get("summary"):
+        result["summary"] = policy["summary"]
     if policy.get("apply_period"):
         result["apply_period"] = policy["apply_period"]
     for key in APPLICATION_FIELDS:

@@ -6,6 +6,7 @@ import Onboarding       from './pages/Onboarding'
 import Home             from './pages/Home'
 import ApplicationGuide from './pages/ApplicationGuide'
 import MissionControl   from './pages/MissionControl'
+import NoticeDetail     from './pages/NoticeDetail'
 import { consumeKakaoRedirect } from './utils/kakao'
 import { loadOnboarding, saveOnboarding } from './utils/api'
 
@@ -96,6 +97,7 @@ export default function App() {
         <Route path="/auth"       element={<Auth />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/home"       element={<Home />} />
+        <Route path="/notice"     element={<NoticeDetail />} />
         <Route path="/apply"      element={<ApplicationGuide />} />
         <Route path="/mission"    element={<MissionControl />} />
         <Route path="*"           element={<Landing />} />
