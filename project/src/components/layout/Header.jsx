@@ -18,7 +18,7 @@ export default function Header({
         <img
           src={logoImg}
           alt="Mars-Fit"
-          className="h-12 object-contain"
+          className="h-14 object-contain"
         />
       </a>
 

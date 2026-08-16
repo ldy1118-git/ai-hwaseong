@@ -249,7 +249,7 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-primary-bg flex flex-col">
       <div className="px-5 pt-6 pb-2 flex items-center justify-between">
-        <img src={logoImg} alt="Mars-Fit" className="h-10 object-contain" />
+        <img src={logoImg} alt="Mars-Fit" className="h-14 object-contain" />
         <span className="text-xs text-warm-gray">{step} / {TOTAL_STEPS}</span>
       </div>
 

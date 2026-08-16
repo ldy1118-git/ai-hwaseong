@@ -41,10 +41,10 @@ export default function Auth() {
     <div className="min-h-screen bg-primary-bg flex flex-col items-center justify-center px-5 py-12">
 
       <a href="#/" className="mb-6">
-        <img src={logoImg} alt="Mars-Fit" className="h-16 object-contain" />
+        <img src={logoImg} alt="Mars-Fit" className="h-28 object-contain" />
       </a>
 
-      <img src={marsImg} alt="" aria-hidden="true" className="w-28 h-28 object-contain mb-5" />
+      <img src={marsImg} alt="" aria-hidden="true" className="w-40 h-40 object-contain mb-5" />
 
       <h1 className="text-xl font-bold text-navy text-center leading-snug mb-2">
         카카오톡으로 3초면<br />시작할 수 있어요
