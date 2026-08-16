@@ -1,281 +1,494 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import logoImg from '../../design/logo.png'
+import findImg from '../../design/find.png'
 import { getToken, saveOnboarding } from '../utils/api'
+import { generateText } from '../utils/llm/llmProvider'
 
-const TOTAL_STEPS = 4
+/**
+ * 온보딩 — 성현 기획서(docs/온보딩_기획서.txt) 구조.
+ *
+ *   Q1 상황 → 경로 A·B·C → 공통 기본정보 6문항 → 완료
+ *
+ * 원칙
+ *   · 한 화면에 질문 하나
+ *   · 왜 묻는지 한 줄로 밝힌다 (안 밝히면 왜 답해야 하는지 모른다)
+ *   · 스킵 허용. 스킵한 값은 매칭에서 "확인필요" 로 남는다.
+ *     매칭 엔진이 빈 값을 불충족이 아니라 확인필요로 처리한다.
+ *
+ * 경로 C 의 사업자등록증 인식(OCR)은 아직 없다. 지금은 직접 입력으로
+ * 넘긴다. easyocr 은 Vercel 용량 한도를 넘어서 방식을 정해야 붙일 수 있다.
+ */
 
-function ProgressBar({ step }) {
+// 매칭 엔진이 아는 업종은 이 넷뿐이다 (policy_data/schema.md).
+// 기획서의 분야 6개를 여기에 맞춰 넘긴다.
+const FIELDS = [
+  { key: '요리',   emoji: '🍳', label: '요리·음식',    sub: true },
+  { key: '교육',   emoji: '📚', label: '교육·가르치기', category: '기타' },
+  { key: '미용',   emoji: '✂️', label: '미용·서비스',   category: '기타' },
+  { key: '소매',   emoji: '🛍', label: '소매·판매',    category: '소매업' },
+  { key: '제조',   emoji: '🔧', label: '제조·공방',    category: '기타' },
+  { key: '예술',   emoji: '🎨', label: '예술·창작',    category: '기타' },
+]
+
+const KEYWORDS = ['카페', '음식점', '공방', '학원', '미용실', '온라인쇼핑', '편의점', '배달']
+
+/** 자유 입력을 매칭 엔진이 아는 업종으로 분류한다. */
+async function classifyCategory(text) {
+  const raw = await generateText({
+    jsonMode: true,
+    userPrompt: `창업 희망 내용: "${text}"
+
+아래 넷 중 하나로만 분류해서 JSON 으로 답하세요.
+카페 / 음식점 / 소매업 / 기타
+
+{"category": "카페", "reason": "한 문장"}`,
+  })
+  const cleaned = raw.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
+  const parsed = JSON.parse(cleaned)
+  const known = ['카페', '음식점', '소매업', '기타']
+  return known.includes(parsed.category) ? parsed.category : '기타'
+}
+
+/** 8자리 생년월일(YYYYMMDD)로 만 나이를 센다. 생일이 안 지났으면 한 살 뺀다. */
+export function ageFromBirth(digits) {
+  if (!/^\d{8}$/.test(digits)) return null
+  const year = +digits.slice(0, 4), month = +digits.slice(4, 6), day = +digits.slice(6, 8)
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null
+
+  const today = new Date()
+  let age = today.getFullYear() - year
+  const beforeBirthday =
+    today.getMonth() + 1 < month ||
+    (today.getMonth() + 1 === month && today.getDate() < day)
+  if (beforeBirthday) age -= 1
+  return age >= 0 && age <= 120 ? age : null
+}
+
+/* ─────────────────────────── 조각들 ─────────────────────────── */
+
+function Progress({ current, total }) {
   return (
-    <div className="flex items-center gap-1.5 mb-8">
-      {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-        <div
-          key={i}
-          className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-            i < step - 1
-              ? 'bg-navy'
-              : i === step - 1
-              ? 'bg-sunset-orange'
-              : 'bg-warm-gray/30'
-          }`}
-        />
+    <div className="flex items-center gap-1.5 mb-7">
+      {Array.from({ length: total }).map((_, i) => (
+        <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+          i < current - 1 ? 'bg-navy' : i === current - 1 ? 'bg-sunset-orange' : 'bg-warm-gray/30'
+        }`} />
       ))}
     </div>
   )
 }
 
-function SelectCard({ label, desc, selected, onClick }) {
+function Ask({ title, why, children }) {
+  return (
+    <div>
+      <h2 className="text-xl font-bold text-navy leading-snug mb-1.5">{title}</h2>
+      {why && (
+        <p className="text-sm text-warm-gray mb-6 leading-relaxed">
+          <span className="text-sunset-orange font-semibold">왜 묻나요?</span> {why}
+        </p>
+      )}
+      {children}
+    </div>
+  )
+}
+
+function Choice({ emoji, label, desc, selected, onClick }) {
   return (
     <button
-      type="button"
-      onClick={onClick}
+      type="button" onClick={onClick} aria-pressed={selected}
       className={[
         'w-full text-left p-4 rounded-2xl border-2 transition-all duration-150',
-        selected
-          ? 'border-navy bg-navy/5'
-          : 'border-warm-gray/30 bg-white hover:border-navy/40',
+        'flex items-start gap-3',
+        selected ? 'border-navy bg-navy/5' : 'border-warm-gray/30 bg-white hover:border-navy/40',
       ].join(' ')}
     >
-      <p className={`text-sm font-semibold ${selected ? 'text-navy' : 'text-gray-700'}`}>{label}</p>
-      {desc && <p className="text-xs text-warm-gray mt-0.5">{desc}</p>}
+      {emoji && <span className="text-2xl leading-none mt-0.5">{emoji}</span>}
+      <span className="flex-1">
+        <span className={`block text-sm font-semibold ${selected ? 'text-navy' : 'text-gray-700'}`}>
+          {label}
+        </span>
+        {desc && <span className="block text-xs text-warm-gray mt-0.5">{desc}</span>}
+      </span>
     </button>
   )
 }
 
-function Step1({ data, onChange }) {
-  const options = [
-    { value: '카페',   desc: '커피·음료·디저트' },
-    { value: '음식점', desc: '한식·중식·양식 등' },
-    { value: '소매업', desc: '의류·잡화·편의점 등' },
-    { value: '기타',   desc: '서비스업·교육·미용 등' },
-  ]
+function SkipLink({ onClick, children = '잘 모르겠어요' }) {
   return (
-    <div>
-      <h2 className="text-xl font-bold text-navy mb-1">어떤 업종인가요?</h2>
-      <p className="text-sm text-warm-gray mb-6">운영 중이거나 준비 중인 업종을 선택해주세요</p>
-      <div className="grid grid-cols-2 gap-3">
-        {options.map(o => (
-          <SelectCard key={o.value} label={o.value} desc={o.desc}
-            selected={data.category === o.value}
-            onClick={() => onChange('category', o.value)} />
-        ))}
-      </div>
-    </div>
+    <button
+      type="button" onClick={onClick}
+      className="mt-4 w-full text-sm text-warm-gray hover:text-navy underline underline-offset-2"
+    >
+      {children}
+    </button>
   )
 }
 
-function Step2({ data, onChange }) {
-  const options = [
-    { value: '예비창업자', desc: '아직 사업자등록 전이에요' },
-    { value: '운영중',     desc: '현재 사업장을 운영 중이에요' },
-  ]
-  return (
-    <div>
-      <h2 className="text-xl font-bold text-navy mb-1">창업 상태를 알려주세요</h2>
-      <p className="text-sm text-warm-gray mb-6">현재 상황에 맞는 항목을 선택해주세요</p>
-      <div className="flex flex-col gap-3">
-        {options.map(o => (
-          <SelectCard key={o.value} label={o.value} desc={o.desc}
-            selected={data.business_status === o.value}
-            onClick={() => onChange('business_status', o.value)} />
-        ))}
-      </div>
-    </div>
-  )
-}
+/* ─────────────────────────── 본체 ─────────────────────────── */
 
-function Step3({ data, onChange }) {
-  return (
-    <div>
-      <h2 className="text-xl font-bold text-navy mb-1">기본 정보를 입력해주세요</h2>
-      <p className="text-sm text-warm-gray mb-6">지원 나이·지역 조건 확인에 사용돼요</p>
+const COMMON_STEPS = ['age', 'region', 'career', 'asset', 'marital', 'parents']
 
-      <div className="space-y-5">
-        <div>
-          <label className="block text-sm font-semibold text-navy mb-1.5">만 나이</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="number" min="18" max="80"
-              value={data.age ?? ''}
-              onChange={e => onChange('age', Number(e.target.value))}
-              placeholder="30"
-              className="w-28 border border-warm-gray/50 rounded-xl px-3 py-2.5 text-sm text-navy
-                         focus:outline-none focus:border-navy/50 focus:ring-1 focus:ring-navy/20"
-            />
-            <span className="text-sm text-warm-gray">세</span>
-          </div>
-        </div>
-
-        {data.business_status === '운영중' && (
-          <div>
-            <label className="block text-sm font-semibold text-navy mb-1.5">운영 기간</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number" min="0" max="600"
-                value={data.business_period_months ?? ''}
-                onChange={e => onChange('business_period_months', Number(e.target.value))}
-                placeholder="12"
-                className="w-28 border border-warm-gray/50 rounded-xl px-3 py-2.5 text-sm text-navy
-                           focus:outline-none focus:border-navy/50 focus:ring-1 focus:ring-navy/20"
-              />
-              <span className="text-sm text-warm-gray">개월</span>
-            </div>
-          </div>
-        )}
-
-        <div>
-          <p className="text-sm font-semibold text-navy mb-2">지역</p>
-          <div className="flex flex-col gap-2">
-            <SelectCard label="화성시" desc="화성시 내 소재"
-              selected={data.region === '화성시'}
-              onClick={() => onChange('region', '화성시')} />
-            <SelectCard label="화성시 외 경기도" desc="경기도 내 타 지역"
-              selected={data.region === '경기도'}
-              onClick={() => onChange('region', '경기도')} />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function Step4({ data, onChange }) {
-  return (
-    <div>
-      <h2 className="text-xl font-bold text-navy mb-1">추가 조건을 알려주세요</h2>
-      <p className="text-sm text-warm-gray mb-6">더 정확한 매칭을 위해 사용돼요</p>
-
-      <div className="space-y-5">
-        <div>
-          <p className="text-sm font-semibold text-navy mb-2">이전 창업 경험</p>
-          <div className="grid grid-cols-2 gap-2">
-            {['없음', '있음'].map(v => (
-              <SelectCard key={v} label={v}
-                selected={data.career_experience === v}
-                onClick={() => onChange('career_experience', v)} />
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="text-sm font-semibold text-navy mb-2">소득 분위</p>
-          <div className="flex flex-col gap-2">
-            {[
-              { value: '일반',          desc: '일반 소득 가구' },
-              { value: '차상위',        desc: '차상위 계층' },
-              { value: '기초생활수급자', desc: '기초생활수급자' },
-            ].map(o => (
-              <SelectCard key={o.value} label={o.value} desc={o.desc}
-                selected={data.asset_group === o.value}
-                onClick={() => onChange('asset_group', o.value)} />
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="text-sm font-semibold text-navy mb-2">결혼 여부</p>
-          <div className="grid grid-cols-2 gap-2">
-            {['미혼', '기혼'].map(v => (
-              <SelectCard key={v} label={v}
-                selected={data.marital_status === v}
-                onClick={() => onChange('marital_status', v)} />
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="text-sm font-semibold text-navy mb-2">부모님과 동거 여부</p>
-          <div className="grid grid-cols-2 gap-2">
-            <SelectCard label="동거" selected={data.living_with_parents === true}
-              onClick={() => onChange('living_with_parents', true)} />
-            <SelectCard label="독립" selected={data.living_with_parents === false}
-              onClick={() => onChange('living_with_parents', false)} />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function isStepValid(step, data) {
-  if (step === 1) return !!data.category
-  if (step === 2) return !!data.business_status
-  if (step === 3) return data.age > 0 && !!data.region
-  if (step === 4) return !!data.career_experience && !!data.asset_group
-                          && !!data.marital_status && data.living_with_parents !== undefined
-  return false
-}
-
-const INITIAL = {
-  category: '',
-  business_status: '',
-  age: '',
-  region: '화성시',
-  business_period_months: 0,
-  career_experience: '',
-  asset_group: '일반',
-  marital_status: '',
-  living_with_parents: undefined,
-  annual_revenue_krw: null,
+const EMPTY = {
+  category: '', business_status: '', age: '', region: '',
+  business_period_months: '', career_experience: '', asset_group: '',
+  marital_status: '', living_with_parents: undefined,
 }
 
 export default function Onboarding() {
   const navigate = useNavigate()
-  const [step, setStep] = useState(1)
-  const [data, setData] = useState(INITIAL)
 
-  function handleChange(key, value) {
-    setData(prev => ({ ...prev, [key]: value }))
+  const [path, setPath]   = useState(null)     // 'A' | 'B' | 'C'
+  const [stage, setStage] = useState('q1')     // q1 | field | sub | wish | biz | common | done
+  const [common, setCommon] = useState(0)      // COMMON_STEPS 안에서의 위치
+  const [data, setData]   = useState(EMPTY)
+
+  const [wish, setWish]     = useState('')
+  const [birth, setBirth]   = useState('')
+  const [busy, setBusy]     = useState(false)
+  const [error, setError]   = useState('')
+
+  const set = (key, value) => setData(prev => ({ ...prev, [key]: value }))
+
+  // 진행률: 경로마다 화면 수가 다르다
+  const total = useMemo(() => (path === 'A' ? 2 : 1) + COMMON_STEPS.length + 1, [path])
+  const current = useMemo(() => {
+    if (stage === 'q1') return 1
+    if (stage === 'common') return (path === 'A' ? 3 : 2) + common
+    return path === 'A' && stage === 'sub' ? 3 : 2
+  }, [stage, common, path])
+
+  function startCommon(nextPath, patch) {
+    setData(prev => ({ ...prev, ...patch }))
+    setPath(nextPath)
+    setStage('common')
+    setCommon(0)
   }
 
-  function handleNext() {
-    if (step < TOTAL_STEPS) {
-      setStep(s => s + 1)
-      return
-    }
+  function nextCommon() {
+    if (common < COMMON_STEPS.length - 1) { setCommon(c => c + 1); return }
+    finish()
+  }
 
-    // 로그인 여부와 상관없이 브라우저에는 항상 저장한다. 화면이 이걸 읽는다.
+  async function finish() {
+    setStage('done')
+    // 스킵한 값은 빈 채로 둔다. 매칭 엔진이 불충족이 아니라 확인필요로 본다.
     localStorage.setItem('mars-fit-profile', JSON.stringify(data))
-
-    // 로그인했으면 서버에도 남긴다. 다른 기기에서 열어도 조건이 따라온다.
-    // 저장을 기다리지 않는다 — 실패해도 화면은 로컬 값으로 정상 동작한다.
     if (getToken()) {
-      saveOnboarding(data).catch(err => console.warn('[온보딩 저장]', err.message))
+      try { await saveOnboarding(data) } catch { /* 로컬에 남아 있으니 화면은 돈다 */ }
     }
-    navigate('/home')
+    setTimeout(() => navigate('/home'), 1400)
   }
+
+  /* ── Q1 ── */
+  if (stage === 'q1') {
+    return (
+      <Shell current={current} total={total}>
+        <Ask title="지금 어떤 상황이신가요?" why="상황에 따라 신청할 수 있는 사업이 완전히 달라져요.">
+          <div className="flex flex-col gap-3">
+            <Choice emoji="🌱" label="아직 구체적인 계획은 없어요"
+              desc="뭘 잘하는지 먼저 찾아볼게요"
+              onClick={() => { setPath('A'); setStage('field') }} />
+            <Choice emoji="💡" label="하고 싶은 게 있어요"
+              desc="창업 아이디어가 있어요"
+              onClick={() => { setPath('B'); setStage('wish') }} />
+            <Choice emoji="🏪" label="이미 시작했어요"
+              desc="사업자등록증이 있어요"
+              onClick={() => { setPath('C'); setStage('biz') }} />
+          </div>
+        </Ask>
+      </Shell>
+    )
+  }
+
+  /* ── A-1 분야 ── */
+  if (stage === 'field') {
+    return (
+      <Shell current={current} total={total} onBack={() => setStage('q1')}>
+        <Ask title="어떤 분야가 끌리세요?" why="관심 분야에 맞는 창업 지원사업을 골라드려요.">
+          <div className="grid grid-cols-2 gap-3">
+            {FIELDS.map(f => (
+              <Choice key={f.key} emoji={f.emoji} label={f.label}
+                onClick={() => {
+                  if (f.sub) { setStage('sub'); return }
+                  startCommon('A', { category: f.category, business_status: '예비창업자' })
+                }} />
+            ))}
+          </div>
+        </Ask>
+      </Shell>
+    )
+  }
+
+  /* ── A-2 세부 (요리) ── */
+  if (stage === 'sub') {
+    return (
+      <Shell current={current} total={total} onBack={() => setStage('field')}>
+        <Ask title="요리 쪽이군요! 조금 더 알려주세요">
+          <div className="flex flex-col gap-3">
+            <Choice emoji="☕" label="카페·음료·디저트"
+              onClick={() => startCommon('A', { category: '카페', business_status: '예비창업자' })} />
+            <Choice emoji="🍜" label="식당·밥집"
+              onClick={() => startCommon('A', { category: '음식점', business_status: '예비창업자' })} />
+          </div>
+        </Ask>
+      </Shell>
+    )
+  }
+
+  /* ── B 자유 입력 ── */
+  if (stage === 'wish') {
+    async function submitWish(text) {
+      setError(''); setBusy(true)
+      try {
+        const category = await classifyCategory(text)
+        startCommon('B', { category, business_status: '예비창업자' })
+      } catch {
+        setError('업종을 알아보지 못했어요. 아래에서 골라주세요.')
+      } finally {
+        setBusy(false)
+      }
+    }
+    return (
+      <Shell current={current} total={total} onBack={() => setStage('q1')}>
+        <Ask title="어떤 창업을 생각하고 계세요?" why="업종에 따라 받을 수 있는 지원이 달라요.">
+          <input
+            value={wish} onChange={e => setWish(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && wish.trim()) submitWish(wish.trim()) }}
+            placeholder="예) 동탄에서 카페를 열고 싶어요"
+            className="w-full border border-warm-gray/50 bg-white rounded-xl px-4 py-3 text-sm text-navy
+                       placeholder:text-warm-gray/60 focus:outline-none focus:border-navy/50
+                       focus:ring-1 focus:ring-navy/20"
+          />
+          <Button variant="navy" fullWidth className="mt-3"
+            disabled={!wish.trim() || busy}
+            onClick={() => submitWish(wish.trim())}>
+            {busy ? 'Mars가 읽고 있어요...' : '이걸로 찾아보기'}
+          </Button>
+
+          {error && <p className="text-xs text-sunset-orange mt-2">{error}</p>}
+
+          <p className="text-xs font-semibold text-warm-gray mt-6 mb-2">자주 찾는 업종</p>
+          <div className="flex flex-wrap gap-2">
+            {KEYWORDS.map(word => (
+              <button key={word} onClick={() => submitWish(word)} disabled={busy}
+                className="text-xs border border-navy/30 text-navy rounded-full px-3 py-1.5
+                           hover:bg-navy/5 transition-colors disabled:opacity-50">
+                {word}
+              </button>
+            ))}
+          </div>
+        </Ask>
+      </Shell>
+    )
+  }
+
+  /* ── C 사업자등록증 ── */
+  if (stage === 'biz') {
+    return (
+      <Shell current={current} total={total} onBack={() => setStage('q1')}>
+        <Ask title="사업자등록증이 있으시군요!" why="업종·개업일·주소를 확인해서 조건에 맞는 사업을 찾아요.">
+          <div className="rounded-2xl border-2 border-dashed border-warm-gray/60 bg-white p-6 text-center">
+            <p className="text-sm font-semibold text-navy">사진으로 자동 입력</p>
+            <p className="text-xs text-warm-gray mt-1.5 leading-relaxed">
+              사업자등록증을 찍으면 알아서 채워드리는 기능을<br />준비하고 있어요
+            </p>
+            <span className="inline-block mt-3 text-xs font-semibold text-sunset-orange
+                             bg-sunset-orange/10 rounded-full px-3 py-1">
+              곧 만나요
+            </span>
+          </div>
+
+          <p className="text-sm font-semibold text-navy mt-6 mb-2">업종을 골라주세요</p>
+          <div className="grid grid-cols-2 gap-3">
+            {['카페', '음식점', '소매업', '기타'].map(v => (
+              <Choice key={v} label={v} selected={data.category === v}
+                onClick={() => set('category', v)} />
+            ))}
+          </div>
+
+          <div className="mt-5">
+            <label className="block text-sm font-semibold text-navy mb-1.5">운영 기간</label>
+            <div className="flex items-center gap-2">
+              <input type="number" min="0" max="600" value={data.business_period_months}
+                onChange={e => set('business_period_months', Number(e.target.value))}
+                placeholder="18"
+                className="w-28 border border-warm-gray/50 rounded-xl px-3 py-2.5 text-sm text-navy
+                           focus:outline-none focus:border-navy/50" />
+              <span className="text-sm text-warm-gray">개월째 운영 중</span>
+            </div>
+          </div>
+
+          <Button variant="navy" fullWidth className="mt-6" disabled={!data.category}
+            onClick={() => startCommon('C', { business_status: '운영중' })}>
+            다음
+          </Button>
+        </Ask>
+      </Shell>
+    )
+  }
+
+  /* ── 완료 ── */
+  if (stage === 'done') {
+    return (
+      <div className="min-h-screen bg-primary-bg flex flex-col items-center justify-center px-5">
+        <style>{`@keyframes doneFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}`}</style>
+        <img src={findImg} alt="" aria-hidden="true" className="w-44 h-44 object-contain"
+             style={{ animation: 'doneFloat 2s ease-in-out infinite' }} />
+        <p className="mt-5 text-lg font-bold text-navy text-center leading-snug">
+          Mars가 딱 맞는<br />지원사업을 찾고 있어요
+        </p>
+        <div className="flex gap-1 mt-3">
+          {[0, 0.15, 0.3].map((d, i) => (
+            <span key={i} className="w-1.5 h-1.5 rounded-full bg-warm-gray animate-bounce"
+                  style={{ animationDelay: `${d}s` }} />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  /* ── 공통 기본정보 ── */
+  const step = COMMON_STEPS[common]
+  const back = common > 0
+    ? () => setCommon(c => c - 1)
+    : () => setStage(path === 'A' ? 'field' : path === 'B' ? 'wish' : 'biz')
 
   return (
+    <Shell current={current} total={total} onBack={back}>
+      {step === 'age' && (
+        <Ask title="나이를 알려주세요" why="청년·시니어 전용 지원사업이 따로 있어요.">
+          <label className="block text-sm font-semibold text-navy mb-1.5">생년월일 8자리</label>
+          <input
+            inputMode="numeric" maxLength={8} value={birth}
+            onChange={e => {
+              const digits = e.target.value.replace(/\D/g, '').slice(0, 8)
+              setBirth(digits)
+              const age = ageFromBirth(digits)
+              if (age !== null) set('age', age)
+            }}
+            placeholder="19950315"
+            className="w-full border border-warm-gray/50 bg-white rounded-xl px-4 py-3 text-base
+                       text-navy tracking-widest placeholder:text-warm-gray/50
+                       focus:outline-none focus:border-navy/50"
+          />
+          {ageFromBirth(birth) !== null && (
+            <p className="mt-2 text-sm font-semibold text-navy">만 {ageFromBirth(birth)}세</p>
+          )}
+
+          <p className="text-xs font-semibold text-warm-gray mt-5 mb-2">또는 대략만 골라주세요</p>
+          <div className="grid grid-cols-4 gap-2">
+            {[['20대', 25], ['30대', 35], ['40대', 45], ['50대+', 55]].map(([label, age]) => (
+              <button key={label}
+                onClick={() => { setBirth(''); set('age', age) }}
+                className={`rounded-xl border-2 py-2.5 text-xs font-semibold transition ${
+                  data.age === age ? 'border-navy bg-navy/5 text-navy'
+                                   : 'border-warm-gray/30 bg-white text-gray-700 hover:border-navy/40'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <Button variant="navy" fullWidth className="mt-6" disabled={!data.age} onClick={nextCommon}>
+            다음
+          </Button>
+          <SkipLink onClick={() => { set('age', ''); nextCommon() }} />
+        </Ask>
+      )}
+
+      {step === 'region' && (
+        <Ask title="어디에 계세요?" why="화성시 전용 지원인지 확인해드려요.">
+          <div className="flex flex-col gap-3">
+            {[
+              ['화성시', '화성시 내 소재'],
+              ['경기도', '화성시 외 경기도'],
+              ['타지역', '그 외 지역'],
+            ].map(([value, desc]) => (
+              <Choice key={value} emoji="📍" label={value} desc={desc}
+                selected={data.region === value}
+                onClick={() => { set('region', value); setTimeout(nextCommon, 120) }} />
+            ))}
+          </div>
+        </Ask>
+      )}
+
+      {step === 'career' && (
+        <Ask title="전에 창업해본 적 있으세요?" why="첫 창업자 전용 지원이 많아요.">
+          <div className="grid grid-cols-2 gap-3">
+            <Choice emoji="🙋" label="처음이에요" selected={data.career_experience === '없음'}
+              onClick={() => { set('career_experience', '없음'); setTimeout(nextCommon, 120) }} />
+            <Choice emoji="🔄" label="해본 적 있어요" selected={data.career_experience === '있음'}
+              onClick={() => { set('career_experience', '있음'); setTimeout(nextCommon, 120) }} />
+          </div>
+        </Ask>
+      )}
+
+      {step === 'asset' && (
+        <Ask title="가구 소득 분위를 알려주세요" why="저소득 가구 전용 지원이 따로 있어요.">
+          <div className="flex flex-col gap-3">
+            {[
+              ['일반', '해당 없음'],
+              ['차상위', '기준 중위소득 50% 이하'],
+              ['기초생활수급자', ''],
+            ].map(([value, desc]) => (
+              <Choice key={value} label={value} desc={desc} selected={data.asset_group === value}
+                onClick={() => { set('asset_group', value); setTimeout(nextCommon, 120) }} />
+            ))}
+          </div>
+          <SkipLink onClick={() => { set('asset_group', '일반'); nextCommon() }}>
+            잘 모르겠어요 (일반으로 볼게요)
+          </SkipLink>
+        </Ask>
+      )}
+
+      {step === 'marital' && (
+        <Ask title="결혼하셨나요?" why="한부모·다자녀 대상 지원이 일부 있어요.">
+          <div className="grid grid-cols-2 gap-3">
+            {['미혼', '기혼'].map(v => (
+              <Choice key={v} label={v} selected={data.marital_status === v}
+                onClick={() => { set('marital_status', v); setTimeout(nextCommon, 120) }} />
+            ))}
+          </div>
+          <SkipLink onClick={() => { set('marital_status', ''); nextCommon() }}>
+            말하고 싶지 않아요
+          </SkipLink>
+        </Ask>
+      )}
+
+      {step === 'parents' && (
+        <Ask title="부모님과 함께 사세요?" why="일부 공모에서 확인하는 조건이에요.">
+          <div className="grid grid-cols-2 gap-3">
+            <Choice label="네, 함께 살아요" selected={data.living_with_parents === true}
+              onClick={() => { set('living_with_parents', true); setTimeout(nextCommon, 120) }} />
+            <Choice label="아니요, 따로요" selected={data.living_with_parents === false}
+              onClick={() => { set('living_with_parents', false); setTimeout(nextCommon, 120) }} />
+          </div>
+          <SkipLink onClick={() => { set('living_with_parents', undefined); nextCommon() }}>
+            건너뛰기
+          </SkipLink>
+        </Ask>
+      )}
+    </Shell>
+  )
+}
+
+/** 로고·진행률·뒤로가기를 두른 껍데기 */
+function Shell({ current, total, onBack, children }) {
+  return (
     <div className="min-h-screen bg-primary-bg flex flex-col">
-      <div className="px-5 pt-6 pb-2 flex items-center justify-between">
+      <div className="px-5 pt-6 pb-2 flex items-center justify-between max-w-lg mx-auto w-full">
+        {onBack ? (
+          <button onClick={onBack} aria-label="이전"
+            className="text-navy text-lg font-bold w-8 h-8 -ml-1">←</button>
+        ) : <span className="w-8" />}
         <img src={logoImg} alt="Mars-Fit" className="h-14 object-contain" />
-        <span className="text-xs text-warm-gray">{step} / {TOTAL_STEPS}</span>
+        <span className="text-xs text-warm-gray w-8 text-right">{current}/{total}</span>
       </div>
 
-      <div className="flex-1 px-5 pt-4 pb-10 max-w-lg mx-auto w-full">
-        <ProgressBar step={step} />
-
-        {step === 1 && <Step1 data={data} onChange={handleChange} />}
-        {step === 2 && <Step2 data={data} onChange={handleChange} />}
-        {step === 3 && <Step3 data={data} onChange={handleChange} />}
-        {step === 4 && <Step4 data={data} onChange={handleChange} />}
-
-        <div className="flex gap-3 mt-8">
-          {step > 1 && (
-            <Button variant="outline" onClick={() => setStep(s => s - 1)} className="flex-1">
-              이전
-            </Button>
-          )}
-          <Button
-            variant={step === TOTAL_STEPS ? 'sunset-orange' : 'navy'}
-            onClick={handleNext}
-            disabled={!isStepValid(step, data)}
-            className="flex-1"
-          >
-            {step === TOTAL_STEPS ? 'Mars와 시작하기' : '다음'}
-          </Button>
-        </div>
+      <div className="flex-1 px-5 pt-4 pb-12 max-w-lg mx-auto w-full">
+        <Progress current={current} total={total} />
+        {children}
       </div>
     </div>
   )
