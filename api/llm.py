@@ -35,10 +35,11 @@ TIMEOUT = 55  # Vercel 무료 플랜 함수 실행 한도가 60초다
 
 
 def call_gemini(key: str, model: str, system: str, prompt: str,
-                want_json: bool, history: list) -> str:
+                want_json: bool, history: list, schema=None) -> str:
     contents = []
     for turn in history or []:
-        role = "model" if turn.get("role") in ("mars", "model", "assistant") else "user"
+        # 프론트가 쓰는 이름이 화면마다 다르다. 전부 받아준다.
+        role = "model" if turn.get("role") in ("mars", "bot", "model", "assistant") else "user"
         text = turn.get("text") or turn.get("content") or ""
         if text:
             contents.append({"role": role, "parts": [{"text": str(text)}]})
@@ -53,6 +54,8 @@ def call_gemini(key: str, model: str, system: str, prompt: str,
         body["systemInstruction"] = {"parts": [{"text": system}]}
     if want_json:
         body["generationConfig"]["responseMimeType"] = "application/json"
+        if schema:
+            body["generationConfig"]["responseSchema"] = schema
 
     request = urllib.request.Request(
         ENDPOINT.format(model=model),
@@ -93,6 +96,7 @@ class handler(Base):  # noqa: N801
                 prompt=prompt,
                 want_json=bool(payload.get("json")),
                 history=payload.get("history") or [],
+                schema=payload.get("schema"),
             )
         except urllib.error.HTTPError as error:
             # 본문에 키가 실려 돌아오는 일은 없지만, 그대로 흘리지 않는다.
