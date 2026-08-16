@@ -47,3 +47,22 @@ create trigger user_profiles_touch
 -- ---------------------------------------------------------------------
 alter table users         enable row level security;
 alter table user_profiles enable row level security;
+
+-- ---------------------------------------------------------------------
+-- service_role 에 테이블 권한 부여. **이걸 빼먹으면 안 된다.**
+--
+-- Data API 설정에서 'Automatically expose new tables' 를 끄면 새 테이블에
+-- 권한이 자동으로 붙지 않는다. service_role 도 예외가 아니다.
+-- 그 상태로 붙으면 이렇게 나온다:
+--
+--   42501  permission denied for table users
+--
+-- RLS 는 켜둔 채로 둔다. service_role 은 RLS 를 통과하므로 정책 없이도
+-- 접근하고, anon 키로는 여전히 아무것도 못 읽는다.
+--
+-- sequences 줄이 없으면 조회는 되는데 users 에 INSERT 할 때 id 자동 증가가
+-- 막힌다. 로그인하다가 신규 회원 생성에서만 실패하는 형태라 찾기 어렵다.
+-- ---------------------------------------------------------------------
+grant usage on schema public to service_role;
+grant all on public.users, public.user_profiles to service_role;
+grant usage, select on all sequences in schema public to service_role;
