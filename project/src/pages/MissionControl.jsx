@@ -132,7 +132,7 @@ export default function MissionControl() {
 
       <div className="max-w-2xl w-full mx-auto px-5 pt-4 pb-2">
         <h1 className="text-xl font-bold text-navy">챗봇 지령실</h1>
-        <p className="text-sm text-warm-gray mt-0.5">
+        <p className="text-sm text-warm-text mt-0.5">
           노란 단어를 탭하면 행정 용어 설명이 나와요
         </p>
       </div>

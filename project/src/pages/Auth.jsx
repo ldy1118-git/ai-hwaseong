@@ -56,7 +56,7 @@ export default function Auth() {
       <h1 className="text-xl font-bold text-navy text-center leading-snug mb-2">
         카카오톡으로 3초면<br />시작할 수 있어요
       </h1>
-      <p className="text-sm text-warm-gray text-center mb-7">
+      <p className="text-sm text-warm-text text-center mb-7">
         따로 가입하거나 비밀번호를 만들지 않아도 돼요
       </p>
 
@@ -95,7 +95,7 @@ export default function Auth() {
 
       <button
         onClick={() => navigate('/onboarding')}
-        className="mt-6 text-sm text-warm-gray hover:text-navy underline underline-offset-2 transition-colors"
+        className="mt-6 text-sm text-warm-text hover:text-navy underline underline-offset-2 transition-colors"
       >
         로그인 없이 둘러보기
       </button>

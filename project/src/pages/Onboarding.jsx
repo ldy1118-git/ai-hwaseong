@@ -85,7 +85,7 @@ function Ask({ title, why, children }) {
     <div>
       <h2 className="text-xl font-bold text-navy leading-snug mb-1.5">{title}</h2>
       {why && (
-        <p className="text-sm text-warm-gray mb-6 leading-relaxed">
+        <p className="text-sm text-gray-700 mb-6 leading-relaxed">
           <span className="text-sunset-orange font-semibold">왜 묻나요?</span> {why}
         </p>
       )}
@@ -109,7 +109,7 @@ function Choice({ emoji, label, desc, selected, onClick }) {
         <span className={`block text-sm font-semibold ${selected ? 'text-navy' : 'text-gray-700'}`}>
           {label}
         </span>
-        {desc && <span className="block text-xs text-warm-gray mt-0.5">{desc}</span>}
+        {desc && <span className="block text-xs text-gray-600 mt-0.5">{desc}</span>}
       </span>
     </button>
   )
@@ -119,7 +119,7 @@ function SkipLink({ onClick, children = '잘 모르겠어요' }) {
   return (
     <button
       type="button" onClick={onClick}
-      className="mt-4 w-full text-sm text-warm-gray hover:text-navy underline underline-offset-2"
+      className="mt-4 w-full text-sm text-gray-600 hover:text-navy underline underline-offset-2"
     >
       {children}
     </button>
@@ -269,7 +269,7 @@ export default function Onboarding() {
 
           {error && <p className="text-xs text-sunset-orange mt-2">{error}</p>}
 
-          <p className="text-xs font-semibold text-warm-gray mt-6 mb-2">자주 찾는 업종</p>
+          <p className="text-xs font-semibold text-gray-600 mt-6 mb-2">자주 찾는 업종</p>
           <div className="flex flex-wrap gap-2">
             {KEYWORDS.map(word => (
               <button key={word} onClick={() => submitWish(word)} disabled={busy}
@@ -291,7 +291,7 @@ export default function Onboarding() {
         <Ask title="사업자등록증이 있으시군요!" why="업종·개업일·주소를 확인해서 조건에 맞는 사업을 찾아요.">
           <div className="rounded-2xl border-2 border-dashed border-warm-gray/60 bg-white p-6 text-center">
             <p className="text-sm font-semibold text-navy">사진으로 자동 입력</p>
-            <p className="text-xs text-warm-gray mt-1.5 leading-relaxed">
+            <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">
               사업자등록증을 찍으면 알아서 채워드리는 기능을<br />준비하고 있어요
             </p>
             <span className="inline-block mt-3 text-xs font-semibold text-sunset-orange
@@ -316,7 +316,7 @@ export default function Onboarding() {
                 placeholder="18"
                 className="w-28 border border-warm-gray/50 rounded-xl px-3 py-2.5 text-sm text-navy
                            focus:outline-none focus:border-navy/50" />
-              <span className="text-sm text-warm-gray">개월째 운영 중</span>
+              <span className="text-sm text-gray-700">개월째 운영 중</span>
             </div>
           </div>
 
@@ -377,7 +377,7 @@ export default function Onboarding() {
             <p className="mt-2 text-sm font-semibold text-navy">만 {ageFromBirth(birth)}세</p>
           )}
 
-          <p className="text-xs font-semibold text-warm-gray mt-5 mb-2">또는 대략만 골라주세요</p>
+          <p className="text-xs font-semibold text-gray-600 mt-5 mb-2">또는 대략만 골라주세요</p>
           <div className="grid grid-cols-4 gap-2">
             {[['20대', 25], ['30대', 35], ['40대', 45], ['50대+', 55]].map(([label, age]) => (
               <button key={label}
@@ -483,7 +483,7 @@ function Shell({ current, total, onBack, children }) {
             className="text-navy text-lg font-bold w-8 h-8 -ml-1">←</button>
         ) : <span className="w-8" />}
         <img src={logoImg} alt="Mars-Fit" className="h-14 object-contain" />
-        <span className="text-xs text-warm-gray w-8 text-right">{current}/{total}</span>
+        <span className="text-xs text-warm-text w-8 text-right">{current}/{total}</span>
       </div>
 
       <div className="flex-1 px-5 pt-4 pb-12 max-w-lg mx-auto w-full">

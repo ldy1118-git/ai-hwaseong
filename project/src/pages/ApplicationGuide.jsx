@@ -114,7 +114,7 @@ export default function ApplicationGuide() {
       <PageWrapper>
         <div className="mt-4 mb-1">
           <h1 className="text-xl font-bold text-navy">신청 동행</h1>
-          <p className="text-sm text-warm-gray mt-0.5">
+          <p className="text-sm text-warm-text mt-0.5">
             {programName || 'Mars와 함께 서류를 하나씩 준비해봐요'}
           </p>
         </div>

@@ -17,7 +17,7 @@ function calcDDay(endDate) {
 const STATUS_STYLE = {
   '신청가능': 'text-emerald-600 bg-emerald-50',
   '조건부':   'text-sunset-orange bg-sunset-orange/10',
-  '확인필요': 'text-warm-gray bg-warm-gray/20',
+  '확인필요': 'text-warm-text bg-warm-gray/20',
 }
 
 async function generateCardDesc(title) {
@@ -47,7 +47,7 @@ function ScoreBar({ score, color }) {
           style={{ width: `${score}%` }}
         />
       </div>
-      <span className="text-[11px] text-warm-gray font-medium flex-shrink-0">매칭 {score}%</span>
+      <span className="text-[11px] text-warm-text font-medium flex-shrink-0">매칭 {score}%</span>
     </div>
   )
 }
@@ -103,7 +103,7 @@ function ProgramCard({ item, accent, onDetail }) {
 
       {/* 상단: 상태 배지 + D-Day */}
       <div className="flex items-center justify-between mb-1.5">
-        <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[item.status] ?? 'text-warm-gray bg-warm-gray/20'}`}>
+        <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[item.status] ?? 'text-warm-text bg-warm-gray/20'}`}>
           {item.status}
         </span>
         {item.dDay !== null && (
@@ -121,7 +121,7 @@ function ProgramCard({ item, accent, onDetail }) {
         {descLoading
           ? <SkeletonLine w="w-full" h="h-3" />
           : easyDesc
-            ? <p className="text-xs text-warm-gray leading-relaxed line-clamp-2">{easyDesc}</p>
+            ? <p className="text-xs text-warm-text leading-relaxed line-clamp-2">{easyDesc}</p>
             : null
         }
       </div>
@@ -135,7 +135,7 @@ function ProgramCard({ item, accent, onDetail }) {
           </div>
         ) : support ? (
           <div className={`rounded-xl px-3 py-2 ${isUrgent ? 'bg-sunset-orange/10' : 'bg-navy/5'}`}>
-            <p className="text-[10px] font-bold text-warm-gray mb-0.5">지원 내용</p>
+            <p className="text-[10px] font-bold text-warm-text mb-0.5">지원 내용</p>
             <p className="text-xs text-navy leading-relaxed">{support}</p>
           </div>
         ) : null}
@@ -150,7 +150,7 @@ function ProgramCard({ item, accent, onDetail }) {
           {reasonLoading ? (
             <div className="flex items-center gap-2 py-1">
               <span className="w-3 h-3 border border-navy/30 border-t-navy rounded-full animate-spin flex-shrink-0" />
-              <span className="text-xs text-warm-gray">Mars가 이유를 설명 중...</span>
+              <span className="text-xs text-warm-text">Mars가 이유를 설명 중...</span>
             </div>
           ) : (
             <p className="text-xs text-gray-700 leading-relaxed">{reasonText}</p>
@@ -162,14 +162,14 @@ function ProgramCard({ item, accent, onDetail }) {
       <div className="mt-2 pt-2 border-t border-warm-gray/30 flex items-center justify-between">
         <button
           onClick={handleToggleReason}
-          className={`text-xs font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-gray hover:text-navy'}`}
+          className={`text-xs font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
         >
           매칭이유 {showReason ? '▲' : '▼'}
         </button>
         <div className="flex items-center gap-3">
           <button
             onClick={onDetail}
-            className={`text-xs font-medium hover:underline ${isUrgent ? 'text-warm-gray' : 'text-navy'}`}
+            className={`text-xs font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
           >
             자세히 →
           </button>
@@ -245,7 +245,7 @@ export default function OrbitDashboard({ userProfile }) {
       <section className="px-5 pb-28">
         <div className="bg-sunset-orange/10 border border-sunset-orange/30 rounded-xl p-4 text-sm text-sunset-orange">
           매칭 서버에 연결할 수 없어요.
-          <span className="text-xs text-warm-gray mt-1 block">{error}</span>
+          <span className="text-xs text-warm-text mt-1 block">{error}</span>
         </div>
       </section>
     )
@@ -321,7 +321,7 @@ export default function OrbitDashboard({ userProfile }) {
       </div>
 
       {!loading && urgent.length === 0 && regular.length === 0 && (
-        <p className="text-sm text-warm-gray text-center py-8">현재 조건에 맞는 지원사업이 없어요.</p>
+        <p className="text-sm text-warm-text text-center py-8">현재 조건에 맞는 지원사업이 없어요.</p>
       )}
     </section>
   )

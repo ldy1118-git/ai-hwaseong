@@ -62,7 +62,7 @@ export default function Landing() {
           <span className="text-star-yellow">신청까지</span><br />
           Mars가 함께해요
         </h1>
-        <p className="relative text-sm text-warm-gray leading-relaxed mb-8 max-w-xs">
+        <p className="relative text-sm text-warm-text leading-relaxed mb-8 max-w-xs">
           조건을 입력하면 나에게 딱 맞는 지원사업을 찾아드리고,<br />
           서류 준비부터 마감까지 빠짐없이 챙겨드려요.
         </p>
@@ -127,13 +127,13 @@ export default function Landing() {
 
       {/* 핵심 기능 3가지 */}
       <section className="px-5 py-12 max-w-2xl mx-auto w-full">
-        <p className="text-xs font-bold text-warm-gray uppercase tracking-widest text-center mb-6">핵심 기능</p>
+        <p className="text-xs font-bold text-warm-text uppercase tracking-widest text-center mb-6">핵심 기능</p>
         <div className="grid grid-cols-1 gap-4">
           {FEATURES.map(f => (
             <div key={f.title}
               className={`bg-white rounded-2xl border-t-4 ${f.accent} px-5 py-4 shadow-sm`}>
               <p className="font-bold text-navy mb-1">{f.title}</p>
-              <p className="text-sm text-warm-gray leading-relaxed">{f.desc}</p>
+              <p className="text-sm text-warm-text leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
@@ -151,7 +151,7 @@ export default function Landing() {
                 </span>
                 <div className="pt-1.5">
                   <p className="font-semibold text-white">{s.label}</p>
-                  <p className="text-sm text-warm-gray mt-0.5">{s.desc}</p>
+                  <p className="text-sm text-warm-text mt-0.5">{s.desc}</p>
                 </div>
                 {i < STEPS.length - 1 && (
                   <div className="absolute ml-5 mt-10 w-px h-6 bg-warm-gray/20" />
@@ -166,14 +166,14 @@ export default function Landing() {
       <section className="px-5 py-14 flex flex-col items-center text-center">
         <img src={logoImg} alt="Mars-Fit" className="h-24 object-contain mb-4" />
         <p className="text-base font-bold text-navy mb-1">지금 바로 내 지원사업을 찾아보세요</p>
-        <p className="text-sm text-warm-gray mb-6">화성시 소재 소상공인이라면 누구나 무료로 이용할 수 있어요</p>
+        <p className="text-sm text-warm-text mb-6">화성시 소재 소상공인이라면 누구나 무료로 이용할 수 있어요</p>
         <div className="flex flex-col items-center gap-3 w-full max-w-xs">
           <Button variant="navy" size="lg" fullWidth onClick={() => navigate('/auth')}>
             카카오톡으로 시작
           </Button>
           <button
             onClick={() => navigate('/onboarding')}
-            className="text-sm text-warm-gray hover:text-navy underline underline-offset-2 transition-colors"
+            className="text-sm text-warm-text hover:text-navy underline underline-offset-2 transition-colors"
           >
             로그인 없이 둘러보기
           </button>
@@ -182,7 +182,7 @@ export default function Landing() {
 
       {/* 푸터 */}
       <footer className="border-t border-warm-gray/20 px-5 py-4 text-center">
-        <p className="text-xs text-warm-gray">Mars-Fit · 화성시 소상공인 AI 경영동행 서비스</p>
+        <p className="text-xs text-warm-text">Mars-Fit · 화성시 소상공인 AI 경영동행 서비스</p>
       </footer>
 
     </div>
