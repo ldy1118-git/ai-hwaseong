@@ -10,6 +10,11 @@ users/
 *.jpeg
 *.png
 !docs/**/*.png
+# UI 에셋은 예외. 프론트가 import 하는 파일이라 없으면 빌드가 실패한다.
+!project/design/*.png
+!frontend/design/*.png
+!project/public/**/*.png
+!frontend/public/**/*.png
 
 # 가상환경 (1.4GB, 각자 로컬에서 생성 — README 참고)
 .venv/
@@ -277,6 +282,11 @@ users/
 *.jpeg
 *.png
 !docs/**/*.png
+# UI 에셋은 예외. 프론트가 import 하는 파일이라 없으면 빌드가 실패한다.
+!project/design/*.png
+!frontend/design/*.png
+!project/public/**/*.png
+!frontend/public/**/*.png
 
 # 가상환경
 .venv/

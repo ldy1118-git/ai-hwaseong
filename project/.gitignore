@@ -16,6 +16,9 @@ users/
 *.jpeg
 *.png
 !docs/**/*.png
+# UI 에셋은 예외. src 가 import 하는 파일이라 없으면 빌드가 실패한다.
+!design/*.png
+!public/**/*.png
 
 # 가상환경
 .venv/
