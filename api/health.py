@@ -8,9 +8,33 @@ from __future__ import annotations
 
 import os
 
+import _store
 from _shared import Base, send_json
 
 import matching
+
+
+def database() -> dict:
+    """Supabase 까지 실제로 붙어보고 결과를 돌려준다.
+
+    설정만 확인하면 "키는 꽂혔는데 권한이 없어서 안 되는" 상태를 못 잡는다.
+    Data API 의 'expose new tables' 를 끄면 anon 역할에 권한이 안 붙는데,
+    service_role 이 그대로 통과하는지는 붙여봐야 안다.
+    """
+    try:
+        _store.find_user_by_provider("__health_check__")
+    except _store.StoreError as error:
+        message = str(error)
+        if "SUPABASE_URL" in message:
+            return {"connected": False, "reason": "환경변수 미설정"}
+        if "permission denied" in message or "42501" in message:
+            return {"connected": False, "reason": "권한 없음 — anon 키를 넣었는지 확인",
+                    "detail": message[:200]}
+        if "does not exist" in message or "42P01" in message:
+            return {"connected": False, "reason": "테이블 없음 — supabase_schema.sql 실행 필요",
+                    "detail": message[:200]}
+        return {"connected": False, "reason": message[:200]}
+    return {"connected": True}
 
 
 class handler(Base):  # noqa: N801
@@ -26,6 +50,12 @@ class handler(Base):  # noqa: N801
             "ok": True,
             "notices": count,
             "notices_source": "policy_data (실제 공고)" if using_real else "backend (샘플)",
-            "llm_key_configured": bool(os.environ.get("GEMINI_API_KEY", "").strip()),
+            "database": database(),
+            "configured": {
+                "GEMINI_API_KEY": bool(os.environ.get("GEMINI_API_KEY", "").strip()),
+                "JWT_SECRET": bool(os.environ.get("JWT_SECRET", "").strip()),
+                "KAKAO_CLIENT_ID": bool(os.environ.get("KAKAO_CLIENT_ID", "").strip()),
+                "KAKAO_REDIRECT_URI": os.environ.get("KAKAO_REDIRECT_URI", "") or None,
+            },
             "ocr": "미지원 — torch 가 Vercel 용량 한도를 넘는다. 로컬 서버에서 시연할 것",
         })
