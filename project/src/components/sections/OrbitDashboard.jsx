@@ -4,7 +4,9 @@ import Card from '../ui/Card'
 import { fetchMatches, DEFAULT_PROFILE } from '../../utils/api'
 import { generateText } from '../../utils/llm/llmProvider'
 
-const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY
+// API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
+// 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
+const GEMINI_KEY = null
 
 function calcDDay(endDate) {
   if (!endDate) return null
