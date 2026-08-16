@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import logoImg from '../../design/logo.png'
-import marsImg from '../../design/mars.png'
 import { goToKakaoLogin } from '../utils/kakao'
+import { getToken } from '../utils/api'
 
 /**
  * 로그인은 카카오 하나만 쓴다.
@@ -25,6 +25,14 @@ export default function Auth() {
   const [busy, setBusy]   = useState(false)
   const [error, setError] = useState('')
 
+  // 이미 로그인했으면 이 화면에 머물 이유가 없다. 로그인 버튼을 다시
+  // 보여주면 "로그인이 안 된 건가" 하고 또 누르게 된다.
+  useEffect(() => {
+    if (!getToken()) return
+    const done = !!localStorage.getItem('mars-fit-profile')
+    navigate(done ? '/home' : '/onboarding', { replace: true })
+  }, [navigate])
+
   async function handleKakao() {
     setError('')
     setBusy(true)
@@ -40,11 +48,10 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-primary-bg flex flex-col items-center justify-center px-5 py-12">
 
-      <a href="#/" className="mb-6">
-        <img src={logoImg} alt="Mars-Fit" className="h-28 object-contain" />
+      {/* 로고 안에 이미 Mars 캐릭터가 들어 있다. 캐릭터를 따로 또 띄우지 않는다. */}
+      <a href="#/" className="mb-7">
+        <img src={logoImg} alt="Mars-Fit" className="h-40 object-contain" />
       </a>
-
-      <img src={marsImg} alt="" aria-hidden="true" className="w-40 h-40 object-contain mb-5" />
 
       <h1 className="text-xl font-bold text-navy text-center leading-snug mb-2">
         카카오톡으로 3초면<br />시작할 수 있어요
