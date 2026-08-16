@@ -8,6 +8,7 @@
   "end": "2026-08-21"
  },
  "eligibility": {
+  "requirements_unknown": "공고문에서 자격 요건을 확인하지 못했습니다. 문의처로 확인해주세요",
   "regions": [
    "화성시",
    "화성특례시"
