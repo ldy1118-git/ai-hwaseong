@@ -15,10 +15,19 @@ import { loadOnboarding } from './utils/api'
  * HashRouter 라서 ?code= 가 해시 앞에 붙어 온다(`/?code=xxx#/`). 라우트로는
  * 못 잡으므로 앱이 뜰 때 한 번 확인한다.
  */
+/** 주소에 ?code= 가 붙어 있는가. 첫 렌더 전에 알아야 해서 훅 밖에서 본다. */
+function isKakaoReturn() {
+  const params = new URLSearchParams(window.location.search)
+  return params.has('code') || params.has('error')
+}
+
 function KakaoReturn() {
   const navigate = useNavigate()
   const [error, setError] = useState('')
-  const [busy, setBusy]   = useState(false)
+  // 카카오에서 돌아온 게 확실하면 처음부터 가림막을 띄운다. 안 그러면
+  // 로그인 처리가 끝날 때까지 랜딩 화면이 잠깐 스쳐 보인다.
+  // (HashRouter 라 ?code= 만 붙어 오면 해시가 비어 랜딩이 그려진다)
+  const [busy, setBusy]   = useState(isKakaoReturn)
 
   useEffect(() => {
     let cancelled = false
@@ -26,7 +35,6 @@ function KakaoReturn() {
     consumeKakaoRedirect()
       .then(async (result) => {
         if (!result || cancelled) return
-        setBusy(true)
 
         // 서버에 저장된 프로필이 있으면 내려받아 화면이 바로 쓰게 한다.
         if (result.onboarding_completed) {
