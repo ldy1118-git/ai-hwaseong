@@ -112,6 +112,44 @@ const { terms, documents, glossary } = await res.json()
 - `documents` — 서류별 발급처·비용·소요시간 (`issue` 필드)
 - `glossary` — 위 내용을 LLM 프롬프트에 바로 넣을 수 있게 만든 문자열
 
+### 배포 (Vercel)
+
+`api/` 의 파이썬 서버리스 함수가 같은 도메인에서 API 를 서빙한다.
+프론트는 `/api/match` 처럼 **상대경로**로 부르면 된다. 호스트를 박아두면
+배포 주소가 바뀔 때마다 다시 빌드해야 한다.
+
+| 경로 | 파일 | 비고 |
+|---|---|---|
+| `/api/health` | `api/health.py` | 배포 직후 여기부터 열어볼 것 |
+| `/api/match` | `api/match.py` | 매칭. 외부 패키지 0개 |
+| `/api/terms` | `api/glossary.py` | 사전 원본 |
+| `/api/terms/lookup` | `api/glossary_lookup.py` | 공고에 나온 용어만 |
+| `/api/llm` | `api/llm.py` | LLM 대리 호출 |
+
+파일 이름이 `glossary` 인 이유는 `api/terms.py` 로 두면 `policy_data/terms.py`
+를 가려서 `import terms` 가 자기 자신을 불러오기 때문이다. `vercel.json` 의
+rewrites 가 경로를 이어준다.
+
+**API 키는 프론트에 두지 않는다.** `VITE_` 로 시작하는 환경변수는 빌드
+결과물에 그대로 박혀서, 배포하면 개발자도구를 여는 누구나 꺼낼 수 있다.
+Vercel → Settings → Environment Variables 에 `GEMINI_API_KEY` 를 넣고
+프론트는 `/api/llm` 을 부른다.
+
+```js
+const res = await fetch("/api/llm", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ prompt, system, json: true }),
+})
+const { text } = await res.json()
+```
+
+**OCR 은 Vercel 에 안 올라간다.** torch 가 1.4GB 라 함수 용량 한도(250MB)를
+넘는다. 사업자등록증 인식은 로컬 서버(`./scripts/run_server.sh`)로 시연한다.
+
+배포된 함수는 매칭 이력을 남기지 않는다. 서버리스는 파일시스템이 읽기
+전용이라 `backend/users/` 에 쓸 수 없다. 이력이 필요하면 로컬 서버를 쓸 것.
+
 ### 다른 포트에서 부를 때 (React 등)
 
 CORS를 열어놨다. Vite(5173)에서 이 서버(8000)를 그대로 부르면 된다.
