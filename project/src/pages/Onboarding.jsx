@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import logoImg from '../../design/logo.png'
+import { getToken, saveOnboarding } from '../utils/api'
 
 const TOTAL_STEPS = 4
 
@@ -231,10 +232,18 @@ export default function Onboarding() {
   function handleNext() {
     if (step < TOTAL_STEPS) {
       setStep(s => s + 1)
-    } else {
-      localStorage.setItem('mars-fit-profile', JSON.stringify(data))
-      navigate('/home')
+      return
     }
+
+    // 로그인 여부와 상관없이 브라우저에는 항상 저장한다. 화면이 이걸 읽는다.
+    localStorage.setItem('mars-fit-profile', JSON.stringify(data))
+
+    // 로그인했으면 서버에도 남긴다. 다른 기기에서 열어도 조건이 따라온다.
+    // 저장을 기다리지 않는다 — 실패해도 화면은 로컬 값으로 정상 동작한다.
+    if (getToken()) {
+      saveOnboarding(data).catch(err => console.warn('[온보딩 저장]', err.message))
+    }
+    navigate('/home')
   }
 
   return (

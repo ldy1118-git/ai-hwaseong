@@ -136,14 +136,34 @@ class handler(Base):  # noqa: N801
         })
 
     def do_GET(self) -> None:  # noqa: N802
-        # 설정이 꽂혔는지만 알려준다. 값 자체는 절대 내보내지 않는다.
+        """로그인 시작 주소를 만들어준다.
+
+        프론트가 client_id 와 redirect_uri 를 알 필요가 없다. 값이 바뀌어도
+        환경변수만 고치면 되고, 다시 빌드하지 않아도 된다.
+
+        client_id 는 비밀이 아니다 — 인가 URL 에 그대로 실려 나간다.
+        비밀인 것은 client_secret 이고 그건 서버 밖으로 안 나간다.
+        """
+        client_id = os.environ.get("KAKAO_CLIENT_ID", "").strip()
+        redirect_uri = os.environ.get("KAKAO_REDIRECT_URI", "").strip()
+
+        if not client_id or not redirect_uri:
+            return send_json(self, {
+                "error": "카카오 설정이 끝나지 않았습니다",
+                "configured": {
+                    "KAKAO_CLIENT_ID": bool(client_id),
+                    "KAKAO_REDIRECT_URI": redirect_uri or None,
+                    "SUPABASE_URL": bool(os.environ.get("SUPABASE_URL", "").strip()),
+                    "JWT_SECRET": bool(os.environ.get("JWT_SECRET", "").strip()),
+                },
+            }, 503)
+
+        query = urllib.parse.urlencode({
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+        })
         send_json(self, {
-            "error": "POST 로 호출하세요",
-            "example": {"code": "카카오에서 받은 인가 코드"},
-            "configured": {
-                "KAKAO_CLIENT_ID": bool(os.environ.get("KAKAO_CLIENT_ID", "").strip()),
-                "KAKAO_REDIRECT_URI": os.environ.get("KAKAO_REDIRECT_URI", "") or None,
-                "SUPABASE_URL": bool(os.environ.get("SUPABASE_URL", "").strip()),
-                "JWT_SECRET": bool(os.environ.get("JWT_SECRET", "").strip()),
-            },
-        }, 405)
+            "authorize_url": f"https://kauth.kakao.com/oauth/authorize?{query}",
+            "redirect_uri": redirect_uri,
+        })
