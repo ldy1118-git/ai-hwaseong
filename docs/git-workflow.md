@@ -40,6 +40,33 @@ git checkout -b feat/matching        # 본인 브랜치 이름으로
 git push -u origin feat/matching
 ```
 
+### 커밋 이메일을 GitHub 계정 것으로 맞출 것
+
+```bash
+git config user.email    # 확인
+```
+
+**GitHub 계정에 등록되지 않은 주소면 Vercel 이 배포를 거부한다.**
+
+```
+The deployment was blocked because the commit email … could not be
+matched to a GitHub account.
+```
+
+푸시는 그대로 되고 GitHub 도 아무 말을 안 한다. 배포만 조용히 막힌다.
+실제로 이것 때문에 커밋 6개가 올라갔는데 배포가 하나도 안 됐다.
+(2026-08-16, 연구실 서버의 `.git/config` 에 다른 주소가 박혀 있었다.)
+
+등록된 주소는 github.com → Settings → Emails 에서 확인한다.
+노출이 싫으면 같은 화면의 `…@users.noreply.github.com` 을 쓰면 된다.
+
+```bash
+git config user.email "본인@example.com"
+```
+
+서버에서 작업할 때 특히 조심할 것. 전역 설정이 없으면 저장소마다
+따로 박히기 때문에, 노트북에서는 되는데 서버에서만 막히는 일이 생긴다.
+
 ### 작업 시작할 때
 
 ```bash
