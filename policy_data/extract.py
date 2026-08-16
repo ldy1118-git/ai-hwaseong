@@ -297,6 +297,30 @@ def build_notice(entry: dict, doc_text: str) -> tuple[dict, list[str]]:
     basis = "\n".join([qualify, exclude]).strip() or summary_api
     eligibility, evidence = build_eligibility(basis)
 
+    # 요건을 하나도 못 뽑았으면 "확인 필요"로 남긴다.
+    #
+    # 요건이 진짜 없는 공고(전 소상공인 대상)와, 요건이 있는데 우리가 못 읽은
+    # 공고를 구분할 방법이 없다. 25건 중 17건이 여기 해당하는데 그 안에는
+    #
+    #   · 첨부가 스캔 이미지라 텍스트가 아예 없는 것        13건
+    #   · 텍스트는 있지만 "온라인판로 종합지원 선정 기업"처럼
+    #     우리 프로필로는 판정할 수 없는 조건인 것            일부
+    #
+    # 이 섞여 있다. 구분이 안 되면 안전한 쪽으로 통일한다. 사용자에게
+    # "확인해보세요"라고 말하는 건 손해가 없지만, 대상이 아닌 사람에게
+    # "신청가능 100점"이라고 말하는 건 헛걸음을 시킨다.
+    #
+    # 조건을 아예 안 걸면 100점 신청가능으로 상단에 올라간다. 그게 지금까지의
+    # 동작이었고, 실제로 17건이 그렇게 떠 있었다.
+    if not eligibility:
+        eligibility["requirements_unknown"] = (
+            "공고문에서 자격 요건을 확인하지 못했습니다. 문의처로 확인해주세요"
+        )
+        evidence.append(
+            "requirements_unknown  ← 규칙에 걸린 요건 없음"
+            + ("" if doc_text else " (첨부 본문도 없음 — 스캔·HWP)")
+        )
+
     # 화성시 전용 공고는 지역 조건이 실제로 있다. 전국·경기 공고는 조건을
     # 걸지 않는다 — 우리 사용자는 모두 화성시민이라 걸어봐야 전원 통과다.
     where = scope(entry)

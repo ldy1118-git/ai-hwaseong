@@ -34,6 +34,10 @@ ELIGIBILITY_KEYS = {
     "career_experience", "asset_groups", "min_business_months",
     "max_business_months", "min_annual_revenue_krw", "max_annual_revenue_krw",
     "marital_status", "living_with_parents",
+    # 값은 사용자에게 보여줄 안내 문장. 다른 키와 달리 판정에 쓰이지 않고
+    # 무조건 "확인필요"를 만든다. 요건을 못 읽은 공고를 100점으로
+    # 올려보내지 않기 위한 것이다.
+    "requirements_unknown",
 }
 
 # 완전일치로 판정되는 값들. 오타 하나면 아무도 매칭되지 않는다.

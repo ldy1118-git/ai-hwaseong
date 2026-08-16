@@ -309,6 +309,11 @@ def _judge_condition(condition: str, user_profile: dict[str, Any], rule: dict[st
     user_value = user_profile.get(user_field)
     rule_type = rule.get("type", "allowed")
 
+    if rule_type == "unknown":
+        # 공고문 첨부가 스캔 이미지라 자격 요건을 읽지 못한 경우.
+        # 조건이 없는 것과는 다르다. 추측해서 통과시키지 않고 확인 필요로 남긴다.
+        return {"condition": condition, "status": NEEDS_CHECK,
+                "detail": rule.get("detail", "공고문에서 자격 요건을 확인하지 못했습니다")}
     if rule_type == "age":
         return _judge_age(user_value, rule)
     if rule_type == "region":
@@ -376,6 +381,15 @@ def normalize_policy(policy: dict[str, Any]) -> dict[str, Any]:
 
     eligibility = policy.get("eligibility", {})
     conditions: dict[str, dict[str, Any]] = {}
+
+    if eligibility.get("requirements_unknown"):
+        conditions["requirements"] = {
+            "type": "unknown",
+            "label": "지원 자격",
+            "detail": eligibility["requirements_unknown"]
+                      if isinstance(eligibility["requirements_unknown"], str)
+                      else "공고문에서 자격 요건을 확인하지 못했습니다",
+        }
 
     if "min_age" in eligibility or "max_age" in eligibility:
         conditions["age"] = {

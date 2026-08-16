@@ -7,7 +7,9 @@
   "start": "2026-04-29",
   "end": "2026-12-31"
  },
- "eligibility": {},
+ "eligibility": {
+  "requirements_unknown": "공고문에서 자격 요건을 확인하지 못했습니다. 문의처로 확인해주세요"
+ },
  "documents": [
   {
    "name": "사업자등록증",
