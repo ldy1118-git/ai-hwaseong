@@ -11,6 +11,8 @@
   },
   "rewrites": [
     { "source": "/api/terms/lookup", "destination": "/api/glossary_lookup" },
-    { "source": "/api/terms", "destination": "/api/glossary" }
+    { "source": "/api/terms", "destination": "/api/glossary" },
+    { "source": "/api/auth/kakao", "destination": "/api/auth_kakao" },
+    { "source": "/api/users/me/onboarding", "destination": "/api/onboarding" }
   ]
 }
