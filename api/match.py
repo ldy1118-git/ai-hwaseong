@@ -9,6 +9,12 @@ user_profile 의 키 이름은 policy_data/schema.md 를 그대로 따라야 한
 
 from __future__ import annotations
 
+# Vercel 런타임은 sys.path 에 /var/task 만 넣는다. 이 파일이 있는 api/ 는
+# 들어가지 않아서 옆 파일(_shared 등)을 import 할 수 없다. 직접 넣어준다.
+# 이것 없이 배포하면 전부 FUNCTION_INVOCATION_FAILED 로 죽는다.
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+
 from _shared import Base, read_json, send_json
 
 import matching
