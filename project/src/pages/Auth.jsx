@@ -2,12 +2,26 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import logoImg from '../../design/logo.png'
+import { goToKakaoLogin } from '../utils/kakao'
 
 export default function Auth() {
   const navigate = useNavigate()
   const [mode, setMode] = useState('signup')   // 'signup' | 'login'
   const [form, setForm] = useState({ email: '', password: '', confirm: '' })
   const [error, setError] = useState('')
+  const [kakaoBusy, setKakaoBusy] = useState(false)
+
+  async function handleKakao() {
+    setError('')
+    setKakaoBusy(true)
+    try {
+      // 성공하면 카카오 페이지로 넘어가므로 여기로 돌아오지 않는다.
+      await goToKakaoLogin()
+    } catch (err) {
+      setError(err.message)
+      setKakaoBusy(false)
+    }
+  }
 
   function handleChange(e) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -115,6 +129,25 @@ export default function Auth() {
         <span className="text-xs text-warm-gray">또는</span>
         <div className="flex-1 h-px bg-warm-gray/30" />
       </div>
+
+      {/* 카카오 로그인. 색과 문구는 카카오 디자인 가이드를 따른다. */}
+      <button
+        onClick={handleKakao}
+        disabled={kakaoBusy}
+        className="w-full max-w-sm flex items-center justify-center gap-2 rounded-xl
+                   bg-[#FEE500] text-[#191600] font-bold py-3.5 text-sm
+                   hover:brightness-95 active:brightness-90 transition
+                   disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
+          <path d="M12 3.5c-4.7 0-8.5 3-8.5 6.7 0 2.4 1.6 4.5 4 5.7l-1 3.6c-.1.3.3.6.6.4l4.3-2.8c.2 0 .4.1.6.1 4.7 0 8.5-3 8.5-6.7S16.7 3.5 12 3.5Z" />
+        </svg>
+        {kakaoBusy ? '카카오로 이동 중...' : '카카오톡으로 시작하기'}
+      </button>
+
+      <p className="text-[11px] text-warm-gray mt-2 text-center max-w-xs leading-relaxed">
+        입력하신 조건이 저장돼서 다음에 다시 오셔도 그대로 있어요
+      </p>
 
       <button
         onClick={() => navigate('/onboarding')}
