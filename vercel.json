@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd project && npm install && npm run build",
+  "outputDirectory": "project/dist",
+  "installCommand": "echo skip",
+  "functions": {
+    "api/**/*.py": {
+      "includeFiles": "{backend/**,policy_data/notices/**,policy_data/terms.json,policy_data/terms.py}",
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    { "source": "/api/terms/lookup", "destination": "/api/glossary_lookup" },
+    { "source": "/api/terms", "destination": "/api/glossary" }
+  ]
+}
