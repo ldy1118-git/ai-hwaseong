@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Card from '../ui/Card'
 import { fetchMatches, DEFAULT_PROFILE } from '../../utils/api'
 import { generateText } from '../../utils/llm/llmProvider'
+import findImg from '../../../design/find.png'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
 // 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
@@ -245,6 +246,40 @@ export default function OrbitDashboard({ userProfile }) {
         <div className="bg-sunset-orange/10 border border-sunset-orange/30 rounded-xl p-4 text-sm text-sunset-orange">
           매칭 서버에 연결할 수 없어요.
           <span className="text-xs text-warm-gray mt-1 block">{error}</span>
+        </div>
+      </section>
+    )
+  }
+
+  if (loading) {
+    return (
+      <section className="px-5 pb-28">
+        <style>{`
+          @keyframes findFloat {
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(-10px); }
+          }
+        `}</style>
+        <div className="flex flex-col items-center py-10">
+          <img
+            src={findImg}
+            alt=""
+            aria-hidden="true"
+            className="w-40 h-40 object-contain"
+            style={{ animation: 'findFloat 2s ease-in-out infinite' }}
+          />
+          <p className="mt-4 text-sm font-semibold text-navy">
+            Mars가 딱 맞는 지원사업을 찾고 있어요
+          </p>
+          <div className="flex gap-1 mt-2">
+            {[0, 0.15, 0.3].map((delay, i) => (
+              <span key={i} className="w-1.5 h-1.5 rounded-full bg-warm-gray animate-bounce"
+                    style={{ animationDelay: `${delay}s` }} />
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}
         </div>
       </section>
     )
