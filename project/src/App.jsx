@@ -7,7 +7,7 @@ import Home             from './pages/Home'
 import ApplicationGuide from './pages/ApplicationGuide'
 import MissionControl   from './pages/MissionControl'
 import { consumeKakaoRedirect } from './utils/kakao'
-import { loadOnboarding } from './utils/api'
+import { loadOnboarding, saveOnboarding } from './utils/api'
 
 /**
  * 카카오에서 돌아왔을 때 처리한다.
@@ -36,19 +36,30 @@ function KakaoReturn() {
       .then(async (result) => {
         if (!result || cancelled) return
 
-        // 서버에 저장된 프로필이 있으면 내려받아 화면이 바로 쓰게 한다.
-        if (result.onboarding_completed) {
-          try {
+        let hasProfile = result.onboarding_completed
+
+        try {
+          if (hasProfile) {
+            // 서버에 있는 걸 내려받아 화면이 바로 쓰게 한다.
             const saved = await loadOnboarding()
             if (saved?.profile) {
               localStorage.setItem('mars-fit-profile', JSON.stringify(saved.profile))
             }
-          } catch {
-            // 프로필을 못 받아도 로그인 자체는 됐다. 온보딩을 다시 하면 된다.
+          } else {
+            // 둘러보기로 온보딩을 먼저 하고 나중에 로그인한 경우.
+            // 브라우저에만 있던 조건을 계정에 붙여준다. 이걸 안 하면
+            // 로그인하자마자 온보딩을 처음부터 다시 하게 된다.
+            const local = localStorage.getItem('mars-fit-profile')
+            if (local) {
+              await saveOnboarding(JSON.parse(local))
+              hasProfile = true
+            }
           }
+        } catch {
+          // 프로필 동기화에 실패해도 로그인 자체는 됐다. 온보딩을 다시 하면 된다.
         }
         if (cancelled) return
-        navigate(result.onboarding_completed ? '/home' : '/onboarding', { replace: true })
+        navigate(hasProfile ? '/home' : '/onboarding', { replace: true })
       })
       .catch((err) => { if (!cancelled) setError(err.message) })
       .finally(() => { if (!cancelled) setBusy(false) })
