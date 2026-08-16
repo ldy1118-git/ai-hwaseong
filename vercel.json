@@ -5,7 +5,7 @@
   "installCommand": "echo skip",
   "functions": {
     "api/**/*.py": {
-      "includeFiles": "{backend/**,policy_data/notices/**,policy_data/terms.json,policy_data/terms.py}",
+      "includeFiles": "{api/**,backend/**,policy_data/notices/**,policy_data/terms.json,policy_data/terms.py}",
       "maxDuration": 60
     }
   },
