@@ -9,19 +9,11 @@
 | `logo.png` | Header · Landing · Auth · Onboarding |
 | `mars.png` | MarsGreeting · MarsAvatar · FloatingChatButton · Landing 히어로 |
 | `search.png` | ApplicationGuide 로딩 화면 |
+| `find.png` | **아직 import 하는 곳이 없다** |
 
----
+서희 원본으로 교체 완료 (2026-08-16). 빌드 3.64초 통과.
 
-## 지금 있는 건 임시다 (2026-08-16)
-
-배포를 막고 있어서 급하게 채워 넣은 자리표시자다.
-**서희의 원본으로 교체할 것.**
-
-- `mars.png` `search.png` — 대윤이 올린 캐릭터 62×66 을 4배 확대. 원본이
-  작아서 히어로(210px)에서 흐릿하다.
-- `logo.png` — Pillow 로 만든 워드마크. 실제 로고가 아니다.
-
-교체는 같은 이름으로 덮어쓰고 커밋하면 된다. 코드는 손댈 필요 없다.
+교체할 때는 같은 이름으로 덮어쓰면 된다. 코드는 손댈 필요 없다.
 
 ```bash
 git pull                       # .gitignore 예외를 먼저 받아야 한다
@@ -30,6 +22,12 @@ git add project/design/*.png && git commit && git push
 ```
 
 `git pull` 을 건너뛰면 `*.png` 규칙에 걸려 `git add` 가 조용히 무시된다.
+
+## 용량
+
+번들에 그대로 들어간다. 지금 셋을 합쳐 468KB 로, JS(315KB)보다 크다.
+느리다는 말이 나오면 여기부터 줄이면 된다 — 화면에서 쓰는 최대 크기가
+`mars.png` 210px 인데 원본이 330px 이라 절반으로 줄여도 티가 안 난다.
 
 ---
 
