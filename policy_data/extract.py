@@ -285,6 +285,25 @@ def skip_reason(entry: dict, doc_text: str) -> str | None:
     return None
 
 
+# HWP·PDF 에서 뽑은 텍스트에 섞여 들어오는 것들
+PAGE_MARK = re.compile(r"^\s*-\s*\d+\s*-\s*$", re.M)      # 쪽 번호 "- 1 -"
+BLANKS = re.compile(r"\n{3,}")
+# 섹션 제목을 자르다 남은 조각. "및 요건", "의 개요" 처럼 조사로 시작한다.
+LEADING_FRAGMENT = re.compile(r"^\s*(?:및|의|을|를|에|과|와|이|가)\s+\S{0,10}\n")
+
+
+def polish_summary(text: str) -> str:
+    """공고 요약을 사람이 읽을 수 있게 다듬는다.
+
+    첨부에서 뽑은 텍스트라 쪽 번호와 잘린 조각이 섞인다. 상세 화면에
+    그대로 나가면 어색하다. 내용을 바꾸지는 않고 군더더기만 걷어낸다.
+    """
+    text = PAGE_MARK.sub("", text or "")
+    text = LEADING_FRAGMENT.sub("", text, count=1)
+    text = BLANKS.sub("\n\n", text)
+    return "\n".join(line.rstrip() for line in text.split("\n")).strip()
+
+
 def build_notice(entry: dict, doc_text: str) -> tuple[dict, list[str]]:
     pblanc_id = field(entry, "pblancId", "seq")
     summary_api = clean(field(entry, "bsnsSumryCn"))
@@ -343,7 +362,7 @@ def build_notice(entry: dict, doc_text: str) -> tuple[dict, list[str]]:
         "notice_id": pblanc_id,
         "title": field(entry, "pblancNm", "title"),
         "source_url": field(entry, "pblancUrl", "link"),
-        "summary": (qualify[:400] or summary_api)[:400],
+        "summary": polish_summary(qualify[:600] or summary_api)[:400],
         "apply_period": {k: v for k, v in
                          (("start", to_iso(period, 0)), ("end", to_iso(period, 1))) if v},
         "eligibility": eligibility,
