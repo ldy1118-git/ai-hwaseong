@@ -40,7 +40,7 @@ export default function Landing() {
 
       {/* 헤더 */}
       <header className="sticky top-0 z-40 bg-primary-bg/90 backdrop-blur border-b border-warm-gray/20 px-5 py-3 flex items-center justify-between">
-        <img src={logoImg} alt="Mars-Fit" className="h-10 object-contain" />
+        <img src={logoImg} alt="Mars-Fit" className="h-14 object-contain" />
         <Button variant="navy" size="sm" onClick={handleStart}>
           {hasProfile ? '대시보드 열기' : '시작하기'}
         </Button>
@@ -164,7 +164,7 @@ export default function Landing() {
 
       {/* 하단 CTA */}
       <section className="px-5 py-14 flex flex-col items-center text-center">
-        <img src={logoImg} alt="Mars-Fit" className="h-14 object-contain mb-4" />
+        <img src={logoImg} alt="Mars-Fit" className="h-24 object-contain mb-4" />
         <p className="text-base font-bold text-navy mb-1">지금 바로 내 지원사업을 찾아보세요</p>
         <p className="text-sm text-warm-gray mb-6">화성시 소재 소상공인이라면 누구나 무료로 이용할 수 있어요</p>
         <div className="flex flex-col items-center gap-3 w-full max-w-xs">
