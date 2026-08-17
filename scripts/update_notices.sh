@@ -28,19 +28,31 @@ echo "── 1/4  기업마당에서 공고 받기"
 "$PY" policy_data/collect.py --raw
 
 echo
-echo "── 2/4  첨부 공고문 텍스트 뽑기"
-# 첨부를 못 받아도 요약만으로 진행한다. 여기서 멈추면 갱신 자체가 막힌다.
-"$PY" policy_data/fetch_docs.py || echo "  (일부 첨부 실패 — 요약만으로 진행)"
+echo "── 2/5  첨부 공고문 텍스트 뽑기"
+# pdftotext 가 없으면 첨부를 하나도 못 읽는다. 그래도 파이프라인은 "성공"으로
+# 끝나고, extract.py 가 서류를 기본값 2개로 채운 결과가 그대로 남는다.
+# 실제로 GitHub Actions 에서 그렇게 데이터가 깎인 적이 있다(2026-08-17).
+if ! command -v pdftotext >/dev/null 2>&1; then
+    echo "  ★ pdftotext 가 없습니다. 첨부 PDF 를 못 읽어 데이터가 깎입니다."
+    echo "     설치:  sudo apt-get install -y poppler-utils"
+    exit 1
+fi
+"$PY" policy_data/fetch_docs.py || echo "  (일부 첨부 실패 — 나머지로 진행)"
 
 echo
-echo "── 3/4  자격요건·서류 추출"
+echo "── 3/5  자격요건·서류 추출"
 "$PY" policy_data/extract.py
 
 echo
-echo "── 4/4  매칭 엔진에 넣어서 검사"
+echo "── 4/5  매칭 엔진에 넣어서 검사"
 "$PY" policy_data/validate.py
+
+echo
+echo "── 5/5  데이터가 줄지 않았는지 확인"
+"$PY" policy_data/guard.py
 
 echo
 echo "완료. 바뀐 내용을 확인하고 커밋하세요."
 echo "    git diff --stat policy_data/notices"
-echo "    git add policy_data/notices && git commit -m '공고 갱신'"
+echo "    python3 policy_data/guard.py --save   # 공고가 늘었으면 기준도 갱신"
+echo "    git add policy_data/notices policy_data/baseline.json && git commit -m '공고 갱신'"

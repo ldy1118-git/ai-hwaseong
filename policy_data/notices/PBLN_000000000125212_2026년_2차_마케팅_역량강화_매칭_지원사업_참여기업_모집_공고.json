@@ -2,7 +2,7 @@
  "notice_id": "PBLN_000000000125212",
  "title": "2026년 2차 마케팅 역량강화 매칭 지원사업 참여기업 모집 공고",
  "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000125212",
- "summary": "중소기업의 마케팅 역량 제고 및 경쟁력 강화를 위한「2026년 마케팅 역량강화 매칭 지원사업」참여기업을 다음과 같이 모집하오니 많은 참여바랍니다. ☞ 온라인판로 종합지원, 오프라인 판로지원을 받은 기업 ☞ 플랫폼(롯데온ㆍ지마켓)별 마케팅 역량 컨설팅, 홍보/광고지원, 인증 지원, AI 활용 지원 중 메뉴판 방식으로 선택 지원",
+ "summary": "□ 지원대상 온라인판로 종합지원 오프라인 판로지원을 받은 기업\n : ,\n\n * 온라인판로 종합지원 : ‘26년 온라인판로 종합지원 선정 기업\n** 오프라인 판로지원 : 중소기업제품 전용판매장 입점 기업\n\n◦ 신청 가능 기업 대상 별도 신청 안내 메일 발송 각 사업별 중도 ,\n\n 포기 시 사업 참여 제한\n * 신청자격 확인 관련 문의 ☞ 마케팅기획팀 (☎ 02-6678-9345, 9346)\n\n 3 사업 신청 및 접수\n\n□ 신청 접수 기간· 년 월 일목 월 일목\n : 2026 8 6 ( ) ~ 8 20 ( )",
  "apply_period": {
   "start": "2026-08-06",
   "end": "2026-08-20"
@@ -12,16 +12,25 @@
  },
  "documents": [
   {
-   "name": "사업자등록증",
+   "name": "사업자등록증명",
    "type": "common",
-   "confidence": "estimated",
-   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+   "confidence": "confirmed"
   },
   {
-   "name": "신청서",
+   "name": "국세납세증명서",
    "type": "common",
-   "confidence": "estimated",
-   "reason": "공고 붙임 서식을 사용한다"
+   "confidence": "confirmed"
+  },
+  {
+   "name": "지방세납세증명서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "건강보험료 납부확인서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 확인서"
   }
  ],
  "apply_url": "https://fanfandaero.kr/portal/v2/preSprtBizPbancDetail.do?sprtBizCd=202616020300&sprtBizTrgtYn=N&groupNo=",

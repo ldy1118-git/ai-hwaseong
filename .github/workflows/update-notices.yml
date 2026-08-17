@@ -12,7 +12,6 @@ on:
     - cron: '11 21 * * *'
   workflow_dispatch:      # Actions 탭에서 손으로도 돌릴 수 있게
 
-# 커밋을 밀어야 하므로 쓰기 권한이 필요하다.
 permissions:
   contents: write
 
@@ -27,21 +26,31 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       # pip install 이 없다. 수집 파이프라인은 표준 라이브러리만 쓴다.
+
+      # fetch_docs.py 가 첨부 PDF 를 pdftotext 로 읽는다. 러너에 기본으로
+      # 깔려 있지 않다. 이게 없으면 공고문을 하나도 못 읽어서, 서류가
+      # 기본값 2개로 덮이고 자격요건도 사라진다. 실제로 그렇게 한 번 깎였다.
+      - name: pdftotext 설치
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
 
       - name: 공고 수집·추출·검사
         env:
           BIZINFO_API_KEY: ${{ secrets.BIZINFO_API_KEY }}
         run: ./scripts/update_notices.sh
 
+      # 파이프라인이 "성공"으로 끝나도 데이터가 깎일 수 있다. 오류가 안 나기
+      # 때문이다. 건수만 세지 말고 내용이 얼마나 남았는지를 본다.
+      - name: 데이터가 줄지 않았는지 확인
+        run: python3 policy_data/guard.py
+
       - name: 바뀐 게 있으면 커밋
         run: |
-          # notices/ 만 본다. raw/ 는 gitignore 라 애초에 안 잡힌다.
           if git diff --quiet -- policy_data/notices; then
             echo "바뀐 공고 없음. 커밋하지 않는다."
             exit 0
@@ -55,10 +64,15 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          added=$(git diff --numstat -- policy_data/notices | wc -l)
-          git add policy_data/notices
+          changed=$(git diff --numstat -- policy_data/notices | wc -l)
+
+          # 기준선도 같이 갱신한다. 공고가 늘면 서류·조건 총량도 늘어서,
+          # 안 하면 다음 실행 때 기준이 낡은 채로 남는다.
+          python3 policy_data/guard.py --save
+
+          git add policy_data/notices policy_data/baseline.json
           git commit -m "공고 자동 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d'))
 
-          기업마당 API 에서 받아 파일 ${added}개가 바뀌었다.
+          기업마당 API 에서 받아 파일 ${changed}개가 바뀌었다.
           .github/workflows/update-notices.yml 이 매일 06:00(KST)에 돌린다."
           git push

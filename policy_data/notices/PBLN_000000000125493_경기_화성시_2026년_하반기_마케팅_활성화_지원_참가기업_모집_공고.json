@@ -2,13 +2,15 @@
  "notice_id": "PBLN_000000000125493",
  "title": "[경기] 화성시 2026년 하반기 마케팅 활성화 지원  참가기업 모집 공고",
  "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000125493",
- "summary": "화성산업진흥원에서 기술력 있는 관내 유망기업의 마케팅 활동을 지원해, 기업의 판로개척 및 기업 경쟁력 강화를 장려하기 위해 「2026년 하반기 마케팅 활성화 지원」을 진행하고자 합니다. 이에 관심 있으신 관내(화성시) 기업의 많은 관심과 지원 바랍니다. ☞ 화성시 관내 본사 또는 공장 소재 중소기업  ※ [2026년 중소벤처기업부 소상공인 정책자금 지원 제외 업종] 영위 기업 제외  ☞ 마케팅 비용 기업당 최대 2개 분야, 3백만원 이내 지원 - 홍보물ㆍ디자인 제작, 디지털 광고, 오프라인 광고, 전시 박람회",
+ "summary": "(업체)이 마케팅 비용 지급을 완료한 경우만 지원\n ※ 마케팅 수행 기간 내 활동 및 지출 발생 필수(기간 내 전시 마케팅만 소급 적용)\n ※ 비용을 직접 지급하지 않고 화성산업진흥원의 명의로 세금계산서를 발행하는 경우 사업비\n 지급이 불가하며, 지원된 사업비는 환수 조치 됨\n\n⑦ 우선선정: 2025년 제3회 화성시 중소기업대상’ 선정기업 우선선정\n ※ 필수 서류 기재 및 제출 필수\n\n⑧ 동 공고문에서 정하지 아니한 내용은 진흥원 지침 및 안내 사항을 따르는 것을 원칙으로 함",
  "apply_period": {
   "start": "2026-08-13",
   "end": "2026-10-30"
  },
  "eligibility": {
-  "requirements_unknown": "공고문에서 자격 요건을 확인하지 못했습니다. 문의처로 확인해주세요",
+  "business_status": [
+   "운영중"
+  ],
   "regions": [
    "화성시",
    "화성특례시"
@@ -16,16 +18,78 @@
  },
  "documents": [
   {
-   "name": "사업자등록증",
-   "type": "common",
-   "confidence": "estimated",
-   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
-  },
-  {
    "name": "신청서",
    "type": "common",
-   "confidence": "estimated",
-   "reason": "공고 붙임 서식을 사용한다"
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 사업신청서 ● 진흥원 서식"
+  },
+  {
+   "name": "자가점검표 ● 진흥원 서식",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "중복지원 금지 서약서 ● 진흥원 서식",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "청렴 서약서 ● 진흥원 서식",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "표준 재무제표 증명 또는",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "● ‘25년 매출액 증빙",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "부가가치세 과세표준증명",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "중소기업확인서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 중소기업확인서 ●"
+  },
+  {
+   "name": "국세 납세 증명 ●",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "지방세 납세 증명 ●",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "마케팅 활동 관련 서류 ● 진흥원 서식",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "건축물대장",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 건축물 대장"
+  },
+  {
+   "name": "공장등록증",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 공장등록증명"
+  },
+  {
+   "name": "기업평가 증빙서류",
+   "type": "common",
+   "confidence": "confirmed"
   }
  ],
  "apply_url": "https://platform.hsbiz.or.kr/business/detail/N/1292",
