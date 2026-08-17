@@ -19,6 +19,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.parse
 import urllib.request
 from datetime import date
@@ -56,14 +57,36 @@ def load_key() -> str:
     raise SystemExit(1)
 
 
+# 기업마당은 해외 IP 에서 자주 끊긴다. GitHub Actions 러너(Azure US/EU)에서
+# 타임아웃이 났고, 같은 시각 국내 서버에서는 0.15 초에 응답했다.
+# 완전 차단은 아니고 간헐적이라 몇 번 다시 시도하면 대개 붙는다.
+RETRIES = 4
+BACKOFF = 15  # 초. 15 → 30 → 45 로 늘려가며 기다린다
+
+
 def fetch(**params) -> dict | list:
     params.setdefault("dataType", "json")
     params.setdefault("searchCnt", "0")  # 0 이면 전체
     params["crtfcKey"] = load_key()
     url = API_URL + "?" + urllib.parse.urlencode(params, encoding="utf-8")
     request = urllib.request.Request(url, headers={"User-Agent": "ai-hwaseong/1.0"})
-    with urllib.request.urlopen(request, timeout=60) as response:
-        body = response.read().decode("utf-8", "replace")
+
+    body = None
+    for attempt in range(1, RETRIES + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                body = response.read().decode("utf-8", "replace")
+            break
+        except Exception as error:
+            if attempt == RETRIES:
+                print(f"기업마당 접속 실패 ({RETRIES}번 시도): {error}", file=sys.stderr)
+                print("해외 IP 에서 막힐 수 있습니다. 국내에서 실행하면 대개 됩니다.",
+                      file=sys.stderr)
+                raise SystemExit(1)
+            wait = BACKOFF * attempt
+            print(f"  {attempt}번째 실패({error}). {wait}초 뒤 다시 시도합니다.",
+                  file=sys.stderr)
+            time.sleep(wait)
     try:
         return json.loads(body)
     except json.JSONDecodeError:
