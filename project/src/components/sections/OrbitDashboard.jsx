@@ -7,7 +7,6 @@ import findImg from '../../../design/find.png'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
 // 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
-const GEMINI_KEY = null
 
 function calcDDay(endDate) {
   if (!endDate) return null
@@ -22,8 +21,7 @@ const STATUS_STYLE = {
 
 async function generateCardDesc(title) {
   const text = await generateText({
-    provider: 'gemini',
-    apiKey:   GEMINI_KEY,
+    // 제공자는 서버가 고른다 (groq → xai → gemini, 실패하면 다음으로)
     jsonMode: true,
     userPrompt: `소상공인 지원사업 공고명: "${title}"
 
@@ -86,8 +84,7 @@ function ProgramCard({ item, accent, onDetail }) {
         : '조건 정보 없음'
 
       const text = await generateText({
-        provider:   'gemini',
-        apiKey:     GEMINI_KEY,
+        // 제공자는 서버가 고른다 (groq → xai → gemini, 실패하면 다음으로)
         userPrompt: `소상공인 사장님께 "${item.title}" 지원사업에 매칭된 이유를 아래 조건 판정 결과를 바탕으로 친근하고 쉬운 말로 2~3문장으로 설명해주세요.\n\n조건 판정:\n${condSummary}`,
       })
       setReasonText(text.trim())
