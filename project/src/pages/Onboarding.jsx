@@ -17,8 +17,10 @@ import { generateText } from '../utils/llm/llmProvider'
  *   · 스킵 허용. 스킵한 값은 매칭에서 "확인필요" 로 남는다.
  *     매칭 엔진이 빈 값을 불충족이 아니라 확인필요로 처리한다.
  *
- * 경로 C 의 사업자등록증 인식(OCR)은 아직 없다. 지금은 직접 입력으로
- * 넘긴다. easyocr 은 Vercel 용량 한도를 넘어서 방식을 정해야 붙일 수 있다.
+ * 기획서의 경로 C 는 사업자등록증을 찍어 자동 입력하는 흐름인데, 1차
+ * 예선에서는 직접 입력으로 간다. easyocr 이 Vercel 용량 한도(250MB)를
+ * 넘어서 배포본에서 못 돌린다. 화면에 "준비 중" 안내를 남겨두면 미완성으로
+ * 보이므로 그 자리는 비웠다. OCR 서버(backend/OCR.py)는 그대로 있다.
  */
 
 // 매칭 엔진이 아는 업종은 이 넷뿐이다 (policy_data/schema.md).
@@ -288,19 +290,7 @@ export default function Onboarding() {
   if (stage === 'biz') {
     return (
       <Shell current={current} total={total} onBack={() => setStage('q1')}>
-        <Ask title="사업자등록증이 있으시군요!" why="업종·개업일·주소를 확인해서 조건에 맞는 사업을 찾아요.">
-          <div className="rounded-2xl border-2 border-dashed border-warm-gray/60 bg-white p-6 text-center">
-            <p className="text-sm font-semibold text-navy">사진으로 자동 입력</p>
-            <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">
-              사업자등록증을 찍으면 알아서 채워드리는 기능을<br />준비하고 있어요
-            </p>
-            <span className="inline-block mt-3 text-xs font-semibold text-sunset-orange
-                             bg-sunset-orange/10 rounded-full px-3 py-1">
-              곧 만나요
-            </span>
-          </div>
-
-          <p className="text-sm font-semibold text-navy mt-6 mb-2">업종을 골라주세요</p>
+        <Ask title="어떤 업종을 하고 계세요?" why="업종과 운영 기간에 따라 신청할 수 있는 사업이 달라져요.">
           <div className="grid grid-cols-2 gap-3">
             {['카페', '음식점', '소매업', '기타'].map(v => (
               <Choice key={v} label={v} selected={data.category === v}
