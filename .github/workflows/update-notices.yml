@@ -1,0 +1,64 @@
+name: 공고 자동 갱신
+
+# 공고에는 마감일이 있다. 며칠만 지나도 이미 끝난 사업이 화면에 남고,
+# 새로 뜬 사업은 빠진다. 매일 아침 받아와서 바뀐 게 있을 때만 커밋한다.
+#
+# 커밋이 생기면 Vercel 이 알아서 재배포한다. 사람이 손댈 일이 없다.
+
+on:
+  schedule:
+    # 매일 21:00 UTC = 한국시간 06:00.
+    # GitHub 은 정시에 몰리면 밀리므로 애매한 분(11분)을 쓴다.
+    - cron: '11 21 * * *'
+  workflow_dispatch:      # Actions 탭에서 손으로도 돌릴 수 있게
+
+# 커밋을 밀어야 하므로 쓰기 권한이 필요하다.
+permissions:
+  contents: write
+
+# 앞 실행이 안 끝났는데 또 도는 걸 막는다. 같은 파일을 두 번 고치면 충돌난다.
+concurrency:
+  group: update-notices
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # pip install 이 없다. 수집 파이프라인은 표준 라이브러리만 쓴다.
+
+      - name: 공고 수집·추출·검사
+        env:
+          BIZINFO_API_KEY: ${{ secrets.BIZINFO_API_KEY }}
+        run: ./scripts/update_notices.sh
+
+      - name: 바뀐 게 있으면 커밋
+        run: |
+          # notices/ 만 본다. raw/ 는 gitignore 라 애초에 안 잡힌다.
+          if git diff --quiet -- policy_data/notices; then
+            echo "바뀐 공고 없음. 커밋하지 않는다."
+            exit 0
+          fi
+
+          echo "── 바뀐 내용"
+          git diff --stat -- policy_data/notices
+
+          # 커밋 이메일이 GitHub 계정과 안 맞으면 Vercel 이 배포를 거부한다.
+          # github-actions[bot] 은 GitHub 이 인정하는 계정이라 통과한다.
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          added=$(git diff --numstat -- policy_data/notices | wc -l)
+          git add policy_data/notices
+          git commit -m "공고 자동 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d'))
+
+          기업마당 API 에서 받아 파일 ${added}개가 바뀌었다.
+          .github/workflows/update-notices.yml 이 매일 06:00(KST)에 돌린다."
+          git push
