@@ -2,7 +2,7 @@
  "notice_id": "PBLN_000000000120340",
  "title": "[경기] 2026년 섬유분야 유해물질 시험분석 및 인증지원 공고",
  "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000120340",
- "summary": "경기도 내 섬유 관련 중소기업·소기업 및 소상공인\n□ 지원기간 : 2026년 03월 23일 ~ 사업비 소진 시까지(12월 31일 사업종료)\n□ 지원한도 : 1기업 당 최대 3백만원 (※ 안전확인시험은 최대 1백만원 이내)",
+ "summary": "도내 섬유기업의 시험수수료 지원을 통한 기업 비용부담 절감 및 제품 신뢰성 확보를 위한 솔루션을 제공 지원하는 사업입니다. ☞ 경기도 내 섬유 관련 중소기업ㆍ소기업 및 소상공인 ☞ 섬유ㆍ가죽ㆍ장신구 제품안전시험 수수료 지원(1기업 당 최대 3백만원) ※ 자세한 지원내용 공고문 참조",
  "apply_period": {
   "start": "2026-03-23",
   "end": "2026-12-31"
@@ -14,12 +14,14 @@
   {
    "name": "사업자등록증",
    "type": "common",
-   "confidence": "confirmed"
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
   },
   {
-   "name": "중소기업확인서",
+   "name": "신청서",
    "type": "common",
-   "confidence": "confirmed"
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
   }
  ],
  "apply_method": "방문 및 우편, 이메일 접수\r\n- 접수처 : 경기도 양주시 남면 검준길 170, 한국섬유소재연구원 시험평가센터\r\n- 이메일 : test@koteri.re.kr",
