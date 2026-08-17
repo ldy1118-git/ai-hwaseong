@@ -17,8 +17,16 @@ ai-hwaseong/
 │   ├── OCR.py             사업자등록증 OCR 및 필드 추출
 │   ├── index.html         테스트용 화면 (버튼 문답식)
 │   └── notices/           형식 참고용 샘플 19건
-├── frontend/            React 화면 (담당: 서희)
-│   └── src/               페이지 7개 + 챗봇
+├── project/             React 화면 — Vercel 이 여기를 빌드한다 (담당: 서희)
+│   ├── src/pages/         랜딩·로그인·온보딩·대시보드·공고상세·신청동행·챗봇
+│   ├── src/utils/         api.js (서버 호출) · llm/ (LLM 호출)
+│   └── design/            로고·캐릭터 이미지
+├── api/                 Vercel 서버리스 함수 (담당: 대윤)
+│   ├── match.py           매칭
+│   ├── glossary.py        용어 사전
+│   ├── llm.py             LLM 대리 호출 (API 키를 숨긴다)
+│   ├── auth_kakao.py      카카오 로그인
+│   └── onboarding.py      온보딩 저장
 ├── llm/                 LLM / RAG (담당: 서희)
 │   ├── scripts/           모델 비교·평가 스크립트
 │   └── report/            벤치마크 결과
