@@ -10,7 +10,6 @@ import searchImg from '../../design/search.png'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
 // 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
-const GEMINI_KEY = null
 
 const STATIC_ITEMS = [
   { id: 1, label: '사업자등록증 사본',     desc: '주소·업종 변경 여부 확인 후 제출', checked: false },
@@ -72,7 +71,9 @@ export default function ApplicationGuide() {
         summary:      matched.application_detail ?? matched.notice_title,
       }
 
-      const result = await generateChecklistV1(matched, noticeJson, termsData, GEMINI_KEY, 'gemini')
+      // 제공자를 고르지 않는다. 서버가 키 꽂힌 것 중에서 고르고, 하나가
+      // 실패하면 다음 것으로 넘어간다. 여기서 못박으면 그 폴백이 죽는다.
+      const result = await generateChecklistV1(matched, noticeJson, termsData)
 
       if (result.parsed?.checklist?.length) {
         setItems(

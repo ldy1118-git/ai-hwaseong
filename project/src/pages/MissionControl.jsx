@@ -8,7 +8,6 @@ import termsData from '../data/terms.json'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
 // 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
-const GEMINI_KEY = null
 
 const INITIAL_MESSAGES = [
   {
@@ -93,8 +92,8 @@ export default function MissionControl() {
         text,
         history,
         termsData,
-        GEMINI_KEY,
-        'gemini'
+        // 제공자를 고르지 않는다. 서버가 키 꽂힌 것 중에서 고르고,
+        // 하나가 실패하면 다음 것으로 넘어간다.
       )
 
       const marsMsg = {
