@@ -1,0 +1,100 @@
+{
+ "notice_id": "PBLN_000000000125493",
+ "title": "[경기] 화성시 2026년 하반기 마케팅 활성화 지원  참가기업 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000125493",
+ "summary": "(업체)이 마케팅 비용 지급을 완료한 경우만 지원\n ※ 마케팅 수행 기간 내 활동 및 지출 발생 필수(기간 내 전시 마케팅만 소급 적용)\n ※ 비용을 직접 지급하지 않고 화성산업진흥원의 명의로 세금계산서를 발행하는 경우 사업비\n 지급이 불가하며, 지원된 사업비는 환수 조치 됨\n\n⑦ 우선선정: 2025년 제3회 화성시 중소기업대상’ 선정기업 우선선정\n ※ 필수 서류 기재 및 제출 필수\n\n⑧ 동 공고문에서 정하지 아니한 내용은 진흥원 지침 및 안내 사항을 따르는 것을 원칙으로 함",
+ "apply_period": {
+  "start": "2026-08-13",
+  "end": "2026-10-30"
+ },
+ "eligibility": {
+  "business_status": [
+   "운영중"
+  ],
+  "regions": [
+   "화성시",
+   "화성특례시"
+  ]
+ },
+ "documents": [
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 사업신청서 ● 진흥원 서식"
+  },
+  {
+   "name": "자가점검표 ● 진흥원 서식",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "중복지원 금지 서약서 ● 진흥원 서식",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "청렴 서약서 ● 진흥원 서식",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "표준 재무제표 증명 또는",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "● ‘25년 매출액 증빙",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "부가가치세 과세표준증명",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "중소기업확인서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 중소기업확인서 ●"
+  },
+  {
+   "name": "국세 납세 증명 ●",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "지방세 납세 증명 ●",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "마케팅 활동 관련 서류 ● 진흥원 서식",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "건축물대장",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 건축물 대장"
+  },
+  {
+   "name": "공장등록증",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 공장등록증명"
+  },
+  {
+   "name": "기업평가 증빙서류",
+   "type": "common",
+   "confidence": "confirmed"
+  }
+ ],
+ "apply_url": "https://platform.hsbiz.or.kr/business/detail/N/1292",
+ "apply_method": "온라인 접수 (화성시 기업지원플랫폼)",
+ "contact": "화성산업진흥원 031-374-6468, joy@hsbiz.or.kr",
+ "organizer": "경기도",
+ "operator": "화성산업진흥원"
+}
