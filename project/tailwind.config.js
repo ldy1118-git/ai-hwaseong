@@ -15,7 +15,7 @@ export default {
         burgundy:        '#402b38',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Nunito', 'Noto Sans KR', 'sans-serif'],
       },
     },
   },

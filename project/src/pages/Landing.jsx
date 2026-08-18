@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
 import Button from '../components/ui/Button'
 import logoImg  from '../../design/logo.png'
 import marsImg  from '../../design/mars.png'
@@ -8,18 +9,82 @@ const FEATURES = [
     title: 'AI 맞춤 매칭',
     desc:  '내 업종·나이·상황을 입력하면 신청 가능한 지원사업만 골라 보여줘요.',
     accent: 'border-t-star-yellow',
+    bg: 'from-star-yellow/10 to-transparent',
+    icon: '🎯',
   },
   {
     title: '신청 동행',
     desc:  '필요한 서류를 하나씩 체크하며 마감일까지 빠짐없이 준비할 수 있어요.',
     accent: 'border-t-sunset-orange',
+    bg: 'from-sunset-orange/10 to-transparent',
+    icon: '📋',
   },
   {
     title: '행정 용어 번역',
     desc:  '어려운 공문서 용어를 탭 한 번으로 쉬운 말로 풀어드려요.',
     accent: 'border-t-navy',
+    bg: 'from-navy/10 to-transparent',
+    icon: '💬',
   },
 ]
+
+function FeatureSlider() {
+  const [current, setCurrent] = useState(0)
+  const [animating, setAnimating] = useState(false)
+  const timerRef = useRef(null)
+
+  function goTo(idx) {
+    if (animating || idx === current) return
+    setAnimating(true)
+    setTimeout(() => {
+      setCurrent(idx)
+      setAnimating(false)
+    }, 200)
+  }
+
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setAnimating(true)
+      setTimeout(() => {
+        setCurrent(prev => (prev + 1) % FEATURES.length)
+        setAnimating(false)
+      }, 200)
+    }, 3000)
+    return () => clearInterval(timerRef.current)
+  }, [])
+
+  const f = FEATURES[current]
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      {/* 카드 */}
+      <div
+        className={`w-full bg-white rounded-2xl border-t-4 ${f.accent} px-6 py-7 shadow-sm
+          bg-gradient-to-b ${f.bg} transition-opacity duration-200
+          ${animating ? 'opacity-0' : 'opacity-100'}`}
+      >
+        <div className="text-4xl mb-3">{f.icon}</div>
+        <p className="font-bold text-navy text-lg mb-2">{f.title}</p>
+        <p className="text-sm text-warm-text leading-relaxed">{f.desc}</p>
+      </div>
+
+      {/* 인디케이터 */}
+      <div className="flex gap-2">
+        {FEATURES.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i)}
+            className={`rounded-full transition-all duration-300
+              ${i === current
+                ? 'w-6 h-2 bg-navy'
+                : 'w-2 h-2 bg-warm-gray/50 hover:bg-warm-gray'
+              }`}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 const STEPS = [
   { num: '01', label: '내 조건 입력',   desc: '업종·나이·창업 상태를 선택해요' },
@@ -29,21 +94,12 @@ const STEPS = [
 
 export default function Landing() {
   const navigate = useNavigate()
-  const hasProfile = !!localStorage.getItem('mars-fit-profile')
-
-  function handleStart() {
-    navigate(hasProfile ? '/home' : '/onboarding')
-  }
-
   return (
     <div className="min-h-screen bg-primary-bg flex flex-col">
 
       {/* 헤더 */}
-      <header className="sticky top-0 z-40 bg-primary-bg/90 backdrop-blur border-b border-warm-gray/20 px-5 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-primary-bg/90 backdrop-blur border-b border-warm-gray/20 px-5 py-3 flex items-center">
         <img src={logoImg} alt="Mars-Fit" className="h-14 object-contain" />
-        <Button variant="navy" size="sm" onClick={handleStart}>
-          {hasProfile ? '대시보드 열기' : '시작하기'}
-        </Button>
       </header>
 
       {/* 히어로 */}
@@ -125,18 +181,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 핵심 기능 3가지 */}
-      <section className="px-5 py-12 max-w-2xl mx-auto w-full">
+      {/* 핵심 기능 슬라이더 */}
+      <section className="px-5 py-12 max-w-sm mx-auto w-full">
         <p className="text-xs font-bold text-warm-text uppercase tracking-widest text-center mb-6">핵심 기능</p>
-        <div className="grid grid-cols-1 gap-4">
-          {FEATURES.map(f => (
-            <div key={f.title}
-              className={`bg-white rounded-2xl border-t-4 ${f.accent} px-5 py-4 shadow-sm`}>
-              <p className="font-bold text-navy mb-1">{f.title}</p>
-              <p className="text-sm text-warm-text leading-relaxed">{f.desc}</p>
-            </div>
-          ))}
-        </div>
+        <FeatureSlider />
       </section>
 
       {/* 이용 순서 */}
