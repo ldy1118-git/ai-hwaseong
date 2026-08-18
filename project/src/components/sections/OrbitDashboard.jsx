@@ -200,7 +200,7 @@ function SkeletonCard() {
   )
 }
 
-export default function OrbitDashboard({ userProfile }) {
+export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetchedLoading }) {
   const navigate = useNavigate()
   const [urgent, setUrgent]   = useState([])
   const [regular, setRegular] = useState([])
@@ -208,6 +208,15 @@ export default function OrbitDashboard({ userProfile }) {
   const [error, setError]     = useState(null)
 
   useEffect(() => {
+    // Home.jsx 가 미리 fetch 한 데이터가 있으면 자체 네트워크 호출 스킵
+    if (Array.isArray(prefetchedMatches)) {
+      setLoading(prefetchedLoading ?? false)
+      setError(null)
+      setUrgent(prefetchedMatches.filter(r => r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14))
+      setRegular(prefetchedMatches.filter(r => !(r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14)))
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -233,7 +242,7 @@ export default function OrbitDashboard({ userProfile }) {
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
-  }, [userProfile])
+  }, [userProfile, prefetchedMatches, prefetchedLoading])
 
   function handleDetail(item) {
     localStorage.setItem('mars-fit-selected-match', JSON.stringify(item.raw))

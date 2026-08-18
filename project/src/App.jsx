@@ -9,6 +9,7 @@ import MissionControl   from './pages/MissionControl'
 import NoticeDetail     from './pages/NoticeDetail'
 import { consumeKakaoRedirect } from './utils/kakao'
 import { loadOnboarding, saveOnboarding } from './utils/api'
+import DevTools from './components/dev/DevTools'
 
 /**
  * 카카오에서 돌아왔을 때 처리한다.
@@ -92,6 +93,7 @@ export default function App() {
   return (
     <>
       <KakaoReturn />
+      <DevTools />
       <Routes>
         <Route path="/"           element={<Landing />} />
         <Route path="/auth"       element={<Auth />} />
