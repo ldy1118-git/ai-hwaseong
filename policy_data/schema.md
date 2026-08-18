@@ -134,6 +134,28 @@ if policy.get("source_url"): result["source_url"] = policy["source_url"]
 판정은 반드시 **원문**으로 하고, 줄이는 건 `shorten_target()` 으로 따로
 한다. 줄인 뒤에 판정하면 뒤쪽의 `①` 같은 제한 신호가 사라진다.
 
+### 세무일정용 키 3개 — 공고 매칭에는 안 쓴다
+
+`entity_type` · `vat_type` · `has_employee` 는 위 12개와 성격이 다르다.
+**공고 자격 판정에 쓰지 않는다.** 세무일정(`policy_data/tax_calendar.json`)을
+사람에 맞게 거르는 데만 쓴다.
+
+```
+entity_type    개인 | 법인
+vat_type       일반과세 | 간이과세 | 면세
+has_employee   true | false
+```
+
+없으면 어떻게 되나 — 세무일정 14건이 통째로 나온다. 간이과세 카페 사장님은
+실제로 **2건**만 하면 되는데 법인세·원천세까지 다 보이게 된다.
+
+사업자등록이 있어야 답할 수 있어서 **운영중인 사장님에게만 묻는다.**
+예비창업자는 아직 과세유형이 없다.
+
+거르는 규칙은 `policy_data/tax_schedule.py` 의 `applies()` 다. 공고 매칭과
+같은 원칙으로, **답이 없으면 걸러내지 않는다.** 모른다는 이유로 빼면
+사장님이 신고를 통째로 놓친다.
+
 ### 값을 마음대로 쓰면 안 되는 키
 
 완전일치라서 **오타 하나면 아무도 매칭이 안 된다.** 아래 값만 쓸 것.
@@ -144,6 +166,8 @@ categories           카페 | 음식점 | 소매업 | 기타
 career_experience    있음 | 없음
 asset_groups         기초생활수급자 | 차상위 | 일반
 marital_status       미혼 | 기혼
+entity_type          개인 | 법인
+vat_type             일반과세 | 간이과세 | 면세
 ```
 
 이 목록은 `matching.py`의 `input_user_profile()` 선택지에서 나왔다.
