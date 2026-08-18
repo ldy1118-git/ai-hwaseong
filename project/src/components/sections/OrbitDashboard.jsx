@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Card from '../ui/Card'
 import { fetchMatches, DEFAULT_PROFILE } from '../../utils/api'
-import { generateText } from '../../utils/llm/llmProvider'
+import { generateText, GROQ_MODEL } from '../../utils/llm/llmProvider'
 import findImg from '../../../design/find.png'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
@@ -55,13 +55,17 @@ function SkeletonLine({ w = 'w-full', h = 'h-3' }) {
   return <div className={`${w} ${h} bg-warm-gray/20 rounded animate-pulse`} />
 }
 
+const COND_STYLE = {
+  '충족':    { dot: 'bg-emerald-400', text: 'text-emerald-600', icon: '✓' },
+  '불충족':  { dot: 'bg-red-400',     text: 'text-red-500',     icon: '✕' },
+  '확인필요':{ dot: 'bg-sunset-orange', text: 'text-sunset-orange', icon: '?' },
+}
+
 function ProgramCard({ item, accent, onDetail }) {
-  const [showReason, setShowReason]       = useState(false)
-  const [reasonText, setReasonText]       = useState('')
-  const [reasonLoading, setReasonLoading] = useState(false)
-  const [easyDesc, setEasyDesc]           = useState('')
-  const [support, setSupport]             = useState('')
-  const [descLoading, setDescLoading]     = useState(true)
+  const [showReason, setShowReason] = useState(false)
+  const [easyDesc, setEasyDesc]     = useState('')
+  const [support, setSupport]       = useState('')
+  const [descLoading, setDescLoading] = useState(true)
   const isUrgent = accent === 'orange'
 
   useEffect(() => {
@@ -71,29 +75,7 @@ function ProgramCard({ item, accent, onDetail }) {
       .finally(() => setDescLoading(false))
   }, [item.id])
 
-  async function handleToggleReason() {
-    if (showReason) { setShowReason(false); return }
-    setShowReason(true)
-    if (reasonText) return
-
-    setReasonLoading(true)
-    try {
-      const conditions = item.raw?.condition_results ?? []
-      const condSummary = conditions.length
-        ? conditions.map(c => `[${c.status}] ${c.condition}: ${c.detail ?? ''}`).join('\n')
-        : '조건 정보 없음'
-
-      const text = await generateText({
-        // 제공자는 서버가 고른다 (groq → xai → gemini, 실패하면 다음으로)
-        userPrompt: `소상공인 사장님께 "${item.title}" 지원사업에 매칭된 이유를 아래 조건 판정 결과를 바탕으로 친근하고 쉬운 말로 2~3문장으로 설명해주세요.\n\n조건 판정:\n${condSummary}`,
-      })
-      setReasonText(text.trim())
-    } catch {
-      setReasonText('설명을 불러오는 중 오류가 발생했어요.')
-    } finally {
-      setReasonLoading(false)
-    }
-  }
+  const conditions = (item.raw?.condition_results ?? []).filter(c => c.status !== '대상아님')
 
   return (
     <Card padding="md" className={`border-l-4 ${isUrgent ? 'border-l-sunset-orange' : 'border-l-navy'}`}>
@@ -141,42 +123,44 @@ function ProgramCard({ item, accent, onDetail }) {
       {/* 매칭 점수 바 */}
       <ScoreBar score={item.score} color={isUrgent ? 'orange' : 'navy'} />
 
-      {/* 매칭이유 패널 */}
-      {showReason && (
-        <div className="mt-2 pt-2 border-t border-warm-gray/20">
-          {reasonLoading ? (
-            <div className="flex items-center gap-2 py-1">
-              <span className="w-3 h-3 border border-navy/30 border-t-navy rounded-full animate-spin flex-shrink-0" />
-              <span className="text-xs text-warm-text">Mars가 이유를 설명 중...</span>
-            </div>
-          ) : (
-            <p className="text-xs text-gray-700 leading-relaxed">{reasonText}</p>
-          )}
+      {/* 매칭이유 패널 — 조건 결과 직접 표시 */}
+      {showReason && conditions.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-warm-gray/20 space-y-1.5">
+          {conditions.map((c, i) => {
+            const s = COND_STYLE[c.status] ?? COND_STYLE['확인필요']
+            return (
+              <div key={i} className="flex items-start gap-2">
+                <span className={`mt-0.5 w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-white ${s.dot}`}>
+                  {s.icon}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <span className={`text-[10px] font-bold ${s.text}`}>{c.condition}</span>
+                  {c.detail && (
+                    <p className="text-[10px] text-warm-text leading-snug mt-0.5">{c.detail}</p>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
       {/* 하단 액션 바 */}
       <div className="mt-2 pt-2 border-t border-warm-gray/30 flex items-center justify-between">
-        <button
-          onClick={handleToggleReason}
-          className={`text-xs font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
-        >
-          매칭이유 {showReason ? '▲' : '▼'}
-        </button>
-        <div className="flex items-center gap-3">
+        {conditions.length > 0 ? (
           <button
-            onClick={onDetail}
-            className={`text-xs font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
+            onClick={() => setShowReason(v => !v)}
+            className={`text-xs font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
           >
-            자세히 →
+            매칭이유 {showReason ? '▲' : '▼'}
           </button>
-          {item.applyUrl && (
-            <a href={item.applyUrl} target="_blank" rel="noreferrer"
-               className="text-xs text-sunset-orange font-medium hover:underline">
-              신청하기 →
-            </a>
-          )}
-        </div>
+        ) : <span />}
+        <button
+          onClick={onDetail}
+          className={`text-xs font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
+        >
+          자세히 →
+        </button>
       </div>
     </Card>
   )
@@ -197,14 +181,31 @@ function SkeletonCard() {
   )
 }
 
-export default function OrbitDashboard({ userProfile }) {
+const INITIAL_COUNT = 3
+
+export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetchedLoading }) {
   const navigate = useNavigate()
-  const [urgent, setUrgent]   = useState([])
-  const [regular, setRegular] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState(null)
+  const [urgent, setUrgent]               = useState([])
+  const [regular, setRegular]             = useState([])
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState(null)
+  const [showMoreUrgent, setShowMoreUrgent]   = useState(false)
+  const [showMoreRegular, setShowMoreRegular] = useState(false)
 
   useEffect(() => {
+    setShowMoreUrgent(false)
+    setShowMoreRegular(false)
+
+    // Home.jsx 가 미리 fetch 한 데이터가 있으면 자체 네트워크 호출 스킵
+    if (Array.isArray(prefetchedMatches)) {
+      setLoading(prefetchedLoading ?? false)
+      setError(null)
+      const sorted = [...prefetchedMatches].sort((a, b) => b.score - a.score)
+      setUrgent(sorted.filter(r => r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14))
+      setRegular(sorted.filter(r => !(r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14)))
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -223,14 +224,14 @@ export default function OrbitDashboard({ userProfile }) {
             raw:       r,
           }))
           .filter(r => r.dDay === null || r.dDay >= 0)
-          .sort((a, b) => (a.dDay ?? 999) - (b.dDay ?? 999))
+          .sort((a, b) => b.score - a.score)
 
         setUrgent(mapped.filter(r => r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14))
         setRegular(mapped.filter(r => !(r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14)))
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
-  }, [userProfile])
+  }, [userProfile, prefetchedMatches, prefetchedLoading])
 
   function handleDetail(item) {
     localStorage.setItem('mars-fit-selected-match', JSON.stringify(item.raw))
@@ -275,12 +276,15 @@ export default function OrbitDashboard({ userProfile }) {
             ))}
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           {[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}
         </div>
       </section>
     )
   }
+
+  const visibleUrgent  = showMoreUrgent  ? urgent  : urgent.slice(0, INITIAL_COUNT)
+  const visibleRegular = showMoreRegular ? regular : regular.slice(0, INITIAL_COUNT)
 
   return (
     <section className="px-5 pb-28">
@@ -291,14 +295,23 @@ export default function OrbitDashboard({ userProfile }) {
             <span className="w-2 h-2 rounded-full bg-sunset-orange animate-pulse" />
             <h2 className="text-sm font-bold text-sunset-orange tracking-wide uppercase">긴급 마감</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-1 gap-3 mb-3">
             {loading
               ? [1, 2].map(i => <SkeletonCard key={i} />)
-              : urgent.map(item => (
+              : visibleUrgent.map(item => (
                   <ProgramCard key={item.id} item={item} accent="orange" onDetail={() => handleDetail(item)} />
                 ))
             }
           </div>
+          {!loading && urgent.length > INITIAL_COUNT && (
+            <button
+              onClick={() => setShowMoreUrgent(v => !v)}
+              className="w-full mb-6 py-2.5 rounded-xl border border-sunset-orange/40 text-xs font-medium text-sunset-orange hover:bg-sunset-orange/5 transition-colors"
+            >
+              {showMoreUrgent ? '접기 ▲' : `추가 사업 더보기 +${urgent.length - INITIAL_COUNT} ▼`}
+            </button>
+          )}
+          {!loading && urgent.length <= INITIAL_COUNT && <div className="mb-6" />}
         </>
       )}
 
@@ -307,15 +320,23 @@ export default function OrbitDashboard({ userProfile }) {
         <span className="w-2 h-2 rounded-full bg-navy" />
         <h2 className="text-sm font-bold text-navy tracking-wide uppercase">지원사업 탐색</h2>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3">
         {loading
           ? [1, 2, 3, 4].map(i => <SkeletonCard key={i} />)
-          : regular.map(item => (
+          : visibleRegular.map(item => (
               <ProgramCard key={item.id} item={item} accent="navy"
                 onDetail={() => handleDetail(item)} />
             ))
         }
       </div>
+      {!loading && regular.length > INITIAL_COUNT && (
+        <button
+          onClick={() => setShowMoreRegular(v => !v)}
+          className="w-full mt-3 py-2.5 rounded-xl border border-navy/30 text-xs font-medium text-navy hover:bg-navy/5 transition-colors"
+        >
+          {showMoreRegular ? '접기 ▲' : `추가 사업 더보기 +${regular.length - INITIAL_COUNT} ▼`}
+        </button>
+      )}
 
       {!loading && urgent.length === 0 && regular.length === 0 && (
         <p className="text-sm text-warm-text text-center py-8">현재 조건에 맞는 지원사업이 없어요.</p>

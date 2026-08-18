@@ -1,0 +1,275 @@
+[
+  {
+    "tc": {
+      "id": "F2A-01",
+      "type": "normal",
+      "trap_type": null,
+      "file": "f2a-01_consultation.json",
+      "desc": "법률·세무·노무 무료 상담 — 깔끔한 summary, 지원 금액 없음",
+      "critical_failure_if": null,
+      "check_points": [
+        "one_line 생성",
+        "support_type=컨설팅 계열",
+        "support_amount=null (무료이나 금액 미명시)"
+      ]
+    },
+    "baseline": {
+      "output": null,
+      "error": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "issues": [],
+      "elapsed": 21999,
+      "passed": false
+    },
+    "v1": {
+      "output": null,
+      "error": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "issues": [],
+      "elapsed": 8334,
+      "passed": false
+    }
+  },
+  {
+    "tc": {
+      "id": "F2A-02",
+      "type": "trap",
+      "trap_type": "hallucination",
+      "file": "f2a-02_finance.json",
+      "desc": "금융비용 지원 — summary 잘림, 구체적 지원액 미명시",
+      "critical_failure_if": "support_amount에 구체적 금액(%·원 단위)을 지어내는 경우",
+      "check_points": [
+        "support_amount=null 또는 금액 명시 안 함"
+      ]
+    },
+    "baseline": {
+      "output": {
+        "one_line": "2025년에 제2금융권에서 5% 이상 금리로 신규 사업자 대출을 받은 개인 소상공인 대상 금융비용 지원사업",
+        "support_type": "금융 지원 (금융비용/이자 지원)",
+        "support_amount": "본문 내용 절단으로 인해 구체적인 지원 금액 및 환급 한도 미기재",
+        "target_summary": "2025년 중 제2금융권에서 5% 이상 금리로 신규 사업자 대출을 받은 개인 소상공인",
+        "key_conditions": [
+          "대출 기간: 2025년 1월 1일 ~ 12월 31일 내 신규 대출 (갱신 제외)",
+          "대출 기관: 제2금융권 (저축은행, 카드사, 캐피탈, 상호금융, 보험사 등)",
+          "대출 금리: 연 5% 이상",
+          "대출 종류: 사업자 대출 (가계대출 및 주택용도 대출 제외)",
+          "대상 요건: 개인사업자 (법인사업자 제외) 중 소상공인"
+        ],
+        "caution": "사행성·향락 업종 등 부적절 업종 제외, 공고일 현재 휴·폐업 업종 제외 (단, 재해·재난으로 인한 휴업은 예외)",
+        "is_expired": false,
+        "missing_info": [
+          "구체적인 지원 금액 및 이자 환급 비율",
+          "신청 방법 및 구체적인 제출 서류",
+          "접수처 및 문의처"
+        ]
+      },
+      "error": null,
+      "issues": [],
+      "elapsed": 18009,
+      "passed": true
+    },
+    "v1": {
+      "output": {
+        "one_line": "영세 소상공인 중소금융권 금융비용 지원사업",
+        "key_conditions": [
+          "2025년 제2금융권 신규 사업자 대출 보유",
+          "대출 금리 5% 이상인 개인사업자 소상공인",
+          "가계 및 주택 용도 대출, 법인사업자 제외"
+        ],
+        "is_expired": false,
+        "missing_info": [
+          "support_amount"
+        ],
+        "caution": "사행성 업종 등 부적절 업종 및 공고일 현재 휴·폐업 업종은 지원 제외됩니다 (재해·재난 원인 휴업 제외).",
+        "support_amount": null,
+        "support_type": "자금지원",
+        "target_summary": "2025년 중 제2금융권에서 5% 이상 금리로 신규 사업자 대출을 받은 개인사업자 소상공인"
+      },
+      "error": null,
+      "issues": [],
+      "elapsed": 41425,
+      "passed": true
+    }
+  },
+  {
+    "tc": {
+      "id": "F2A-03",
+      "type": "trap",
+      "trap_type": "html_noise",
+      "file": "f2a-03_marketing_html.json",
+      "desc": "마케팅 지원 — summary에 □ ◦ 줄 깨짐 등 노이즈 다수",
+      "critical_failure_if": "노이즈 문자(□, ◦, 년 월 일목 등)가 요약 필드에 그대로 노출되는 경우",
+      "check_points": [
+        "one_line 가독성 있는 한국어 문장",
+        "target_summary 노이즈 없음"
+      ]
+    },
+    "baseline": {
+      "output": {
+        "one_line": "2026년 온·오프라인 판로지원을 받은 기업 대상 마케팅 역량강화 매칭 지원사업",
+        "support_type": "마케팅 및 판로 지원",
+        "support_amount": "공고문 내 미기재",
+        "target_summary": "2026년 온라인판로 종합지원 선정 기업 및 중소기업제품 전용판매장 입점 기업",
+        "key_conditions": [
+          "2026년 온라인판로 종합지원 선정 기업",
+          "중소기업제품 전용판매장 입점(오프라인 판로지원) 기업",
+          "신청 가능 기업 대상 별도 안내 메일 발송"
+        ],
+        "caution": "각 사업별 중도 포기 시 사업 참여 제한",
+        "is_expired": false,
+        "missing_info": [
+          "구체적인 지원 금액 및 예산",
+          "세부 지원 내용 및 혜택",
+          "신청 방법 및 제출 서류"
+        ]
+      },
+      "error": null,
+      "issues": [],
+      "elapsed": 13730,
+      "passed": true
+    },
+    "v1": {
+      "output": {
+        "one_line": "2026년 2차 마케팅 역량강화 매칭 지원사업 참여기업 모집",
+        "key_conditions": [
+          "2026년 온라인판로 종합지원 선정 기업 또는 오프라인 판로지원 입점 기업",
+          "신청 가능 기업 대상 별도 안내 메일 발송"
+        ],
+        "is_expired": false,
+        "missing_info": [
+          "support_amount"
+        ],
+        "caution": "각 사업별 중도 포기 시 사업 참여가 제한됩니다.",
+        "support_amount": null,
+        "support_type": "판로",
+        "target_summary": "2026년 온라인판로 종합지원 선정 기업 및 오프라인 판로지원(중소기업제품 전용판매장 입점)을 받은 기업"
+      },
+      "error": null,
+      "issues": [],
+      "elapsed": 15793,
+      "passed": true
+    }
+  },
+  {
+    "tc": {
+      "id": "F2A-04",
+      "type": "trap",
+      "trap_type": "expired",
+      "file": "f2a-04_expired.json",
+      "desc": "취약계층 예비창업 준비금 — apply_period.end=2026-02-28 (마감)",
+      "critical_failure_if": "is_expired=false 로 잘못 판정하는 경우",
+      "check_points": [
+        "is_expired=true"
+      ]
+    },
+    "baseline": {
+      "output": {
+        "one_line": "화성시 내 취약계층 예비창업자를 대상으로 창업 준비금을 지원하는 사업입니다.",
+        "support_type": "창업 지원 / 준비금 지급",
+        "support_amount": "상세 내용 없음 (공고문 확인 필요)",
+        "target_summary": "화성시 관내 취약계층 예비창업자",
+        "key_conditions": [
+          "화성시 관내 취약계층 대상",
+          "예비창업자 (상세 조건 공고문 참조)"
+        ],
+        "caution": "공고 내용이 제공되지 않아 세부 자격 요건, 지원 금액, 제출 서류 등은 주관 기관에 추가 확인이 필요합니다.",
+        "is_expired": false,
+        "missing_info": [
+          "구체적인 지원 금액 및 지원 항목",
+          "취약계층 대상 범위 및 세부 자격 요건",
+          "신청 방법 및 제출 서류",
+          "선정 절차 및 평가 기준"
+        ]
+      },
+      "error": null,
+      "issues": [
+        "[중요 실패] is_expired=false — 2026-02-28 마감 공고를 유효로 판정"
+      ],
+      "elapsed": 23377,
+      "passed": false
+    },
+    "v1": {
+      "output": {
+        "one_line": "화성시 취약계층 예비창업자 대상 준비금 지원",
+        "key_conditions": [
+          "화성시 취약계층 예비창업자 대상",
+          "신청기간: 2026-02-01 ~ 2026-02-28"
+        ],
+        "is_expired": true,
+        "missing_info": [
+          "support_amount",
+          "caution"
+        ],
+        "caution": null,
+        "support_amount": null,
+        "support_type": "자금지원",
+        "target_summary": "화성시 취약계층 예비창업자"
+      },
+      "error": null,
+      "issues": [],
+      "elapsed": 5453,
+      "passed": true
+    }
+  },
+  {
+    "tc": {
+      "id": "F2A-05",
+      "type": "trap",
+      "trap_type": "missing_eligibility",
+      "file": "f2a-05_food_eligibility.json",
+      "desc": "식품안심업소 기술지원 — eligibility에 categories=[음식점]만 있음",
+      "critical_failure_if": "target_summary에 화성시·나이·소득 등 공고에 없는 조건을 추가하는 경우",
+      "check_points": [
+        "target_summary에 음식점 업종 명시",
+        "지역·나이 조건 없음"
+      ]
+    },
+    "baseline": {
+      "output": {
+        "one_line": "음식점위생등급제 평가를 준비하는 소규모·다중이용 음식점 대상 무상 현장 맞춤형 기술지원",
+        "support_type": "기술지원 / 컨설팅 및 교육",
+        "support_amount": "무상 지원 (전액 무료)",
+        "target_summary": "음식점위생등급제 평가를 준비하는 식품접객업소 2,000개소",
+        "key_conditions": [
+          "모범업소, 백년가게, 미슐랭·블루리본 등 인증 음식점",
+          "K-미식벨트, K-관광단지, K-관광마켓 소재 음식점 등",
+          "영업장 면적 200㎡ 이하 음식점",
+          "배달음식점 또는 소비자 선호 지역(아파트 상가, 시장 등) 음식점",
+          "다중이용시설(유통업체 등) 입점 음식점"
+        ],
+        "caution": "제시된 공고문 텍스트가 도중에 중단되어 있어 정확한 세부 지원 내용 및 현장 방문 절차 확인이 필요합니다.",
+        "is_expired": false,
+        "missing_info": [
+          "구체적인 현장 지원 내용(텍스트 절단부: '현장 방...')",
+          "신청 방법 및 제출 서류",
+          "담당 부서 및 문의처"
+        ]
+      },
+      "error": null,
+      "issues": [],
+      "elapsed": 41641,
+      "passed": true
+    },
+    "v1": {
+      "output": {
+        "one_line": "음식점 위생등급제 평가 대비 무상 현장 기술지원",
+        "key_conditions": [
+          "식품접객업 중 지정 요건에 해당하는 음식점 2,000개소",
+          "식품안심업소(음식점위생등급제) 평가를 준비 중인 업소",
+          "영업장 면적 200㎡ 이하, 모범업소, 배달음식점 등 해당 업소"
+        ],
+        "is_expired": false,
+        "missing_info": [
+          "support_amount",
+          "caution"
+        ],
+        "caution": null,
+        "support_amount": null,
+        "support_type": "기술지원",
+        "target_summary": "식품안심업소 평가를 준비하는 식품접객업 중 면적 200㎡ 이하, 모범업소, 배달음식점, 다중이용시설 입점 업소 등 2,000개소"
+      },
+      "error": null,
+      "issues": [],
+      "elapsed": 12577,
+      "passed": true
+    }
+  }
+]

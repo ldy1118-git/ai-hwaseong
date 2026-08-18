@@ -14,7 +14,7 @@
 
 import { apiUrl } from '../api'
 
-export const GROQ_MODEL   = 'llama-3.3-70b-versatile'
+export const GROQ_MODEL   = 'groq/compound-mini'
 export const XAI_MODEL    = 'grok-3'
 export const GEMINI_MODEL = 'gemini-3.6-flash'
 

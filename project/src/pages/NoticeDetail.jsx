@@ -236,37 +236,48 @@ export default function NoticeDetail() {
           </div>
         </Section>
 
-        {item.source_url && (
-          <a
-            href={item.source_url} target="_blank" rel="noreferrer"
-            className="inline-block mt-4 text-sm text-warm-text hover:text-navy underline underline-offset-2"
-          >
-            공고 원문 보기 →
-          </a>
-        )}
       </main>
 
       {/* 하단 고정 액션 */}
       <div className="fixed bottom-0 left-0 right-0 bg-primary-bg/95 backdrop-blur border-t border-warm-gray/30 px-5 py-3">
-        <div className="max-w-2xl mx-auto flex gap-3">
-          <Button
-            variant="outline" fullWidth
-            onClick={() => {
-              localStorage.setItem('mars-fit-selected-match', JSON.stringify(item))
-              navigate('/apply')
-            }}
-          >
-            서류 준비하기
-          </Button>
-          {item.apply_url ? (
-            <a href={item.apply_url} target="_blank" rel="noreferrer" className="flex-1">
-              <Button variant="sunset-orange" fullWidth>신청하러 가기</Button>
+        <div className="max-w-2xl mx-auto space-y-2">
+          {/* 공고 원문 링크 */}
+          {item.source_url ? (
+            <a href={item.source_url} target="_blank" rel="noreferrer"
+               className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl
+                          border border-warm-gray/40 bg-white text-sm font-medium text-navy
+                          hover:border-navy/40 hover:bg-navy/5 transition-colors">
+              공고 원문 보기
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
             </a>
           ) : (
-            <Button variant="sunset-orange" fullWidth disabled>
-              {item.apply_method ? '문의처로 접수' : '접수처 확인 필요'}
-            </Button>
+            <span className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl
+                             border border-warm-gray/30 bg-warm-gray/10 text-sm text-warm-text cursor-default">
+              공고 원문 준비중
+            </span>
           )}
+          <div className="flex gap-3">
+            <Button
+              variant="outline" fullWidth
+              onClick={() => {
+                localStorage.setItem('mars-fit-selected-match', JSON.stringify(item))
+                navigate('/apply')
+              }}
+            >
+              서류 준비하기
+            </Button>
+            {item.apply_url ? (
+              <a href={item.apply_url} target="_blank" rel="noreferrer" className="flex-1">
+                <Button variant="sunset-orange" fullWidth>신청하러 가기</Button>
+              </a>
+            ) : (
+              <Button variant="sunset-orange" fullWidth disabled>
+                {item.apply_method ? '문의처로 접수' : '접수처 확인 필요'}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

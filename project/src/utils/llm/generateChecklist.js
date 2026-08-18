@@ -146,7 +146,7 @@ function formatNoticeContext(noticeJson) {
 }
 
 // ── Baseline: RAG 없이 LLM만으로 체크리스트 생성 ─────────────────
-export async function generateChecklistBaseline(matchingOutput, noticeJson, apiKey, provider = 'groq') {
+export async function generateChecklistBaseline(matchingOutput, noticeJson) {
   const userPrompt = `
 당신은 소상공인 지원사업 신청을 돕는 어시스턴트입니다.
 아래 매칭 결과와 공고 정보를 보고, 사용자가 신청하기 위해 준비해야 할 서류 체크리스트를 JSON으로 작성하세요.
@@ -162,7 +162,7 @@ ${formatMatchingContext(matchingOutput)}
 {"program_name":"...","overall_status":"...","checklist":[{"step":1,"document":"...","required_type":"...","how_to_get":"...","fee":"...","estimated_time":"...","url":"...","caution":"...","confidence":"..."}],"pending_conditions":[{"condition":"...","detail":"...","ask_user":"..."}],"important_notes":["..."]}
 `.trim()
 
-  const text = await generateText({ provider, apiKey, userPrompt, jsonMode: true })
+  const text = await generateText({ model: GEMINI_MODEL, userPrompt, jsonMode: true })
   try {
     const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
     return { raw: text, parsed: JSON.parse(cleaned), error: null }
@@ -172,7 +172,7 @@ ${formatMatchingContext(matchingOutput)}
 }
 
 // ── V1: terms.json RAG + 시스템 프롬프트 + JSON 강제 출력 ─────────
-export async function generateChecklistV1(matchingOutput, noticeJson, termsData, apiKey, provider = 'groq') {
+export async function generateChecklistV1(matchingOutput, noticeJson, termsData) {
   const systemPrompt = `당신은 화성시 소상공인 신청동행 어시스턴트입니다.
 아래 규칙을 반드시 지키세요.
 
@@ -200,7 +200,7 @@ ${formatRAGContext(matched, unmatched)}
 위 정보를 바탕으로 신청 서류 체크리스트를 다음 JSON 구조로 작성하세요:
 {"program_name":"...","overall_status":"신청가능|조건부|확인필요","status_reason":"...","checklist":[{"step":1,"document":"서류명","required_type":"필수|조건부","how_to_get":"발급방법 또는 null","how_to_get_offline":"오프라인방법 또는 null","fee":"수수료 또는 null","estimated_time":"소요시간 또는 null","url":"URL 또는 null","caution":"주의사항 또는 null","confidence":"confirmed|estimated","verify_note":"검증노트 또는 null"}],"pending_conditions":[{"condition":"조건명","detail":"상세","ask_user":"사용자에게 물어볼 문장"}],"important_notes":["주의사항"],"estimated_prep_days":숫자또는null,"contact":"문의처 또는 null","apply_method":"신청방법 또는 null"}`
 
-  const text = await generateText({ provider, apiKey, systemPrompt, userPrompt, jsonMode: true, responseSchema: RESPONSE_SCHEMA })
+  const text = await generateText({ model: GEMINI_MODEL, systemPrompt, userPrompt, jsonMode: true, responseSchema: RESPONSE_SCHEMA })
   const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
   try {
     return { raw: text, parsed: JSON.parse(cleaned), error: null, matched, unmatched }

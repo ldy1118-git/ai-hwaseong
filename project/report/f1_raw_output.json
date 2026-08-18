@@ -1,0 +1,241 @@
+[
+  {
+    "tc": {
+      "id": "F1-01",
+      "type": "normal",
+      "trap_type": null,
+      "input": "화성시 향남읍에서 카페 창업 준비 중인 만 29세, 창업 경험 없음, 기초생활수급자입니다. 받을 수 있는 지원사업 알려주세요.",
+      "critical_failure_if": null,
+      "check_points": [
+        "age=29",
+        "region=향남읍",
+        "business_type=카페",
+        "income_level=기초생활수급자",
+        "career_experience=없음"
+      ]
+    },
+    "output": {
+      "missing_fields": [
+        "asset_status",
+        "business_registration",
+        "marital_status"
+      ],
+      "ambiguous_fields": [],
+      "age": 29,
+      "asset_status": null,
+      "business_registration": null,
+      "business_type": "카페",
+      "career_experience": "없음",
+      "income_level": "기초생활수급자",
+      "marital_status": null,
+      "parse_note": "사용자 질문: 받을 수 있는 지원사업 안내 요청",
+      "region": "화성시 향남읍",
+      "startup_stage": "예비창업자"
+    },
+    "error": null,
+    "issues": [],
+    "elapsed": 5208,
+    "passed": true
+  },
+  {
+    "tc": {
+      "id": "F1-02",
+      "type": "trap",
+      "trap_type": "missing_info_omission",
+      "input": "화성시 동탄에서 소매업 하려는 예비창업자예요. 나이는 34세고, 재산 관련해서는 딱히 말 안 했어요.",
+      "critical_failure_if": "asset_status가 null이 아닌 임의 값(예: \"일반\", \"없음\", \"0원\")으로 채워지는 경우",
+      "check_points": [
+        "asset_status=null 필수",
+        "asset_status가 missing_fields에 포함"
+      ]
+    },
+    "output": {
+      "missing_fields": [
+        "asset_status",
+        "business_registration",
+        "career_experience",
+        "income_level",
+        "marital_status"
+      ],
+      "ambiguous_fields": [],
+      "age": 34,
+      "asset_status": null,
+      "business_registration": null,
+      "business_type": "소매업",
+      "career_experience": null,
+      "income_level": null,
+      "marital_status": null,
+      "parse_note": null,
+      "region": "화성시 동탄",
+      "startup_stage": "예비창업자"
+    },
+    "error": null,
+    "issues": [],
+    "elapsed": 7047,
+    "passed": true
+  },
+  {
+    "tc": {
+      "id": "F1-03",
+      "type": "trap",
+      "trap_type": "unmapped_category",
+      "input": "저는 프리랜서 디자이너인데 이번에 화성시에 작업실 겸 스튜디오를 차려요. 소상공인 지원 대상 되나요?",
+      "critical_failure_if": "프리랜서를 임의의 표준 업종 코드(소매업, 서비스업 등)에 강제 매핑하는 경우",
+      "check_points": [
+        "business_type에 프리랜서/디자이너 원문 포함",
+        "ambiguous_fields에 업종 매핑 불가 이유 포함"
+      ]
+    },
+    "output": {
+      "missing_fields": [
+        "age",
+        "asset_status",
+        "business_registration",
+        "career_experience",
+        "income_level",
+        "marital_status"
+      ],
+      "ambiguous_fields": [
+        {
+          "field": "business_type",
+          "reason": "표준 업종 매핑 불가"
+        }
+      ],
+      "age": null,
+      "asset_status": null,
+      "business_registration": null,
+      "business_type": "프리랜서 디자이너",
+      "career_experience": null,
+      "income_level": null,
+      "marital_status": null,
+      "parse_note": "소상공인 지원 대상 여부 문의",
+      "region": "화성시",
+      "startup_stage": "예비창업자"
+    },
+    "error": null,
+    "issues": [],
+    "elapsed": 30358,
+    "passed": true
+  },
+  {
+    "tc": {
+      "id": "F1-04",
+      "type": "trap",
+      "trap_type": "condition_ambiguity",
+      "input": "재산 기준이 정확히 뭘 말하는지 모르겠는데 그냥 저 신청 가능한지만 알려주세요.",
+      "critical_failure_if": "사용자 프로필 정보 없이 임의로 조건을 가정하고 매칭 결과를 확정하는 경우",
+      "check_points": [
+        "대부분 필드 null",
+        "asset_status=null",
+        "parse_note에 질문 내용 또는 재산 기준 모호성 기록"
+      ]
+    },
+    "output": {
+      "missing_fields": [
+        "age",
+        "asset_status",
+        "business_registration",
+        "business_type",
+        "career_experience",
+        "income_level",
+        "marital_status",
+        "region",
+        "startup_stage"
+      ],
+      "ambiguous_fields": [],
+      "age": null,
+      "asset_status": null,
+      "business_registration": null,
+      "business_type": null,
+      "career_experience": null,
+      "income_level": null,
+      "marital_status": null,
+      "parse_note": "사용자가 재산 기준에 대해 질문하고 지원 가능 여부를 확인하고자 함. 정보가 제공되지 않아 조건 파싱 불가.",
+      "region": null,
+      "startup_stage": null
+    },
+    "error": null,
+    "issues": [],
+    "elapsed": 5680,
+    "passed": true
+  },
+  {
+    "tc": {
+      "id": "F1-05",
+      "type": "trap",
+      "trap_type": "deadline_or_closed_case",
+      "input": "화성형 청년 인테리어 지원사업 아직 신청 가능한가요? (참고: 이 공고는 마감된 상태)",
+      "critical_failure_if": "마감된 공고를 신청 가능한 것처럼 안내하거나, 사용자 프로필 정보 없이 임의 가정",
+      "check_points": [
+        "사용자 프로필 필드 대부분 null",
+        "parse_note에 마감 관련 언급 또는 질문 기록"
+      ]
+    },
+    "output": {
+      "missing_fields": [
+        "age",
+        "asset_status",
+        "business_registration",
+        "business_type",
+        "career_experience",
+        "income_level",
+        "marital_status",
+        "region",
+        "startup_stage"
+      ],
+      "ambiguous_fields": [],
+      "age": null,
+      "asset_status": null,
+      "business_registration": null,
+      "business_type": null,
+      "career_experience": null,
+      "income_level": null,
+      "marital_status": null,
+      "parse_note": "'화성형 청년 인테리어 지원사업'의 신청 가능 여부에 대한 문의입니다.",
+      "region": null,
+      "startup_stage": null
+    },
+    "error": null,
+    "issues": [],
+    "elapsed": 8365,
+    "passed": true
+  },
+  {
+    "tc": {
+      "id": "F1-06",
+      "type": "trap",
+      "trap_type": "missing_info_omission",
+      "input": "화성시에서 반찬가게 하려고 준비 중이에요. 어떤 지원사업 받을 수 있는지 궁금해요.",
+      "critical_failure_if": "business_registration이 null이 아닌 임의 값(true/false)으로 채워지는 경우 — \"준비 중\"이라는 표현만으로 사업자등록 여부를 단정하면 안 됨",
+      "check_points": [
+        "business_registration=null 필수",
+        "business_registration이 missing_fields에 포함"
+      ]
+    },
+    "output": {
+      "missing_fields": [
+        "age",
+        "asset_status",
+        "business_registration",
+        "career_experience",
+        "income_level",
+        "marital_status"
+      ],
+      "ambiguous_fields": [],
+      "age": null,
+      "asset_status": null,
+      "business_registration": null,
+      "business_type": "반찬가게",
+      "career_experience": null,
+      "income_level": null,
+      "marital_status": null,
+      "parse_note": "화성시에서 반찬가게 창업을 준비 중인 사용자가 받을 수 있는 지원사업 종류를 문의함.",
+      "region": "화성시",
+      "startup_stage": "예비창업자"
+    },
+    "error": null,
+    "issues": [],
+    "elapsed": 30310,
+    "passed": true
+  }
+]
