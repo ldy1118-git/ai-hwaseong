@@ -6,8 +6,7 @@ import marsImg from '../../design/mars.png'
 import findImg from '../../design/find.png'
 import { getToken, saveOnboarding, apiUrl } from '../utils/api'
 import { generateText } from '../utils/llm/llmProvider'
-import Header from '../components/layout/Header'
-import { ChevronRight, RotateCcw, LogOut } from 'lucide-react'
+import { RotateCcw, LogOut } from 'lucide-react'
 
 /**
  * 온보딩 — 성현 기획서(docs/온보딩_기획서.txt) 구조.
@@ -307,21 +306,6 @@ function displayValue(key, val) {
   return String(val)
 }
 
-const SECTIONS = [
-  {
-    title: '사업 정보',
-    keys: ['business_status', 'category', 'business_period_months'],
-  },
-  {
-    title: '기본 정보',
-    keys: ['age', 'region', 'career_experience'],
-  },
-  {
-    title: '추가 정보',
-    keys: ['asset_group', 'marital_status', 'living_with_parents'],
-  },
-]
-
 // 편집 가능한 필드의 드로어 설정 (Home.jsx 와 동일)
 const EDIT_CFG = {
   region: {
@@ -482,6 +466,13 @@ function InlineEditDrawer({ field, profile, onSave, onClose }) {
   )
 }
 
+// 3×3 순서
+const GRID_KEYS = [
+  'business_status', 'category',        'business_period_months',
+  'age',             'region',           'career_experience',
+  'asset_group',     'marital_status',   'living_with_parents',
+]
+
 function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
   const [profile, setProfile] = useState(initProfile)
   const [editing, setEditing] = useState(null)
@@ -499,91 +490,83 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
     navigate('/')
   }
 
-  const filledCount = Object.keys(FIELD_LABELS).filter(k => {
+  const filledCount = GRID_KEYS.filter(k => {
     const v = profile[k]
     return v !== undefined && v !== null && v !== ''
   }).length
-  const totalCount = Object.keys(FIELD_LABELS).length
 
   return (
-    <div className="min-h-screen bg-primary-bg pb-28">
-      <Header />
+    // 뷰포트 전체를 flex column으로, 스크롤 없이 딱 맞게
+    <div className="h-screen flex flex-col bg-primary-bg overflow-hidden">
 
-      <div className="max-w-4xl mx-auto px-5 pt-4 pb-2 flex items-center justify-between">
+      {/* ── 헤더 ── */}
+      <div className="flex-shrink-0 px-5 pt-5 pb-3 flex items-center justify-between max-w-lg mx-auto w-full">
         <div>
-          <h1 className="text-lg font-extrabold text-navy">내 정보</h1>
-          <p className="text-xs text-warm-text mt-0.5">{filledCount}/{totalCount}개 항목 입력됨</p>
+          <h1 className="text-xl font-extrabold text-navy leading-none">내 정보</h1>
+          <p className="text-[11px] text-warm-text mt-1">
+            항목을 탭하면 바로 수정할 수 있어요
+          </p>
         </div>
-        <div className="h-9 w-9 rounded-full bg-navy flex items-center justify-center">
-          <span className="text-sm font-extrabold text-white">
-            {profile.category?.[0] ?? '나'}
+        {/* 완성도 링 */}
+        <div className="relative w-11 h-11 flex-shrink-0">
+          <svg className="w-11 h-11 -rotate-90" viewBox="0 0 44 44">
+            <circle cx="22" cy="22" r="18" fill="none" stroke="#e5e5e5" strokeWidth="4" />
+            <circle cx="22" cy="22" r="18" fill="none" stroke="#2a3c77" strokeWidth="4"
+              strokeDasharray={`${(filledCount / GRID_KEYS.length) * 113} 113`}
+              strokeLinecap="round" />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-extrabold text-navy">
+            {filledCount}/{GRID_KEYS.length}
           </span>
         </div>
       </div>
 
-      {/* 입력 완성도 바 */}
-      <div className="max-w-4xl mx-auto px-5 mb-5">
-        <div className="h-1.5 bg-warm-gray/20 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-navy rounded-full transition-all duration-500"
-            style={{ width: `${(filledCount / totalCount) * 100}%` }}
-          />
+      {/* ── 3×3 그리드 ── */}
+      <div className="flex-1 min-h-0 px-5 max-w-lg mx-auto w-full">
+        <div className="grid grid-cols-3 gap-2.5 h-full">
+          {GRID_KEYS.map(key => {
+            const meta = FIELD_LABELS[key]
+            const disp = displayValue(key, profile[key])
+            const filled = disp !== null
+
+            return (
+              <button key={key}
+                onClick={() => setEditing(key)}
+                className={[
+                  'flex flex-col items-start justify-between p-3 rounded-2xl border-2 text-left',
+                  'transition-all active:scale-95',
+                  filled
+                    ? 'bg-white border-warm-gray/20 shadow-sm'
+                    : 'bg-white/60 border-dashed border-warm-gray/30',
+                ].join(' ')}>
+                <span className="text-xl leading-none">{meta.emoji}</span>
+                <div className="mt-auto pt-2 w-full">
+                  <p className="text-[9px] text-warm-text font-medium leading-none mb-1">{meta.label}</p>
+                  {filled
+                    ? <p className="text-xs font-extrabold text-navy leading-tight truncate">{disp}</p>
+                    : <p className="text-[10px] text-warm-gray/50 leading-tight">탭해서 입력</p>
+                  }
+                </div>
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-5 space-y-4">
-        {SECTIONS.map(({ title, keys }) => {
-          const rows = keys.map(key => {
-            const meta = FIELD_LABELS[key]
-            const raw  = profile[key]
-            const disp = displayValue(key, raw)
-            return { key, meta, disp }
-          })
-
-          return (
-            <div key={title} className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm overflow-hidden">
-              <div className="px-4 py-2.5 border-b border-warm-gray/10 bg-warm-gray/5">
-                <p className="text-[11px] font-bold text-warm-text tracking-wide uppercase">{title}</p>
-              </div>
-              {rows.map(({ key, meta, disp }, i) => (
-                <button key={key}
-                  onClick={() => setEditing(key)}
-                  className={[
-                    'w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-warm-gray/5',
-                    i < rows.length - 1 ? 'border-b border-warm-gray/10' : '',
-                  ].join(' ')}>
-                  <span className="text-lg w-6 text-center flex-shrink-0">{meta.emoji}</span>
-                  <span className="flex-1">
-                    <span className="block text-[10px] text-warm-text font-medium">{meta.label}</span>
-                    {disp
-                      ? <span className="block text-sm font-bold text-navy mt-0.5">{disp}</span>
-                      : <span className="block text-sm text-warm-gray/60 mt-0.5">미입력</span>
-                    }
-                  </span>
-                  <ChevronRight size={14} className="text-warm-gray flex-shrink-0" />
-                </button>
-              ))}
-            </div>
-          )
-        })}
-
-        {/* 액션 버튼 */}
-        <div className="space-y-2.5 pt-1">
-          <button onClick={onReset}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl
-                       border-2 border-warm-gray/30 bg-white text-sm font-semibold text-navy
-                       hover:border-navy/40 transition-colors">
-            <RotateCcw size={15} />
-            정보 다시 입력하기
-          </button>
-          <button onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl
-                       border-2 border-warm-gray/20 bg-white text-sm font-semibold text-warm-text
-                       hover:border-sunset-orange/40 hover:text-sunset-orange transition-colors">
-            <LogOut size={15} />
-            로그아웃
-          </button>
-        </div>
+      {/* ── 액션 버튼 ── */}
+      <div className="flex-shrink-0 px-5 pt-3 pb-24 flex gap-2.5 max-w-lg mx-auto w-full">
+        <button onClick={onReset}
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl
+                     border border-warm-gray/30 bg-white text-xs font-semibold text-navy
+                     hover:border-navy/40 transition-colors">
+          <RotateCcw size={13} /> 재설정
+        </button>
+        <button onClick={handleLogout}
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl
+                     border border-warm-gray/20 bg-white text-xs font-semibold text-warm-text
+                     hover:text-sunset-orange hover:border-sunset-orange/40 transition-colors">
+          <LogOut size={13} /> 로그아웃
+        </button>
       </div>
 
       {editing && (
