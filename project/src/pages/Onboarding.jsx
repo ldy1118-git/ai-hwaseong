@@ -496,20 +496,19 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
   }).length
 
   return (
-    <div className="h-screen bg-primary-bg flex flex-col items-center justify-center overflow-hidden px-5">
+    <div className="h-screen flex flex-col bg-primary-bg overflow-hidden">
 
       {/* ── 헤더 ── */}
-      <div className="w-full max-w-sm flex items-center justify-between mb-4">
+      <div className="flex-shrink-0 flex items-center justify-between px-4 pt-4 pb-2">
         <div>
-          <h1 className="text-lg font-extrabold text-navy leading-none">내 정보</h1>
-          <p className="text-[11px] text-warm-text mt-0.5">탭하면 바로 수정</p>
+          <h1 className="text-base font-extrabold text-navy leading-none">내 정보</h1>
+          <p className="text-[10px] text-warm-text mt-0.5">탭하면 바로 수정</p>
         </div>
-        {/* 완성도 링 */}
-        <div className="relative w-10 h-10 flex-shrink-0">
-          <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
-            <circle cx="20" cy="20" r="16" fill="none" stroke="#e5e5e5" strokeWidth="3.5" />
-            <circle cx="20" cy="20" r="16" fill="none" stroke="#2a3c77" strokeWidth="3.5"
-              strokeDasharray={`${(filledCount / GRID_KEYS.length) * 100.5} 100.5`}
+        <div className="relative w-9 h-9 flex-shrink-0">
+          <svg className="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="14" fill="none" stroke="#e5e5e5" strokeWidth="3" />
+            <circle cx="18" cy="18" r="14" fill="none" stroke="#2a3c77" strokeWidth="3"
+              strokeDasharray={`${(filledCount / GRID_KEYS.length) * 88} 88`}
               strokeLinecap="round" />
           </svg>
           <span className="absolute inset-0 flex items-center justify-center text-[9px] font-extrabold text-navy">
@@ -518,38 +517,40 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
         </div>
       </div>
 
-      {/* ── 3×3 그리드 (셀 고정 높이) ── */}
-      <div className="w-full max-w-sm grid grid-cols-3 gap-2">
-        {GRID_KEYS.map(key => {
-          const meta = FIELD_LABELS[key]
-          const disp = displayValue(key, profile[key])
-          const filled = disp !== null
+      {/* ── 3×3 그리드 — flex-1로 남은 공간 전체 채움 ── */}
+      <div className="flex-1 min-h-0 px-4 pb-2">
+        <div className="grid grid-cols-3 grid-rows-3 gap-2 h-full">
+          {GRID_KEYS.map(key => {
+            const meta = FIELD_LABELS[key]
+            const disp = displayValue(key, profile[key])
+            const filled = disp !== null
 
-          return (
-            <button key={key}
-              onClick={() => setEditing(key)}
-              className={[
-                'h-20 flex flex-col items-start justify-between p-2.5 rounded-2xl border-2 text-left',
-                'transition-all active:scale-95',
-                filled
-                  ? 'bg-white border-warm-gray/20 shadow-sm'
-                  : 'bg-white/60 border-dashed border-warm-gray/30',
-              ].join(' ')}>
-              <span className="text-lg leading-none">{meta.emoji}</span>
-              <div className="w-full">
-                <p className="text-[9px] text-warm-text font-medium leading-none mb-0.5">{meta.label}</p>
-                {filled
-                  ? <p className="text-[11px] font-extrabold text-navy leading-tight truncate">{disp}</p>
-                  : <p className="text-[10px] text-warm-gray/40 leading-tight">미입력</p>
-                }
-              </div>
-            </button>
-          )
-        })}
+            return (
+              <button key={key}
+                onClick={() => setEditing(key)}
+                className={[
+                  'flex flex-col justify-between p-3 rounded-2xl border-2 text-left w-full',
+                  'transition-all active:scale-95',
+                  filled
+                    ? 'bg-white border-warm-gray/20 shadow-sm'
+                    : 'bg-white/60 border-dashed border-warm-gray/30',
+                ].join(' ')}>
+                <span className="text-xl leading-none">{meta.emoji}</span>
+                <div className="w-full">
+                  <p className="text-[9px] text-warm-text font-medium leading-none mb-0.5">{meta.label}</p>
+                  {filled
+                    ? <p className="text-xs font-extrabold text-navy leading-tight truncate">{disp}</p>
+                    : <p className="text-[10px] text-warm-gray/40">미입력</p>
+                  }
+                </div>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      {/* ── 액션 버튼 ── */}
-      <div className="w-full max-w-sm flex gap-2 mt-4">
+      {/* ── 액션 버튼 (바텀 네비 위) ── */}
+      <div className="flex-shrink-0 flex gap-2 px-4 pt-2 pb-20">
         <button onClick={onReset}
           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl
                      border border-warm-gray/30 bg-white text-xs font-semibold text-navy
