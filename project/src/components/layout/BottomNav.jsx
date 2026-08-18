@@ -3,7 +3,7 @@ import { Home, BarChart2, CalendarDays, MessageCircle, UserCircle2 } from 'lucid
 
 const TABS = [
   { icon: Home,          label: '홈',     path: '/home' },
-  { icon: BarChart2,     label: '상권비교', path: '/district' },
+  { icon: BarChart2,     label: '내 매장',  path: '/district' },
   { icon: CalendarDays,  label: '일정',   path: '/schedule' },
   { icon: MessageCircle, label: '챗봇',   path: '/mission' },
   { icon: UserCircle2,   label: '내 정보', path: '/onboarding' },
