@@ -156,20 +156,12 @@ function ProgramCard({ item, accent, onDetail }) {
             매칭이유 {showReason ? '▲' : '▼'}
           </button>
         ) : <span />}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onDetail}
-            className={`text-xs font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
-          >
-            자세히 →
-          </button>
-          {item.applyUrl && (
-            <a href={item.applyUrl} target="_blank" rel="noreferrer"
-               className="text-xs text-sunset-orange font-medium hover:underline">
-              신청하기 →
-            </a>
-          )}
-        </div>
+        <button
+          onClick={onDetail}
+          className={`text-xs font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
+        >
+          자세히 →
+        </button>
       </div>
     </Card>
   )
