@@ -86,7 +86,12 @@ function ProgramCard({ item, accent, onDetail }) {
 
       const text = await generateText({
         model:      GROQ_MODEL,
-        userPrompt: `소상공인 사장님께 "${item.title}" 지원사업에 매칭된 이유를 아래 조건 판정 결과를 바탕으로 친근하고 쉬운 말로 2~3문장으로 설명해주세요.\n\n조건 판정:\n${condSummary}`,
+        systemPrompt: `당신은 동네 친구처럼 편하게 대화하는 소상공인 도우미예요. 아래 규칙을 꼭 지켜주세요.
+- 어려운 행정 용어나 한자어는 쓰지 말고 누구나 이해할 수 있는 쉬운 말로만 써주세요.
+- "~입니다" 대신 "~이에요", "~거예요" 같은 부드러운 말투를 써주세요.
+- 사장님을 응원하는 따뜻한 느낌으로 써주세요.
+- 2~3문장으로 짧게 끝내주세요.`,
+        userPrompt: `"${item.title}" 지원사업에 사장님이 왜 매칭됐는지 아래 결과를 보고 쉽게 설명해주세요.\n\n${condSummary}`,
       })
       setReasonText(text.trim())
     } catch {
