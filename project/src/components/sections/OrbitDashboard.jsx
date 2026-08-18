@@ -94,7 +94,8 @@ function ProgramCard({ item, accent, onDetail }) {
         userPrompt: `"${item.title}" 지원사업에 사장님이 왜 매칭됐는지 아래 결과를 보고 쉽게 설명해주세요.\n\n${condSummary}`,
       })
       setReasonText(text.trim())
-    } catch {
+    } catch (err) {
+      console.error('[매칭 이유]', err)
       setReasonText('설명을 불러오는 중 오류가 발생했어요.')
     } finally {
       setReasonLoading(false)

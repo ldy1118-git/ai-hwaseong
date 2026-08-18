@@ -28,7 +28,7 @@ export default function Schedule() {
     })() ?? DEFAULT_PROFILE
 
     fetchMatches(profile)
-      .then(r => setMatches((r ?? []).map(mapMatch)))
+      .then(r => setMatches((r?.results ?? []).map(mapMatch)))
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
