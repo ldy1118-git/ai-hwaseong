@@ -496,19 +496,19 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
   }).length
 
   return (
-    <div className="h-screen flex flex-col bg-primary-bg overflow-hidden">
+    <div className="min-h-screen bg-primary-bg pb-24">
 
       {/* ── 헤더 ── */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 pt-4 pb-2">
+      <div className="px-5 pt-5 pb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-base font-extrabold text-navy leading-none">내 정보</h1>
-          <p className="text-[10px] text-warm-text mt-0.5">탭하면 바로 수정</p>
+          <h1 className="text-lg font-extrabold text-navy">내 정보</h1>
+          <p className="text-xs text-warm-text mt-0.5">탭하면 바로 수정할 수 있어요</p>
         </div>
-        <div className="relative w-9 h-9 flex-shrink-0">
-          <svg className="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
-            <circle cx="18" cy="18" r="14" fill="none" stroke="#e5e5e5" strokeWidth="3" />
-            <circle cx="18" cy="18" r="14" fill="none" stroke="#2a3c77" strokeWidth="3"
-              strokeDasharray={`${(filledCount / GRID_KEYS.length) * 88} 88`}
+        <div className="relative w-10 h-10 flex-shrink-0">
+          <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+            <circle cx="20" cy="20" r="16" fill="none" stroke="#e5e5e5" strokeWidth="3.5" />
+            <circle cx="20" cy="20" r="16" fill="none" stroke="#2a3c77" strokeWidth="3.5"
+              strokeDasharray={`${(filledCount / GRID_KEYS.length) * 100.5} 100.5`}
               strokeLinecap="round" />
           </svg>
           <span className="absolute inset-0 flex items-center justify-center text-[9px] font-extrabold text-navy">
@@ -517,9 +517,9 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
         </div>
       </div>
 
-      {/* ── 3×3 그리드 — flex-1로 남은 공간 전체 채움 ── */}
-      <div className="flex-1 min-h-0 px-4 pb-2">
-        <div className="grid grid-cols-3 grid-rows-3 gap-2 h-full">
+      {/* ── 3×3 그리드 ── */}
+      <div className="px-5">
+        <div className="grid grid-cols-3 gap-2.5">
           {GRID_KEYS.map(key => {
             const meta = FIELD_LABELS[key]
             const disp = displayValue(key, profile[key])
@@ -529,7 +529,7 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
               <button key={key}
                 onClick={() => setEditing(key)}
                 className={[
-                  'flex flex-col justify-between p-3 rounded-2xl border-2 text-left w-full',
+                  'h-[88px] flex flex-col justify-between p-3 rounded-2xl border-2 text-left',
                   'transition-all active:scale-95',
                   filled
                     ? 'bg-white border-warm-gray/20 shadow-sm'
@@ -549,19 +549,19 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
         </div>
       </div>
 
-      {/* ── 액션 버튼 (바텀 네비 위) ── */}
-      <div className="flex-shrink-0 flex gap-2 px-4 pt-2 pb-20">
+      {/* ── 액션 버튼 ── */}
+      <div className="px-5 mt-4 flex gap-2.5">
         <button onClick={onReset}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl
                      border border-warm-gray/30 bg-white text-xs font-semibold text-navy
                      hover:border-navy/40 transition-colors">
-          <RotateCcw size={12} /> 재설정
+          <RotateCcw size={13} /> 재설정
         </button>
         <button onClick={handleLogout}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl
                      border border-warm-gray/20 bg-white text-xs font-semibold text-warm-text
                      hover:text-sunset-orange hover:border-sunset-orange/40 transition-colors">
-          <LogOut size={12} /> 로그아웃
+          <LogOut size={13} /> 로그아웃
         </button>
       </div>
 
