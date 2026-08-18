@@ -243,7 +243,9 @@ export default function MyStore() {
   }, [])
 
   const year = new Date().getFullYear()
-  const { mustDo, ifApplicable, holidaysKnown } = useMemo(
+  // holidaysKnown 은 import 한 함수와 이름이 겹친다. 그대로 구조분해하면
+  // 함수가 불리언으로 덮여서 아래 호출이 터진다. 이름을 갈라둔다.
+  const { mustDo, ifApplicable, holidaysKnown: thisYearKnown } = useMemo(
     () => taxSchedule(profile, year), [profile, year],
   )
   const next = useMemo(() => nextDeadline(profile), [profile])
@@ -321,7 +323,7 @@ export default function MyStore() {
 
             {/* 다음 일정이 내년으로 넘어갔는데 그 해 공휴일을 안 적어뒀으면
                 주말만 반영된 날짜다. 틀린 날을 확정처럼 보여주면 안 된다. */}
-            {!holidaysKnown(Number(next.dueDate.slice(0, 4))) && (
+            {next.dueDate && !holidaysKnown(Number(next.dueDate.slice(0, 4))) && (
               <div className="mt-2 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
                 <AlertTriangle size={12} className="text-sunset-orange mt-0.5 flex-shrink-0" />
                 <p className="text-[10px] text-warm-text leading-relaxed">
@@ -386,7 +388,7 @@ export default function MyStore() {
             </div>
           )}
 
-          {!holidaysKnown && (
+          {!thisYearKnown && (
             <div className="mt-3 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
               <AlertTriangle size={12} className="text-sunset-orange mt-0.5 flex-shrink-0" />
               <p className="text-[10px] text-warm-text leading-relaxed">
