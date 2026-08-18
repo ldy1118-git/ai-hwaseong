@@ -580,10 +580,18 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
 /* ───────────── 본체 ───────────── */
 const COMMON_STEPS = ['age', 'region', 'career', 'asset', 'marital', 'parents']
 
+// 세무일정용 3개. 사업자등록이 있어야 답할 수 있어서 **운영중인 사장님에게만**
+// 묻는다. 예비창업자는 아직 과세유형이 없다.
+//
+// 이걸 안 물으면 세무일정 14건이 통째로 나온다. 간이과세 카페 사장님은
+// 실제로 2건만 하면 되는데 법인세·원천세까지 다 보이게 된다.
+const TAX_STEPS = ['entity', 'vat', 'employee']
+
 const EMPTY = {
   category: '', business_status: '', age: '', region: '',
   business_period_months: '', career_experience: '', asset_group: '',
   marital_status: '', living_with_parents: undefined,
+  entity_type: '', vat_type: '', has_employee: undefined,
 }
 
 export default function Onboarding() {
@@ -616,7 +624,14 @@ export default function Onboarding() {
 
   const set = (key, value) => setData(prev => ({ ...prev, [key]: value }))
 
-  const total   = useMemo(() => (path === 'A' ? 2 : 1) + COMMON_STEPS.length + 1, [path])
+  // 운영중이면 세무 질문 3개가 붙는다
+  const steps = useMemo(
+    () => data.business_status === '운영중' ? [...COMMON_STEPS, ...TAX_STEPS] : COMMON_STEPS,
+    [data.business_status],
+  )
+
+  // 진행률: 경로마다 화면 수가 다르다
+  const total = useMemo(() => (path === 'A' ? 2 : 1) + steps.length + 1, [path, steps])
   const current = useMemo(() => {
     if (stage === 'q1') return 1
     if (stage === 'common') return (path === 'A' ? 3 : 2) + common
@@ -667,7 +682,7 @@ export default function Onboarding() {
   }
 
   function nextCommon() {
-    if (common < COMMON_STEPS.length - 1) { setCommon(c => c + 1); return }
+    if (common < steps.length - 1) { setCommon(c => c + 1); return }
     finish()
   }
 
@@ -1004,7 +1019,7 @@ export default function Onboarding() {
   }
 
   /* ── 공통 기본정보 ── */
-  const step = COMMON_STEPS[common]
+  const step = steps[common]
   const back = common > 0
     ? () => setCommon(c => c - 1)
     : () => setStage(path === 'A' ? 'field' : path === 'B' ? 'wish' : 'biz')
@@ -1134,7 +1149,56 @@ export default function Onboarding() {
         </Ask>
       )}
 
-      {/* 부모 동거 */}
+      {step === 'entity' && (
+        <Ask title="사업자 형태가 어떻게 되세요?" why="내야 하는 세금 종류가 달라져요.">
+          <div className="grid grid-cols-2 gap-3">
+            <Choice emoji="🙍" label="개인사업자" desc="대부분 여기예요"
+              selected={data.entity_type === '개인'}
+              onClick={() => { set('entity_type', '개인'); setTimeout(nextCommon, 120) }} />
+            <Choice emoji="🏢" label="법인사업자" desc="주식회사·유한회사"
+              selected={data.entity_type === '법인'}
+              onClick={() => { set('entity_type', '법인'); setTimeout(nextCommon, 120) }} />
+          </div>
+          <SkipLink onClick={() => { set('entity_type', ''); nextCommon() }}>
+            잘 모르겠어요
+          </SkipLink>
+        </Ask>
+      )}
+
+      {step === 'vat' && (
+        <Ask title="부가세는 어떻게 내세요?"
+             why="이거 하나로 1년에 몇 번 신고하는지가 정해져요.">
+          <div className="flex flex-col gap-3">
+            {[
+              ['일반과세', '연 매출 1억 400만원 이상이면 대개 여기'],
+              ['간이과세', '연 1회만 신고하면 돼요'],
+              ['면세', '학원·병원·농축수산물 등'],
+            ].map(([value, desc]) => (
+              <Choice key={value} label={value} desc={desc} selected={data.vat_type === value}
+                onClick={() => { set('vat_type', value); setTimeout(nextCommon, 120) }} />
+            ))}
+          </div>
+          <SkipLink onClick={() => { set('vat_type', ''); nextCommon() }}>
+            잘 모르겠어요 (사업자등록증에 적혀 있어요)
+          </SkipLink>
+        </Ask>
+      )}
+
+      {step === 'employee' && (
+        <Ask title="직원을 두고 계세요?" why="직원이 있으면 매달 챙길 신고가 하나 더 있어요.">
+          <div className="grid grid-cols-2 gap-3">
+            <Choice emoji="👥" label="네, 있어요" desc="아르바이트 포함"
+              selected={data.has_employee === true}
+              onClick={() => { set('has_employee', true); setTimeout(nextCommon, 120) }} />
+            <Choice emoji="🙋" label="저 혼자예요" selected={data.has_employee === false}
+              onClick={() => { set('has_employee', false); setTimeout(nextCommon, 120) }} />
+          </div>
+          <SkipLink onClick={() => { set('has_employee', undefined); nextCommon() }}>
+            건너뛰기
+          </SkipLink>
+        </Ask>
+      )}
+
       {step === 'parents' && (
         <Ask title="부모님과 함께 사세요?"
              why="일부 공모에서 확인하는 조건이에요.">

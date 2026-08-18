@@ -162,6 +162,89 @@ EXCLUDES_SOSANG = re.compile(
 NOT_SOSANG = re.compile(r"여성\s*농업인|농업경영체|농업인|재직자|영농|어업인")
 
 
+# ── 지원대상 표기 ───────────────────────────────────────────────
+#
+# 기업마당 API 요약(bsnsSumryCn)은 형식이 고정돼 있다.
+#
+#     <사업 설명>  ☞  <지원대상>  ☞  <지원내용>
+#
+# 27건 전부 이 형식이었다. 첫 ☞ 뒤가 지원대상이고, 여기에 대상이 그대로
+# 적혀 있다. 우리는 이걸 여태 안 읽어서 27건 중 19건을 "요건을 확인하지
+# 못했습니다"로 깔아두고 있었다.
+#
+# 읽는 목적은 두 가지다.
+#   1. 대상이 "소상공인" 뿐이면 → 조건이 없는 게 맞다. 신청가능으로 올린다.
+#   2. 제한이 붙어 있으면 → 확인필요로 두되, 무슨 제한인지 원문을 보여준다.
+#      "확인하지 못했습니다"보다 "중소 제조업체만"이 훨씬 쓸모 있다.
+
+
+def support_target(api_summary: str) -> str:
+    """API 요약에서 지원대상 문장만 잘라온다. 없으면 빈 문자열."""
+    parts = (api_summary or "").split("☞")
+    return parts[1].strip() if len(parts) >= 2 else ""
+
+
+# 화면에 그대로 뜨는 문장이라 길면 곤란하다. 대시보드 매칭이유 한 줄에
+# 들어가야 한다. 잘려도 "무슨 제한이 있는지"는 앞부분에 나온다. 전문은
+# 공고 상세의 요약에 그대로 있다.
+TARGET_MAX_LEN = 120
+
+
+def shorten_target(target: str) -> str:
+    """표시용으로 줄인다. 판정(classify_target)은 반드시 원문으로 할 것 —
+    줄인 뒤에는 뒤쪽의 ① 같은 제한 신호가 사라져서 잘못 통과시킨다."""
+    if len(target) <= TARGET_MAX_LEN:
+        return target
+    cut = max(target.rfind(mark, 0, TARGET_MAX_LEN) for mark in (" - ", " ※ ", ", ", " "))
+    if cut < TARGET_MAX_LEN // 2:
+        cut = TARGET_MAX_LEN
+    return target[:cut].rstrip(" ,-※") + "…"
+
+
+# 지원대상에 이 말이 있으면 전 소상공인 대상이 아니다.
+#
+# 넓게 잡는 쪽이 안전하다. 놓치면 신청가능이어야 할 게 확인필요로 남을
+# 뿐이지만, 잘못 통과시키면 대상이 아닌 사장님을 헛걸음시킨다.
+TARGET_RESTRICTED = re.compile(
+    r"제조|섬유|가죽|화학|공장|생산|"            # 업종을 한정한다
+    r"지원을?\s*받은|선정된|참여한|"             # 기존 사업 참여 이력을 요구한다
+    r"공고문\s*참[조고]|자세한\s*지원\s*대상|"   # 스스로 "조건이 더 있다"고 말한다
+    r"농어민|농업|어업|"                        # 우리 사용자가 아니다
+    r"[①②③④]"                                # 항목이 나뉘면 조건이 더 붙어 있다
+)
+
+# 제목에 이 지역이 박혀 있으면 그 지역 사업이다.
+#
+# 지원대상에는 "소상공인"이라고만 적혀 있어도, 실제로는 그 지역 시설을
+# 써야 하는 사업인 경우가 있다. 소담스퀘어 광주·강원·전주·경북 4건이
+# 그렇다. 화성시 사장님에게 "신청가능"이라고 띄우면 헛걸음이다.
+#
+# scope() 를 고치지 않는다. 그건 수집 대상 자체를 바꿔서 공고 수가 줄 수
+# 있다. 여기서는 "신청가능으로 올릴지"만 판단한다.
+OTHER_REGION = re.compile(
+    r"서울|부산|대구|인천|광주|대전|울산|세종|강원|충북|충남|전북|전남|"
+    r"경북|경남|제주|전주|청주|천안|창원|포항|김해|목포|여수|순천|춘천|원주|강릉"
+)
+
+# 지원대상 문장이 이보다 길면 뒤에 조건이 더 붙어 있다고 본다.
+# 실제로 순수한 대상 표기는 "「소상공인기본법」 제2조에 따른 소상공인"
+# 정도가 제일 길었다(29자).
+TARGET_PLAIN_LEN = 60
+
+
+def classify_target(target: str, title: str) -> str:
+    """지원대상 표기를 'open'(전 소상공인) 또는 'restricted'(제한 있음)로."""
+    if not target:
+        return "restricted"
+    if TARGET_RESTRICTED.search(target):
+        return "restricted"
+    if len(target) > TARGET_PLAIN_LEN:
+        return "restricted"
+    if "화성" not in title and OTHER_REGION.search(title):
+        return "restricted"
+    return "open"
+
+
 def build_eligibility(text: str) -> tuple[dict, list[str]]:
     """(조건, 근거문장). 규칙이 안 걸리면 빈 조건을 돌려준다."""
     eligibility: dict = {}
@@ -312,33 +395,44 @@ def build_notice(entry: dict, doc_text: str) -> tuple[dict, list[str]]:
     exclude = section(doc_text, EXCLUDE_HEADS, span=800) if doc_text else ""
     doc_section = section(doc_text, DOCUMENT_HEADS, span=900) if doc_text else ""
 
-    # 자격은 본문 자격 섹션 + 제외 섹션을 같이 본다. 없으면 API 요약으로.
-    basis = "\n".join([qualify, exclude]).strip() or summary_api
+    # 자격은 본문 자격 섹션 + 제외 섹션 + API 요약을 **모두** 같이 본다.
+    #
+    # 예전에는 본문이 있으면 API 요약을 아예 안 봤다(`... or summary_api`).
+    # 그런데 본문 자격 섹션에 없는 조건이 API 요약에는 적혀 있는 경우가 있다.
+    # "찾아가는 1:1 디지털 교육"이 그랬다 — 요약에만 "정상적으로 영업 중인
+    # 점포"라고 적혀 있어서, 본문이 있다는 이유로 그 조건을 통째로 놓쳤다.
+    basis = "\n".join([qualify, exclude, summary_api]).strip()
     eligibility, evidence = build_eligibility(basis)
 
-    # 요건을 하나도 못 뽑았으면 "확인 필요"로 남긴다.
+    # 규칙에 하나도 안 걸렸으면 지원대상 표기를 본다.
     #
-    # 요건이 진짜 없는 공고(전 소상공인 대상)와, 요건이 있는데 우리가 못 읽은
-    # 공고를 구분할 방법이 없다. 25건 중 17건이 여기 해당하는데 그 안에는
+    # 예전에는 여기서 전부 "확인 필요"로 깔았다. 요건이 진짜 없는 공고와
+    # 요건이 있는데 못 읽은 공고를 구분할 방법이 없었기 때문이다. 그래서
+    # 27건 중 19건이 프로필과 무관하게 확인필요로 나왔다 — 열에 일곱이
+    # "모르겠습니다"면 매칭 서비스라고 할 수 없다.
     #
-    #   · 첨부가 스캔 이미지라 텍스트가 아예 없는 것        13건
-    #   · 텍스트는 있지만 "온라인판로 종합지원 선정 기업"처럼
-    #     우리 프로필로는 판정할 수 없는 조건인 것            일부
+    # 이제 구분할 수 있다. API 요약의 `☞ 지원대상` 이 대상을 그대로 적어준다.
     #
-    # 이 섞여 있다. 구분이 안 되면 안전한 쪽으로 통일한다. 사용자에게
-    # "확인해보세요"라고 말하는 건 손해가 없지만, 대상이 아닌 사람에게
-    # "신청가능 100점"이라고 말하는 건 헛걸음을 시킨다.
+    #   "소상공인이라면 누구나"          → 조건이 없는 게 맞다. 신청가능.
+    #   "중소 제조업체"                  → 제한이 있다. 확인필요 + 사유 표시.
     #
-    # 조건을 아예 안 걸면 100점 신청가능으로 상단에 올라간다. 그게 지금까지의
-    # 동작이었고, 실제로 17건이 그렇게 떠 있었다.
+    # 애매하면 확인필요 쪽으로 둔다. 놓치면 신청가능이어야 할 게 확인필요로
+    # 남을 뿐이지만, 잘못 통과시키면 대상이 아닌 사장님을 헛걸음시킨다.
     if not eligibility:
-        eligibility["requirements_unknown"] = (
-            "공고문에서 자격 요건을 확인하지 못했습니다. 문의처로 확인해주세요"
-        )
-        evidence.append(
-            "requirements_unknown  ← 규칙에 걸린 요건 없음"
-            + ("" if doc_text else " (첨부 본문도 없음 — 스캔·HWP)")
-        )
+        target = support_target(summary_api)
+        kind = classify_target(target, field(entry, "pblancNm", "title"))
+        if kind == "open":
+            eligibility["requirements_open"] = shorten_target(target)
+            evidence.append(f"requirements_open  ← 지원대상 “{target}”")
+        else:
+            eligibility["requirements_unknown"] = shorten_target(target) or (
+                "공고문에서 자격 요건을 확인하지 못했습니다. 문의처로 확인해주세요"
+            )
+            evidence.append(
+                f"requirements_unknown  ← 지원대상 “{target[:50]}”" if target else
+                "requirements_unknown  ← 규칙에 걸린 요건 없고 지원대상 표기도 없음"
+                + ("" if doc_text else " (첨부 본문도 없음 — 스캔·HWP)")
+            )
 
     # 화성시 전용 공고는 지역 조건이 실제로 있다. 전국·경기 공고는 조건을
     # 걸지 않는다 — 우리 사용자는 모두 화성시민이라 걸어봐야 전원 통과다.

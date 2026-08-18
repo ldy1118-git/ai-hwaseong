@@ -99,6 +99,10 @@ class handler(Base):  # noqa: N801
             "database": database(),
             **({"write_check": write_check()} if deep else {}),
             "configured": {
+                # LLM 은 셋 중 하나만 있으면 챗봇이 돈다. 셋 다 false 면
+                # 챗봇이 죽어 있다는 뜻이라 배포 후 여기부터 볼 것.
+                "GROQ_API_KEY": bool(os.environ.get("GROQ_API_KEY", "").strip()),
+                "XAI_API_KEY": bool(os.environ.get("XAI_API_KEY", "").strip()),
                 "GEMINI_API_KEY": bool(os.environ.get("GEMINI_API_KEY", "").strip()),
                 "JWT_SECRET": bool(os.environ.get("JWT_SECRET", "").strip()),
                 "KAKAO_CLIENT_ID": bool(os.environ.get("KAKAO_CLIENT_ID", "").strip()),

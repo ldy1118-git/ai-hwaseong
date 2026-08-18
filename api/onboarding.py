@@ -33,6 +33,13 @@ PROFILE_KEYS = {
     "region", "business_status", "category", "career_experience", "asset_group",
     "age", "business_period_months", "annual_revenue_krw", "marital_status",
     "living_with_parents",
+    # 아래 셋은 공고 매칭이 아니라 **세무일정**에 쓴다. 이게 없으면 신고
+    # 일정을 사람에 맞게 못 걸러서 14건을 전부 보여주게 된다. 간이과세
+    # 카페 사장님은 실제로 2건만 하면 되는데 말이다.
+    # 사업자등록이 있어야 답할 수 있는 것들이라 운영중인 사장님에게만 묻는다.
+    "entity_type",     # 개인 | 법인
+    "vat_type",        # 일반과세 | 간이과세 | 면세
+    "has_employee",    # true | false
 }
 
 

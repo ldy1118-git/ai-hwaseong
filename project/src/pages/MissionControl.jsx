@@ -7,7 +7,6 @@ import termsData from '../data/terms.json'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
 // 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
-const GEMINI_KEY = null
 
 /* ── 상황별 추천 칩 ──────────────────────────────────── */
 const SUGGESTION_CHIPS = [

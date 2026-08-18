@@ -34,10 +34,17 @@ ELIGIBILITY_KEYS = {
     "career_experience", "asset_groups", "min_business_months",
     "max_business_months", "min_annual_revenue_krw", "max_annual_revenue_krw",
     "marital_status", "living_with_parents",
-    # 값은 사용자에게 보여줄 안내 문장. 다른 키와 달리 판정에 쓰이지 않고
-    # 무조건 "확인필요"를 만든다. 요건을 못 읽은 공고를 100점으로
-    # 올려보내지 않기 위한 것이다.
+    # 아래 둘은 값이 공고에 적힌 지원대상 문장이다. 다른 키와 달리 프로필과
+    # 대조하지 않고 판정 결과가 고정돼 있다.
+    #
+    #   requirements_unknown  무조건 "확인필요". 지원대상에 우리가 판정할 수
+    #                         없는 제한이 붙어 있는 경우("중소 제조업체" 등).
+    #   requirements_open     무조건 "충족". 지원대상이 "소상공인" 뿐이라
+    #                         조건이 없는 게 맞는 경우.
+    #
+    # 둘을 가르는 건 extract.classify_target(). 애매하면 unknown 쪽으로 둔다.
     "requirements_unknown",
+    "requirements_open",
 }
 
 # 완전일치로 판정되는 값들. 오타 하나면 아무도 매칭되지 않는다.
