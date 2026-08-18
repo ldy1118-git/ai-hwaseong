@@ -277,7 +277,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             ))}
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           {[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}
         </div>
       </section>
@@ -293,7 +293,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             <span className="w-2 h-2 rounded-full bg-sunset-orange animate-pulse" />
             <h2 className="text-sm font-bold text-sunset-orange tracking-wide uppercase">긴급 마감</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-1 gap-3 mb-6">
             {loading
               ? [1, 2].map(i => <SkeletonCard key={i} />)
               : urgent.map(item => (
@@ -309,7 +309,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
         <span className="w-2 h-2 rounded-full bg-navy" />
         <h2 className="text-sm font-bold text-navy tracking-wide uppercase">지원사업 탐색</h2>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3">
         {loading
           ? [1, 2, 3, 4].map(i => <SkeletonCard key={i} />)
           : regular.map(item => (
