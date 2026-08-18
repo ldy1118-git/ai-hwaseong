@@ -1,6 +1,6 @@
 import { useLocation } from 'react-router-dom'
 
-const BOTTOM_NAV_PATHS = new Set(['/home', '/apply', '/schedule', '/mission', '/onboarding'])
+const BOTTOM_NAV_PATHS = new Set(['/home', '/district', '/schedule', '/mission', '/onboarding'])
 
 export default function PageWrapper({ children, className = '' }) {
   const { pathname } = useLocation()

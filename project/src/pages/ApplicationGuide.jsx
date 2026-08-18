@@ -184,7 +184,7 @@ export default function ApplicationGuide() {
         summary:      matched.application_detail ?? matched.notice_title,
       }
 
-      const result = await generateChecklistV1(matched, noticeJson, termsData, GEMINI_KEY, 'gemini')
+      const result = await generateChecklistV1(matched, noticeJson, termsData)
 
       if (result.parsed?.checklist?.length) {
         setItems(
