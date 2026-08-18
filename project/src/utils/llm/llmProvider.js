@@ -44,7 +44,7 @@ export async function generateText({
       prompt: userPrompt,
       system: systemPrompt,
       json:   jsonMode,
-      model:  model || GROQ_MODEL,
+      model:  model || GEMINI_MODEL,
       schema: responseSchema,
       history,
     }),

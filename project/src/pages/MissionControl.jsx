@@ -131,13 +131,7 @@ export default function MissionControl() {
         text: m.text,
       }))
 
-      const result = await generateChatbotResponseV1(
-        trimmed,
-        history,
-        termsData,
-        GEMINI_KEY,
-        'gemini'
-      )
+      const result = await generateChatbotResponseV1(trimmed, history, termsData)
 
       setMessages(prev => [...prev, {
         id:         Date.now() + 1,
