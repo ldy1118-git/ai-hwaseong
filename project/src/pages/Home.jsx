@@ -390,6 +390,7 @@ export default function Home() {
   const [allMatches,   setAllMatches]   = useState([])
   const [matchLoading, setMatchLoading] = useState(true)
   const [editingField, setEditingField] = useState(null)
+  const [matchError,   setMatchError]   = useState('')
 
   /* 진입 가드 + 프로필 로드 */
   useEffect(() => {
@@ -403,6 +404,7 @@ export default function Home() {
   useEffect(() => {
     if (!profile) return
     setMatchLoading(true)
+    setMatchError('')
     fetchMatches(profile ?? DEFAULT_PROFILE)
       .then(({ results }) => {
         setAllMatches(
@@ -413,7 +415,7 @@ export default function Home() {
             .sort((a, b) => (a.dDay ?? 999) - (b.dDay ?? 999))
         )
       })
-      .catch(() => {})
+      .catch(err => setMatchError(err?.message || '지원사업을 불러오지 못했어요'))
       .finally(() => setMatchLoading(false))
   }, [profile])
 
@@ -447,6 +449,23 @@ export default function Home() {
         {role === 1 && <BusinessOwnerSection profile={profile} />}
         {role === 2 && <StartupPlannerSection profile={profile} />}
         {role === 3 && <ExplorerSection profile={profile} navigate={navigate} />}
+
+        {matchError && (
+          <div className="mx-5 mb-3 flex items-start gap-2.5 bg-sunset-orange/5
+                          border border-sunset-orange/20 rounded-2xl px-3.5 py-3">
+            <span className="text-sunset-orange text-sm leading-none mt-0.5">!</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-navy">지원사업을 불러오지 못했어요</p>
+              <p className="text-[10px] text-warm-text mt-0.5 leading-relaxed">{matchError}</p>
+            </div>
+            <button
+              onClick={() => setProfile(p => ({ ...p }))}
+              className="text-[10px] font-bold text-navy underline underline-offset-2 flex-shrink-0"
+            >
+              다시 시도
+            </button>
+          </div>
+        )}
 
         {/* 공통: 지원사업 목록 (pre-fetched 전달로 이중 호출 방지) */}
         <OrbitDashboard

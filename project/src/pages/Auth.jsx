@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import logoImg from '../../design/logo.png'
 import { goToKakaoLogin } from '../utils/kakao'
+import KakaoButton from '../components/ui/KakaoButton'
 import { getToken } from '../utils/api'
 
 /**
@@ -72,20 +73,9 @@ export default function Auth() {
         ))}
       </ul>
 
-      {/* 색과 문구는 카카오 디자인 가이드를 따른다 */}
-      <button
-        onClick={handleKakao}
-        disabled={busy}
-        className="w-full max-w-sm flex items-center justify-center gap-2 rounded-2xl
-                   bg-[#FEE500] text-[#191600] font-bold py-4 text-base
-                   shadow-sm hover:brightness-95 active:brightness-90 transition
-                   disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
-          <path d="M12 3.5c-4.7 0-8.5 3-8.5 6.7 0 2.4 1.6 4.5 4 5.7l-1 3.6c-.1.3.3.6.6.4l4.3-2.8c.2 0 .4.1.6.1 4.7 0 8.5-3 8.5-6.7S16.7 3.5 12 3.5Z" />
-        </svg>
+      <KakaoButton onClick={handleKakao} disabled={busy} className="max-w-sm">
         {busy ? '카카오로 이동 중...' : '카카오톡으로 시작하기'}
-      </button>
+      </KakaoButton>
 
       {error && (
         <p className="mt-3 text-xs text-sunset-orange font-medium text-center max-w-sm">

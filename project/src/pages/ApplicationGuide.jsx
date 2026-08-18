@@ -142,6 +142,7 @@ export default function ApplicationGuide() {
   const [statusMsg,   setStatusMsg]   = useState('')
   const [drawerItem,  setDrawerItem]  = useState(null)
   const [showPrep,    setShowPrep]    = useState(false)
+  const [error,       setError]      = useState('')
 
   useEffect(() => {
     const raw = localStorage.getItem('mars-fit-selected-match')
@@ -153,6 +154,7 @@ export default function ApplicationGuide() {
 
   async function loadAIChecklist() {
     setLoading(true)
+    setError('')
     setStatusMsg('매칭 결과를 불러오는 중...')
 
     try {
@@ -171,7 +173,11 @@ export default function ApplicationGuide() {
         )
       }
 
-      if (!matched) { setLoading(false); setStatusMsg(''); return }
+      if (!matched) {
+        setError('조건에 맞는 지원사업을 찾지 못했어요. 내 조건을 먼저 입력해 주세요.')
+        setLoading(false); setStatusMsg('')
+        return
+      }
 
       setStatusMsg('마이다가 필요한 서류 목록을 탐구 중...')
 
@@ -207,7 +213,10 @@ export default function ApplicationGuide() {
         setPending(result.parsed.pending_conditions    ?? [])
       }
     } catch (err) {
+      // 조용히 넘어가면 "서류 준비 현황 0 / 0" 만 남는다. 만들다 만 화면으로
+      // 보이고, 사용자는 자기가 뭘 잘못했는지 알 방법이 없다.
       console.error('AI checklist error:', err)
+      setError(err?.message || '서류 목록을 만들지 못했어요.')
     } finally {
       setLoading(false)
       setStatusMsg('')
@@ -252,7 +261,37 @@ export default function ApplicationGuide() {
             </div>
           )}
 
-          {loading ? (
+          {error && !loading ? (
+            /* ── 실패 상태. 빈 화면 대신 무슨 일인지 말해준다 ── */
+            <div className="px-5 py-16 flex flex-col items-center text-center">
+              <span className="w-14 h-14 rounded-full bg-sunset-orange/10 flex items-center
+                               justify-center text-2xl mb-4">📄</span>
+              <p className="text-sm font-bold text-navy mb-1.5">
+                서류 목록을 준비하지 못했어요
+              </p>
+              <p className="text-xs text-warm-text leading-relaxed max-w-xs">{error}</p>
+
+              <div className="flex flex-col items-center gap-2 mt-6 w-full max-w-xs">
+                <button
+                  onClick={loadAIChecklist}
+                  className="w-full py-3 rounded-2xl bg-navy text-white text-sm font-semibold
+                             hover:bg-navy/90 transition-colors"
+                >
+                  다시 시도
+                </button>
+                <button
+                  onClick={() => navigate('/home')}
+                  className="text-xs text-warm-text hover:text-navy underline underline-offset-2"
+                >
+                  지원사업 목록으로 돌아가기
+                </button>
+              </div>
+
+              <p className="text-[10px] text-warm-text/70 leading-relaxed mt-6 max-w-xs">
+                공고에 적힌 접수처와 문의처는 지원사업 상세 화면에서 그대로 확인할 수 있어요.
+              </p>
+            </div>
+          ) : loading ? (
             /* ── 로딩 상태 ── */
             <div className="flex flex-col items-center justify-center py-16">
               <style>{`
