@@ -107,9 +107,9 @@ export default function DeadlineCalendar({ matches = [], loading }) {
                 ].join(' ')}>
                   {day}
                 </span>
-                <div className="flex gap-0.5 mt-1 h-2 items-center">
-                  {hasU && <span className="w-1.5 h-1.5 rounded-full bg-sunset-orange" />}
-                  {hasR && <span className="w-1.5 h-1.5 rounded-full bg-navy" />}
+                <div className="flex gap-0.5 mt-0.5 h-3 items-center">
+                  {hasU && <span className="text-[9px] leading-none text-sunset-orange">★</span>}
+                  {hasR && <span className="text-[9px] leading-none text-navy">★</span>}
                 </div>
               </button>
             )
@@ -119,11 +119,11 @@ export default function DeadlineCalendar({ matches = [], loading }) {
         {/* 범례 */}
         <div className="flex gap-5 mt-3 pt-3 border-t border-warm-gray/20">
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-sunset-orange flex-shrink-0" />
+            <span className="text-[11px] leading-none text-sunset-orange">★</span>
             <span className="text-[11px] text-warm-text">긴급 마감 (D-14 이내)</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-navy flex-shrink-0" />
+            <span className="text-[11px] leading-none text-navy">★</span>
             <span className="text-[11px] text-warm-text">일반 마감</span>
           </div>
         </div>
