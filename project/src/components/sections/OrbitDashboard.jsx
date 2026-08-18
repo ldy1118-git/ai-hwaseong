@@ -56,13 +56,17 @@ function SkeletonLine({ w = 'w-full', h = 'h-3' }) {
   return <div className={`${w} ${h} bg-warm-gray/20 rounded animate-pulse`} />
 }
 
+const COND_STYLE = {
+  '충족':    { dot: 'bg-emerald-400', text: 'text-emerald-600', icon: '✓' },
+  '불충족':  { dot: 'bg-red-400',     text: 'text-red-500',     icon: '✕' },
+  '확인필요':{ dot: 'bg-sunset-orange', text: 'text-sunset-orange', icon: '?' },
+}
+
 function ProgramCard({ item, accent, onDetail }) {
-  const [showReason, setShowReason]       = useState(false)
-  const [reasonText, setReasonText]       = useState('')
-  const [reasonLoading, setReasonLoading] = useState(false)
-  const [easyDesc, setEasyDesc]           = useState('')
-  const [support, setSupport]             = useState('')
-  const [descLoading, setDescLoading]     = useState(true)
+  const [showReason, setShowReason] = useState(false)
+  const [easyDesc, setEasyDesc]     = useState('')
+  const [support, setSupport]       = useState('')
+  const [descLoading, setDescLoading] = useState(true)
   const isUrgent = accent === 'orange'
 
   useEffect(() => {
@@ -72,35 +76,7 @@ function ProgramCard({ item, accent, onDetail }) {
       .finally(() => setDescLoading(false))
   }, [item.id])
 
-  async function handleToggleReason() {
-    if (showReason) { setShowReason(false); return }
-    setShowReason(true)
-    if (reasonText) return
-
-    setReasonLoading(true)
-    try {
-      const conditions = item.raw?.condition_results ?? []
-      const condSummary = conditions.length
-        ? conditions.map(c => `[${c.status}] ${c.condition}: ${c.detail ?? ''}`).join('\n')
-        : '조건 정보 없음'
-
-      const text = await generateText({
-        model:      GROQ_MODEL,
-        systemPrompt: `당신은 동네 친구처럼 편하게 대화하는 소상공인 도우미예요. 아래 규칙을 꼭 지켜주세요.
-- 어려운 행정 용어나 한자어는 쓰지 말고 누구나 이해할 수 있는 쉬운 말로만 써주세요.
-- "~입니다" 대신 "~이에요", "~거예요" 같은 부드러운 말투를 써주세요.
-- 사장님을 응원하는 따뜻한 느낌으로 써주세요.
-- 2~3문장으로 짧게 끝내주세요.`,
-        userPrompt: `"${item.title}" 지원사업에 사장님이 왜 매칭됐는지 아래 결과를 보고 쉽게 설명해주세요.\n\n${condSummary}`,
-      })
-      setReasonText(text.trim())
-    } catch (err) {
-      console.error('[매칭 이유]', err)
-      setReasonText('설명을 불러오는 중 오류가 발생했어요.')
-    } finally {
-      setReasonLoading(false)
-    }
-  }
+  const conditions = (item.raw?.condition_results ?? []).filter(c => c.status !== '대상아님')
 
   return (
     <Card padding="md" className={`border-l-4 ${isUrgent ? 'border-l-sunset-orange' : 'border-l-navy'}`}>
@@ -148,28 +124,38 @@ function ProgramCard({ item, accent, onDetail }) {
       {/* 매칭 점수 바 */}
       <ScoreBar score={item.score} color={isUrgent ? 'orange' : 'navy'} />
 
-      {/* 매칭이유 패널 */}
-      {showReason && (
-        <div className="mt-2 pt-2 border-t border-warm-gray/20">
-          {reasonLoading ? (
-            <div className="flex items-center gap-2 py-1">
-              <span className="w-3 h-3 border border-navy/30 border-t-navy rounded-full animate-spin flex-shrink-0" />
-              <span className="text-xs text-warm-text">Mars가 이유를 설명 중...</span>
-            </div>
-          ) : (
-            <p className="text-xs text-gray-700 leading-relaxed">{reasonText}</p>
-          )}
+      {/* 매칭이유 패널 — 조건 결과 직접 표시 */}
+      {showReason && conditions.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-warm-gray/20 space-y-1.5">
+          {conditions.map((c, i) => {
+            const s = COND_STYLE[c.status] ?? COND_STYLE['확인필요']
+            return (
+              <div key={i} className="flex items-start gap-2">
+                <span className={`mt-0.5 w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-white ${s.dot}`}>
+                  {s.icon}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <span className={`text-[10px] font-bold ${s.text}`}>{c.condition}</span>
+                  {c.detail && (
+                    <p className="text-[10px] text-warm-text leading-snug mt-0.5">{c.detail}</p>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
       {/* 하단 액션 바 */}
       <div className="mt-2 pt-2 border-t border-warm-gray/30 flex items-center justify-between">
-        <button
-          onClick={handleToggleReason}
-          className={`text-xs font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
-        >
-          매칭이유 {showReason ? '▲' : '▼'}
-        </button>
+        {conditions.length > 0 ? (
+          <button
+            onClick={() => setShowReason(v => !v)}
+            className={`text-xs font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
+          >
+            매칭이유 {showReason ? '▲' : '▼'}
+          </button>
+        ) : <span />}
         <div className="flex items-center gap-3">
           <button
             onClick={onDetail}
