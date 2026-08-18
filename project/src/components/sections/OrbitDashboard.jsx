@@ -181,20 +181,28 @@ function SkeletonCard() {
   )
 }
 
+const INITIAL_COUNT = 3
+
 export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetchedLoading }) {
   const navigate = useNavigate()
-  const [urgent, setUrgent]   = useState([])
-  const [regular, setRegular] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState(null)
+  const [urgent, setUrgent]               = useState([])
+  const [regular, setRegular]             = useState([])
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState(null)
+  const [showMoreUrgent, setShowMoreUrgent]   = useState(false)
+  const [showMoreRegular, setShowMoreRegular] = useState(false)
 
   useEffect(() => {
+    setShowMoreUrgent(false)
+    setShowMoreRegular(false)
+
     // Home.jsx 가 미리 fetch 한 데이터가 있으면 자체 네트워크 호출 스킵
     if (Array.isArray(prefetchedMatches)) {
       setLoading(prefetchedLoading ?? false)
       setError(null)
-      setUrgent(prefetchedMatches.filter(r => r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14))
-      setRegular(prefetchedMatches.filter(r => !(r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14)))
+      const sorted = [...prefetchedMatches].sort((a, b) => b.score - a.score)
+      setUrgent(sorted.filter(r => r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14))
+      setRegular(sorted.filter(r => !(r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14)))
       return
     }
 
@@ -216,7 +224,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             raw:       r,
           }))
           .filter(r => r.dDay === null || r.dDay >= 0)
-          .sort((a, b) => (a.dDay ?? 999) - (b.dDay ?? 999))
+          .sort((a, b) => b.score - a.score)
 
         setUrgent(mapped.filter(r => r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14))
         setRegular(mapped.filter(r => !(r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14)))
@@ -275,6 +283,9 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
     )
   }
 
+  const visibleUrgent  = showMoreUrgent  ? urgent  : urgent.slice(0, INITIAL_COUNT)
+  const visibleRegular = showMoreRegular ? regular : regular.slice(0, INITIAL_COUNT)
+
   return (
     <section className="px-5 pb-28">
       {/* 긴급 마감 */}
@@ -284,14 +295,23 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             <span className="w-2 h-2 rounded-full bg-sunset-orange animate-pulse" />
             <h2 className="text-sm font-bold text-sunset-orange tracking-wide uppercase">긴급 마감</h2>
           </div>
-          <div className="grid grid-cols-1 gap-3 mb-6">
+          <div className="grid grid-cols-1 gap-3 mb-3">
             {loading
               ? [1, 2].map(i => <SkeletonCard key={i} />)
-              : urgent.map(item => (
+              : visibleUrgent.map(item => (
                   <ProgramCard key={item.id} item={item} accent="orange" onDetail={() => handleDetail(item)} />
                 ))
             }
           </div>
+          {!loading && urgent.length > INITIAL_COUNT && (
+            <button
+              onClick={() => setShowMoreUrgent(v => !v)}
+              className="w-full mb-6 py-2.5 rounded-xl border border-sunset-orange/40 text-xs font-medium text-sunset-orange hover:bg-sunset-orange/5 transition-colors"
+            >
+              {showMoreUrgent ? '접기 ▲' : `추가 사업 더보기 +${urgent.length - INITIAL_COUNT} ▼`}
+            </button>
+          )}
+          {!loading && urgent.length <= INITIAL_COUNT && <div className="mb-6" />}
         </>
       )}
 
@@ -303,12 +323,20 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
       <div className="grid grid-cols-1 gap-3">
         {loading
           ? [1, 2, 3, 4].map(i => <SkeletonCard key={i} />)
-          : regular.map(item => (
+          : visibleRegular.map(item => (
               <ProgramCard key={item.id} item={item} accent="navy"
                 onDetail={() => handleDetail(item)} />
             ))
         }
       </div>
+      {!loading && regular.length > INITIAL_COUNT && (
+        <button
+          onClick={() => setShowMoreRegular(v => !v)}
+          className="w-full mt-3 py-2.5 rounded-xl border border-navy/30 text-xs font-medium text-navy hover:bg-navy/5 transition-colors"
+        >
+          {showMoreRegular ? '접기 ▲' : `추가 사업 더보기 +${regular.length - INITIAL_COUNT} ▼`}
+        </button>
+      )}
 
       {!loading && urgent.length === 0 && regular.length === 0 && (
         <p className="text-sm text-warm-text text-center py-8">현재 조건에 맞는 지원사업이 없어요.</p>
