@@ -91,25 +91,37 @@ export default function DeadlineCalendar({ matches = [], loading }) {
             const isSun   = (firstDay + day - 1) % 7 === 0
             const isSat   = (firstDay + day - 1) % 7 === 6
 
+            const bgClass = isSel
+              ? 'bg-navy text-white'
+              : hasU
+              ? 'bg-sunset-orange/15'
+              : hasR
+              ? 'bg-navy/10'
+              : 'hover:bg-warm-gray/10'
+
+            const textClass = isSel
+              ? 'font-extrabold text-white'
+              : isToday
+              ? 'font-extrabold text-navy'
+              : isSun
+              ? 'text-red-400 font-medium'
+              : isSat
+              ? 'text-blue-400 font-medium'
+              : 'text-gray-700 font-medium'
+
             return (
               <button key={day}
                 onClick={() => setSelKey(prev => prev === key ? null : key)}
                 className={[
                   'flex flex-col items-center py-1.5 rounded-xl transition-colors',
-                  isSel   ? 'bg-navy/10' : 'hover:bg-warm-gray/10',
-                  isToday ? 'ring-1 ring-inset ring-navy/40' : '',
+                  bgClass,
+                  isToday && !isSel ? 'ring-1 ring-inset ring-navy/40' : '',
                 ].join(' ')}>
-                <span className={[
-                  'text-xs leading-none',
-                  isToday ? 'font-extrabold text-navy' :
-                  isSun   ? 'text-red-400 font-medium' :
-                  isSat   ? 'text-blue-400 font-medium' : 'text-gray-700 font-medium',
-                ].join(' ')}>
-                  {day}
-                </span>
-                <div className="flex gap-0.5 mt-0.5 h-3 items-center">
-                  {hasU && <span className="text-[9px] leading-none text-sunset-orange">★</span>}
-                  {hasR && <span className="text-[9px] leading-none text-navy">★</span>}
+                <span className={`text-xs leading-none ${textClass}`}>{day}</span>
+                <div className="h-3 flex items-center mt-0.5">
+                  {(hasU || hasR) && !isSel && (
+                    <span className={`text-[9px] leading-none ${hasU ? 'text-sunset-orange' : 'text-navy'}`}>★</span>
+                  )}
                 </div>
               </button>
             )
