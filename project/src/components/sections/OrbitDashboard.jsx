@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Card from '../ui/Card'
 import { fetchMatches, DEFAULT_PROFILE } from '../../utils/api'
-import { generateText, GEMINI_MODEL } from '../../utils/llm/llmProvider'
+import { generateText, GEMINI_MODEL, GROQ_MODEL } from '../../utils/llm/llmProvider'
 import findImg from '../../../design/find.png'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
@@ -22,7 +22,7 @@ const STATUS_STYLE = {
 
 async function generateCardDesc(title) {
   const text = await generateText({
-    model:   GEMINI_MODEL,
+    model:   GROQ_MODEL,
     jsonMode: true,
     userPrompt: `소상공인 지원사업 공고명: "${title}"
 

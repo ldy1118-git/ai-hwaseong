@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
-import { generateText, GEMINI_MODEL } from './llmProvider.js'
+import { generateText, GEMINI_MODEL, GROQ_MODEL } from './llmProvider.js'
 
-export const MODEL_NAME = GEMINI_MODEL
+export const MODEL_NAME = GROQ_MODEL
 
 const SYSTEM_BASE = `당신은 화성시 소상공인을 위한 AI 경영동행 서비스의 캐릭터 **마이다(Mar-DA)**입니다.
 
@@ -117,7 +117,7 @@ function formatDocContext(docs) {
 
 export async function generateChatbotResponseBaseline(question, history) {
   const text = await generateText({
-    model: GEMINI_MODEL,
+    model: GROQ_MODEL,
     systemPrompt: SYSTEM_BASE,
     userPrompt: question,
     history,
@@ -159,7 +159,7 @@ ${hasContext ? `\n${termCtx}\n${docCtx}` : '\n=== RAG 데이터 없음 — 위 �
 응답 JSON 구조: {"answer":"답변 텍스트","retrieved_terms":["사용한 용어명"],"retrieved_docs":["사용한 서류명"],"confidence":"high|medium|low","followup":["후속질문1","후속질문2"]}`
 
   const text = await generateText({
-    model: GEMINI_MODEL,
+    model: GROQ_MODEL,
     systemPrompt,
     userPrompt: question,
     history,
