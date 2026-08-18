@@ -45,7 +45,7 @@ def _load_env():
 _ENV = _load_env()
 GEMINI_KEY      = _ENV.get("VITE_GEMINI_API_KEY", "")
 GROQ_KEY        = _ENV.get("VITE_GROQ_API_KEY", "")
-DEFAULT_MODEL   = "groq/compound"  # Groq 기본
+DEFAULT_MODEL   = "groq/compound-mini"  # Groq 기본
 GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 GROQ_ENDPOINT   = "https://api.groq.com/openai/v1/chat/completions"
 
@@ -196,6 +196,10 @@ def _call_groq(key, model, system, prompt, want_json, history):
     }
     if want_json:
         body["response_format"] = {"type": "json_object"}
+        # Groq requires the word "json" in the prompt when using json_object mode
+        last_msg = messages[-1]
+        if "json" not in last_msg["content"].lower():
+            last_msg["content"] += "\n\nJSON 형식으로만 답해주세요."
 
     request = urllib.request.Request(
         GROQ_ENDPOINT,
