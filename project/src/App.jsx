@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import Landing          from './pages/Landing'
 import Auth             from './pages/Auth'
 import Onboarding       from './pages/Onboarding'
@@ -7,9 +8,47 @@ import Home             from './pages/Home'
 import ApplicationGuide from './pages/ApplicationGuide'
 import MissionControl   from './pages/MissionControl'
 import NoticeDetail     from './pages/NoticeDetail'
+import Schedule         from './pages/Schedule'
+import BottomNav        from './components/layout/BottomNav'
 import { consumeKakaoRedirect } from './utils/kakao'
 import { loadOnboarding, saveOnboarding } from './utils/api'
 import DevTools from './components/dev/DevTools'
+
+const pageVariants = {
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0 },
+  exit:    { opacity: 0, y: -6 },
+}
+
+const pageTransition = { duration: 0.18, ease: 'easeOut' }
+
+function AnimatedRoutes() {
+  const location = useLocation()
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        variants={pageVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        transition={pageTransition}
+      >
+        <Routes location={location}>
+          <Route path="/"           element={<Landing />} />
+          <Route path="/auth"       element={<Auth />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/home"       element={<Home />} />
+          <Route path="/notice"     element={<NoticeDetail />} />
+          <Route path="/apply"      element={<ApplicationGuide />} />
+          <Route path="/mission"    element={<MissionControl />} />
+          <Route path="/schedule"   element={<Schedule />} />
+          <Route path="*"           element={<Landing />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  )
+}
 
 /**
  * 카카오에서 돌아왔을 때 처리한다.
@@ -94,16 +133,8 @@ export default function App() {
     <>
       <KakaoReturn />
       <DevTools />
-      <Routes>
-        <Route path="/"           element={<Landing />} />
-        <Route path="/auth"       element={<Auth />} />
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/home"       element={<Home />} />
-        <Route path="/notice"     element={<NoticeDetail />} />
-        <Route path="/apply"      element={<ApplicationGuide />} />
-        <Route path="/mission"    element={<MissionControl />} />
-        <Route path="*"           element={<Landing />} />
-      </Routes>
+      <AnimatedRoutes />
+      <BottomNav />
     </>
   )
 }
