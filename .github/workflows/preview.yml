@@ -1,0 +1,119 @@
+# 팀원 브랜치에 Preview 배포를 붙인다.
+#
+# Vercel 무료(Hobby) 계정은 **프로젝트 소유자 본인의 커밋만** 배포한다.
+# 서희·성현이 푸시하면 빌드 로그도 안 남고 "Git author must have access"
+# 로 그냥 건너뛴다. 요금제 제약이라 설정으로 끌 수 있는 게 아니다.
+#
+# 토큰으로 배포하면 이 검사를 타지 않는다. 그래서 푸시를 받아 여기서 대신
+# 배포하고, 나온 주소를 커밋에 코멘트로 달아준다. Vercel 대시보드 권한이
+# 없는 사람도 자기 브랜치 화면을 바로 열어볼 수 있게 하려는 것이다.
+#
+# main 은 제외한다. main 은 대윤 커밋으로 이미 프로덕션이 나간다.
+#
+# ── 준비물 (한 번만) ─────────────────────────────────────────
+# GitHub > Settings > Secrets and variables > Actions
+#
+#   [Secrets 탭]  VERCEL_TOKEN
+#       Vercel > Account Settings > Tokens > Create Token
+#       Scope 는 이 프로젝트가 있는 계정, 만료는 넉넉히.
+#
+#   [Variables 탭] VERCEL_PROJECT_NAME
+#       Vercel 대시보드에서 프로젝트를 열었을 때 주소에 보이는 그 이름.
+#       vercel.com/<계정>/<여기> — 도메인(ai-hwaseong-ten)이 아니라
+#       프로젝트 이름이다. Settings > General 맨 위에서도 확인된다.
+# ─────────────────────────────────────────────────────────────
+
+name: Preview 배포
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+# 같은 브랜치에 연달아 푸시하면 앞엣것은 취소한다. 마지막 것만 보면 된다.
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 커밋에 코멘트를 달기 위해 필요하다
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Vercel CLI 설치
+        run: npm install -g vercel@latest
+
+      - name: 준비물 확인
+        env:
+          TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          NAME: ${{ vars.VERCEL_PROJECT_NAME }}
+        run: |
+          # 없는 채로 진행하면 vercel 이 엉뚱한 프로젝트를 새로 만들 수 있다.
+          # 그 전에 여기서 멈추고 무엇이 빠졌는지 이름을 대준다.
+          missing=""
+          [ -n "$TOKEN" ] || missing="$missing VERCEL_TOKEN(Secrets)"
+          [ -n "$NAME" ]  || missing="$missing VERCEL_PROJECT_NAME(Variables)"
+          if [ -n "$missing" ]; then
+            echo "::error::$missing 이(가) 등록돼 있지 않습니다. 이 파일 맨 위 주석을 보세요."
+            exit 1
+          fi
+
+      - name: 프로젝트 연결
+        run: |
+          vercel link --yes \
+            --project "${{ vars.VERCEL_PROJECT_NAME }}" \
+            --token "${{ secrets.VERCEL_TOKEN }}"
+
+      # --prebuilt 를 쓰지 않는다. 소스를 그대로 올려서 Vercel 위에서 빌드하면
+      # 프로덕션과 완전히 같은 과정을 밟는다. 여기서만 되고 배포하면 깨지는
+      # 상황을 만들지 않으려는 것이다. 루트 vercel.json 이 그대로 적용된다.
+      - name: Preview 배포
+        id: deploy
+        run: |
+          set -o pipefail
+          vercel deploy --yes --token "${{ secrets.VERCEL_TOKEN }}" | tee deploy.log
+          url=$(grep -Eo 'https://[A-Za-z0-9.-]+\.vercel\.app' deploy.log | tail -1)
+          if [ -z "$url" ]; then
+            echo "::error::배포 주소를 못 찾았습니다. 위 로그를 보세요."
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: 요약에 주소 적기
+        run: |
+          {
+            echo "## Preview"
+            echo ""
+            echo "### ${{ steps.deploy.outputs.url }}/#/"
+            echo ""
+            echo "주소창에 \`/apply\` 를 직접 치면 404 가 뜨는데 버그가 아닙니다."
+            echo "이 앱은 HashRouter 라 실제 주소가 \`/#/apply\` 입니다."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 커밋에 주소 달기
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}'
+            const branch = context.ref.replace('refs/heads/', '')
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: [
+                '**Preview 나왔습니다** — ' + url + '/#/',
+                '',
+                '브랜치: `' + branch + '`',
+                '',
+                '주소창에 `/apply` 를 직접 치면 404 입니다. 버그가 아니라',
+                'HashRouter 라서 그렇고, 실제 주소는 `/#/apply` 입니다.',
+              ].join('\n'),
+            })
