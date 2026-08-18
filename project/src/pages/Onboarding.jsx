@@ -6,6 +6,8 @@ import marsImg from '../../design/mars.png'
 import findImg from '../../design/find.png'
 import { getToken, saveOnboarding, apiUrl } from '../utils/api'
 import { generateText } from '../utils/llm/llmProvider'
+import Header from '../components/layout/Header'
+import { ChevronRight, RotateCcw, LogOut } from 'lucide-react'
 
 /**
  * 온보딩 — 성현 기획서(docs/온보딩_기획서.txt) 구조.
@@ -282,6 +284,320 @@ function DoneScreen({ count, onConfirm }) {
   )
 }
 
+/* ───────────── 프로필 요약 대시보드 ───────────── */
+
+const FIELD_LABELS = {
+  category:               { label: '업종',       emoji: '🏷' },
+  business_status:        { label: '사업 상태',   emoji: '🏪' },
+  business_period_months: { label: '운영 기간',   emoji: '📅' },
+  age:                    { label: '나이',        emoji: '👤' },
+  region:                 { label: '지역',        emoji: '📍' },
+  career_experience:      { label: '창업 경험',   emoji: '🔄' },
+  asset_group:            { label: '소득 분위',   emoji: '💰' },
+  marital_status:         { label: '결혼 여부',   emoji: '💍' },
+  living_with_parents:    { label: '부모 동거',   emoji: '🏠' },
+}
+
+function displayValue(key, val) {
+  if (val === undefined || val === null || val === '') return null
+  if (key === 'business_period_months') return `${val}개월`
+  if (key === 'age') return `${val}세`
+  if (key === 'living_with_parents') return val ? '함께 거주' : '별거'
+  if (key === 'career_experience') return val === '없음' ? '첫 창업' : '경험 있음'
+  return String(val)
+}
+
+const SECTIONS = [
+  {
+    title: '사업 정보',
+    keys: ['business_status', 'category', 'business_period_months'],
+  },
+  {
+    title: '기본 정보',
+    keys: ['age', 'region', 'career_experience'],
+  },
+  {
+    title: '추가 정보',
+    keys: ['asset_group', 'marital_status', 'living_with_parents'],
+  },
+]
+
+// 편집 가능한 필드의 드로어 설정 (Home.jsx 와 동일)
+const EDIT_CFG = {
+  region: {
+    title: '지역 변경',
+    type: 'choice',
+    options: [
+      { value: '화성시', label: '화성시',        emoji: '📍' },
+      { value: '경기도', label: '경기도 (화성시 외)', emoji: '🗺' },
+      { value: '타지역', label: '그 외 지역',    emoji: '✈️' },
+    ],
+  },
+  category: {
+    title: '업종 변경',
+    type: 'choice',
+    options: [
+      { value: '카페',   label: '카페·음료·디저트', emoji: '☕' },
+      { value: '음식점', label: '식당·밥집·분식',   emoji: '🍜' },
+      { value: '소매업', label: '소매·판매',        emoji: '🛍' },
+      { value: '기타',   label: '기타',            emoji: '🎨' },
+    ],
+  },
+  business_status: {
+    title: '사업 상태 변경',
+    type: 'choice',
+    options: [
+      { value: '예비창업자', label: '예비창업자', emoji: '💡' },
+      { value: '운영중',     label: '운영 중',    emoji: '🏪' },
+    ],
+  },
+  age: { title: '나이 변경', type: 'age' },
+  business_period_months: { title: '운영 기간 변경', type: 'number', unit: '개월', min: 0, max: 600 },
+  career_experience: {
+    title: '창업 경험 변경',
+    type: 'choice',
+    options: [
+      { value: '없음', label: '처음이에요',      emoji: '🙋' },
+      { value: '있음', label: '경험이 있어요',   emoji: '🔄' },
+    ],
+  },
+  asset_group: {
+    title: '소득 분위 변경',
+    type: 'choice',
+    options: [
+      { value: '일반',         label: '일반',         emoji: '' },
+      { value: '차상위',       label: '차상위',       emoji: '' },
+      { value: '기초생활수급자', label: '기초생활수급자', emoji: '' },
+    ],
+  },
+  marital_status: {
+    title: '결혼 여부 변경',
+    type: 'choice',
+    options: [
+      { value: '미혼', label: '미혼', emoji: '💍' },
+      { value: '기혼', label: '기혼', emoji: '💑' },
+    ],
+  },
+  living_with_parents: {
+    title: '부모 동거 여부 변경',
+    type: 'choice',
+    options: [
+      { value: 'true',  label: '함께 거주', emoji: '🏠' },
+      { value: 'false', label: '별거',      emoji: '🏡' },
+    ],
+  },
+}
+
+function InlineEditDrawer({ field, profile, onSave, onClose }) {
+  const cfg = EDIT_CFG[field]
+  const [draft, setDraft] = useState(() => {
+    const v = profile?.[field]
+    return v === undefined ? '' : String(v)
+  })
+  if (!cfg) return null
+
+  function confirm(raw) {
+    let val = raw
+    if (field === 'living_with_parents') val = raw === 'true'
+    else if (field === 'age' || field === 'business_period_months') val = Number(raw)
+    onSave(field, val)
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
+      <div className="fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-3xl shadow-2xl max-w-4xl mx-auto"
+           style={{ animation: 'slideUp 0.22s ease' }}>
+        <style>{`@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
+        <div className="px-5 pt-4 pb-4 border-b border-warm-gray/20">
+          <div className="w-10 h-1 bg-warm-gray/40 rounded-full mx-auto mb-4" />
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-navy">{cfg.title}</h3>
+            <button onClick={onClose}
+              className="w-8 h-8 rounded-full bg-warm-gray/15 flex items-center justify-center
+                         text-warm-text hover:bg-warm-gray/30 transition-colors text-sm">✕</button>
+          </div>
+        </div>
+
+        <div className="px-5 py-5">
+          {cfg.type === 'choice' && (
+            <div className="flex flex-col gap-2">
+              {cfg.options.map(opt => (
+                <button key={opt.value} onClick={() => confirm(opt.value)}
+                  className={[
+                    'flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 text-left transition-all',
+                    draft === opt.value
+                      ? 'border-navy bg-navy/5'
+                      : 'border-warm-gray/30 bg-white hover:border-navy/40 hover:shadow-sm',
+                  ].join(' ')}>
+                  {opt.emoji && <span className="text-xl flex-shrink-0">{opt.emoji}</span>}
+                  <span className={`text-sm font-semibold flex-1 ${draft === opt.value ? 'text-navy' : 'text-gray-700'}`}>
+                    {opt.label}
+                  </span>
+                  {draft === opt.value && <span className="text-navy text-sm flex-shrink-0">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {cfg.type === 'age' && (
+            <>
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                {[['20대', 25], ['30대', 35], ['40대', 45], ['50대+', 55]].map(([label, val]) => (
+                  <button key={label} onClick={() => setDraft(String(val))}
+                    className={[
+                      'py-3 rounded-xl border-2 text-sm font-semibold transition-all',
+                      draft === String(val) ? 'border-navy bg-navy/5 text-navy' : 'border-warm-gray/30 bg-white text-gray-700 hover:border-navy/40',
+                    ].join(' ')}>{label}</button>
+                ))}
+              </div>
+              <input type="number" min="10" max="99"
+                value={![25,35,45,55].includes(Number(draft)) ? draft : ''}
+                onChange={e => setDraft(e.target.value)}
+                placeholder="직접 입력 (세)"
+                className="w-full border border-warm-gray/50 rounded-xl px-4 py-3 text-sm text-navy mb-4
+                           focus:outline-none focus:border-navy/50" />
+              <button onClick={() => confirm(draft)} disabled={!draft}
+                className="w-full py-3.5 rounded-2xl bg-navy text-white text-sm font-bold disabled:opacity-40">저장</button>
+            </>
+          )}
+
+          {cfg.type === 'number' && (
+            <>
+              <div className="flex items-center gap-2 mb-5">
+                <input type="number" min={cfg.min ?? 0} max={cfg.max ?? 9999}
+                  value={draft} onChange={e => setDraft(e.target.value)}
+                  placeholder="숫자 입력"
+                  className="flex-1 border border-warm-gray/50 rounded-xl px-4 py-3 text-base text-navy
+                             focus:outline-none focus:border-navy/50" />
+                <span className="text-sm text-gray-600 flex-shrink-0">{cfg.unit}</span>
+              </div>
+              <button onClick={() => confirm(draft)}
+                className="w-full py-3.5 rounded-2xl bg-navy text-white text-sm font-bold">저장</button>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
+function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
+  const [profile, setProfile] = useState(initProfile)
+  const [editing, setEditing] = useState(null)
+
+  function handleSave(field, value) {
+    const next = { ...profile, [field]: value }
+    localStorage.setItem('mars-fit-profile', JSON.stringify(next))
+    setProfile(next)
+    setEditing(null)
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('mars-fit-profile')
+    localStorage.removeItem('mars-token')
+    navigate('/')
+  }
+
+  const filledCount = Object.keys(FIELD_LABELS).filter(k => {
+    const v = profile[k]
+    return v !== undefined && v !== null && v !== ''
+  }).length
+  const totalCount = Object.keys(FIELD_LABELS).length
+
+  return (
+    <div className="min-h-screen bg-primary-bg pb-28">
+      <Header />
+
+      <div className="max-w-4xl mx-auto px-5 pt-4 pb-2 flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-extrabold text-navy">내 정보</h1>
+          <p className="text-xs text-warm-text mt-0.5">{filledCount}/{totalCount}개 항목 입력됨</p>
+        </div>
+        <div className="h-9 w-9 rounded-full bg-navy flex items-center justify-center">
+          <span className="text-sm font-extrabold text-white">
+            {profile.category?.[0] ?? '나'}
+          </span>
+        </div>
+      </div>
+
+      {/* 입력 완성도 바 */}
+      <div className="max-w-4xl mx-auto px-5 mb-5">
+        <div className="h-1.5 bg-warm-gray/20 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-navy rounded-full transition-all duration-500"
+            style={{ width: `${(filledCount / totalCount) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-5 space-y-4">
+        {SECTIONS.map(({ title, keys }) => {
+          const rows = keys.map(key => {
+            const meta = FIELD_LABELS[key]
+            const raw  = profile[key]
+            const disp = displayValue(key, raw)
+            return { key, meta, disp }
+          })
+
+          return (
+            <div key={title} className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-warm-gray/10 bg-warm-gray/5">
+                <p className="text-[11px] font-bold text-warm-text tracking-wide uppercase">{title}</p>
+              </div>
+              {rows.map(({ key, meta, disp }, i) => (
+                <button key={key}
+                  onClick={() => setEditing(key)}
+                  className={[
+                    'w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-warm-gray/5',
+                    i < rows.length - 1 ? 'border-b border-warm-gray/10' : '',
+                  ].join(' ')}>
+                  <span className="text-lg w-6 text-center flex-shrink-0">{meta.emoji}</span>
+                  <span className="flex-1">
+                    <span className="block text-[10px] text-warm-text font-medium">{meta.label}</span>
+                    {disp
+                      ? <span className="block text-sm font-bold text-navy mt-0.5">{disp}</span>
+                      : <span className="block text-sm text-warm-gray/60 mt-0.5">미입력</span>
+                    }
+                  </span>
+                  <ChevronRight size={14} className="text-warm-gray flex-shrink-0" />
+                </button>
+              ))}
+            </div>
+          )
+        })}
+
+        {/* 액션 버튼 */}
+        <div className="space-y-2.5 pt-1">
+          <button onClick={onReset}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl
+                       border-2 border-warm-gray/30 bg-white text-sm font-semibold text-navy
+                       hover:border-navy/40 transition-colors">
+            <RotateCcw size={15} />
+            정보 다시 입력하기
+          </button>
+          <button onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl
+                       border-2 border-warm-gray/20 bg-white text-sm font-semibold text-warm-text
+                       hover:border-sunset-orange/40 hover:text-sunset-orange transition-colors">
+            <LogOut size={15} />
+            로그아웃
+          </button>
+        </div>
+      </div>
+
+      {editing && (
+        <InlineEditDrawer
+          field={editing}
+          profile={profile}
+          onSave={handleSave}
+          onClose={() => setEditing(null)}
+        />
+      )}
+    </div>
+  )
+}
+
 /* ───────────── 본체 ───────────── */
 const COMMON_STEPS = ['age', 'region', 'career', 'asset', 'marital', 'parents']
 
@@ -293,6 +609,16 @@ const EMPTY = {
 
 export default function Onboarding() {
   const navigate = useNavigate()
+
+  // 이미 프로필이 있으면 요약 대시보드 표시
+  const [showDashboard, setShowDashboard] = useState(() => {
+    const saved = localStorage.getItem('mars-fit-profile')
+    if (!saved) return false
+    try { JSON.parse(saved); return true } catch { return false }
+  })
+  const savedProfile = (() => {
+    try { return JSON.parse(localStorage.getItem('mars-fit-profile') || 'null') } catch { return null }
+  })()
 
   const [path, setPath]       = useState(null)
   const [stage, setStage]     = useState('q1')
@@ -376,6 +702,17 @@ export default function Onboarding() {
 
   function handleConfirm() {
     navigate('/home')
+  }
+
+  /* ── 내 정보 대시보드 ── */
+  if (showDashboard && savedProfile) {
+    return (
+      <ProfileDashboard
+        profile={savedProfile}
+        onReset={() => setShowDashboard(false)}
+        navigate={navigate}
+      />
+    )
   }
 
   /* ── 완료 화면 ── */
