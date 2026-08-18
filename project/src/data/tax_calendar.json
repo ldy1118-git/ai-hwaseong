@@ -1,0 +1,362 @@
+{
+  "version": "2026-08-18",
+  "note": "소상공인이 1년에 치르는 신고·납부 일정. 사람마다 해당되는 게 달라서 항목마다 applies_to 로 대상을 적어둔다. 화면은 프로필과 대조해서 해당되는 것만 보여주면 된다.",
+  "verified_note": "2026-08-18 국세청 원문으로 대조했다. verified=true 는 아래 출처에서 직접 확인한 것이다. 세무 일정은 틀리면 사장님이 가산세를 문다. 확인 못 한 건 넣지 않는다.",
+  "applies_to_note": "값이 null 이면 '따지지 않는다'는 뜻이다. 예를 들어 has_employee 가 null 이면 직원이 있든 없든 해당된다.",
+  "enums": {
+    "entity_type": [
+      "개인",
+      "법인"
+    ],
+    "vat_type": [
+      "일반과세",
+      "간이과세",
+      "면세"
+    ],
+    "has_employee": [
+      true,
+      false
+    ]
+  },
+  "events": [
+    {
+      "id": "vat-2nd-final",
+      "title": "부가가치세 2기 확정신고·납부",
+      "due": "01-25",
+      "covers": "직전 해 7월 1일 ~ 12월 31일 (예정신고를 한 경우 10월 1일 ~ 12월 31일)",
+      "applies_to": {
+        "entity_type": null,
+        "vat_type": [
+          "일반과세"
+        ],
+        "has_employee": null
+      },
+      "easy": "하반기에 판 물건·서비스에 붙은 부가세를 정산해서 냅니다.",
+      "where": "홈택스 또는 관할 세무서",
+      "docs": [
+        "매출·매입 세금계산서",
+        "신용카드 매출자료",
+        "현금영수증 내역"
+      ],
+      "penalty": "무신고가산세 20%, 납부지연가산세 별도",
+      "source": "부가가치세법 제49조",
+      "verified": true
+    },
+    {
+      "id": "vat-simplified-annual",
+      "title": "간이과세자 부가가치세 신고·납부",
+      "due": "01-25",
+      "covers": "직전 해 1월 1일 ~ 12월 31일",
+      "applies_to": {
+        "entity_type": [
+          "개인"
+        ],
+        "vat_type": [
+          "간이과세"
+        ],
+        "has_employee": null
+      },
+      "easy": "간이과세자는 1년에 한 번만 신고합니다. 이때 한 번 하면 끝입니다.",
+      "where": "홈택스 또는 관할 세무서",
+      "docs": [
+        "매출 내역",
+        "매입 세금계산서"
+      ],
+      "penalty": "무신고가산세 20%",
+      "source": "부가가치세법 제67조",
+      "verified": true,
+      "caution": "예외: 간이→일반으로 바뀐 사업자와 상반기에 세금계산서를 발급한 간이과세자는 1~6월분을 7월 25일까지 따로 신고한다."
+    },
+    {
+      "id": "withholding-half-2nd",
+      "title": "원천세 반기납부 (하반기분)",
+      "due": "01-10",
+      "covers": "직전 해 7월 ~ 12월 지급분",
+      "applies_to": {
+        "entity_type": null,
+        "vat_type": null,
+        "has_employee": true
+      },
+      "easy": "직원 월급에서 떼어둔 소득세를 냅니다. 반기납부 승인을 받은 경우에만 이 날짜입니다.",
+      "where": "홈택스",
+      "docs": [
+        "급여대장"
+      ],
+      "penalty": "납부지연가산세",
+      "source": "소득세법 제128조",
+      "verified": true,
+      "caution": "반기납부는 신청해서 승인받아야 합니다. 승인이 없으면 매월 10일입니다.",
+      "conditional": "원천세 반기납부 승인을 받은 경우만",
+      "exclusive_group": "withholding"
+    },
+    {
+      "id": "business-status-report",
+      "title": "사업장현황신고",
+      "due": "02-10",
+      "covers": "직전 해 1월 1일 ~ 12월 31일",
+      "applies_to": {
+        "entity_type": [
+          "개인"
+        ],
+        "vat_type": [
+          "면세"
+        ],
+        "has_employee": null
+      },
+      "easy": "면세사업자는 부가세를 안 내는 대신, 1년 매출을 이때 신고합니다.",
+      "where": "홈택스 또는 관할 세무서",
+      "docs": [
+        "수입금액 내역",
+        "매입처별 계산서합계표"
+      ],
+      "penalty": "미신고 시 가산세",
+      "source": "소득세법 제78조",
+      "verified": true
+    },
+    {
+      "id": "corporate-tax",
+      "title": "법인세 신고·납부",
+      "due": "03-31",
+      "covers": "직전 사업연도 (12월 결산 기준)",
+      "applies_to": {
+        "entity_type": [
+          "법인"
+        ],
+        "vat_type": null,
+        "has_employee": null
+      },
+      "easy": "법인이 1년 동안 번 이익에 붙는 세금입니다.",
+      "where": "홈택스 또는 관할 세무서",
+      "docs": [
+        "재무제표",
+        "세무조정계산서"
+      ],
+      "penalty": "무신고가산세 20%",
+      "source": "법인세법 제60조",
+      "verified": true,
+      "caution": "12월 결산 기준이다. 결산월이 다르면 종료일부터 3개월 — 3월 결산은 6/30, 6월 결산은 9/30, 9월 결산은 12/31."
+    },
+    {
+      "id": "vat-1st-preliminary",
+      "title": "부가가치세 1기 예정신고·납부",
+      "due": "04-25",
+      "covers": "1월 1일 ~ 3월 31일",
+      "applies_to": {
+        "entity_type": [
+          "법인"
+        ],
+        "vat_type": [
+          "일반과세"
+        ],
+        "has_employee": null
+      },
+      "easy": "법인은 3개월마다 부가세를 신고합니다.",
+      "where": "홈택스",
+      "docs": [
+        "매출·매입 세금계산서"
+      ],
+      "penalty": "무신고가산세 20%",
+      "source": "부가가치세법 제48조",
+      "verified": true,
+      "caution": "직전 과세기간 공급가액 1억 5천만 원 미만인 소규모 법인은 예정신고 대신 예정고지를 받는다. 개인 일반과세자도 예정고지 대상이다."
+    },
+    {
+      "id": "vat-1st-preliminary-notice",
+      "title": "부가가치세 예정고지 납부 (개인)",
+      "due": "04-25",
+      "covers": "직전 과세기간 납부세액의 절반",
+      "applies_to": {
+        "entity_type": [
+          "개인"
+        ],
+        "vat_type": [
+          "일반과세"
+        ],
+        "has_employee": null
+      },
+      "easy": "신고하지 않고, 세무서가 보내준 고지서 금액(직전 과세기간 납부세액의 50%)만 냅니다. 낸 돈은 7월 확정신고 때 차감됩니다.",
+      "where": "홈택스 또는 은행",
+      "docs": [
+        "예정고지서"
+      ],
+      "penalty": "납부지연가산세",
+      "source": "부가가치세법 제48조제3항",
+      "verified": true,
+      "caution": "개인 일반과세자와 소규모 법인(직전 공급가액 1억 5천만 원 미만)이 대상이다."
+    },
+    {
+      "id": "income-tax",
+      "title": "종합소득세 신고·납부",
+      "due": "05-31",
+      "covers": "직전 해 1월 1일 ~ 12월 31일",
+      "applies_to": {
+        "entity_type": [
+          "개인"
+        ],
+        "vat_type": null,
+        "has_employee": null
+      },
+      "easy": "1년 동안 번 돈 전부에 붙는 세금입니다. 개인사업자에게 제일 큰 신고입니다.",
+      "where": "홈택스 또는 관할 세무서",
+      "docs": [
+        "장부 또는 증빙",
+        "소득·세액공제 자료"
+      ],
+      "penalty": "무신고가산세 20%",
+      "source": "소득세법 제70조",
+      "verified": true,
+      "exclusive_group": "income-tax"
+    },
+    {
+      "id": "income-tax-honest",
+      "title": "종합소득세 신고 (성실신고확인대상)",
+      "due": "06-30",
+      "covers": "직전 해 1월 1일 ~ 12월 31일",
+      "applies_to": {
+        "entity_type": [
+          "개인"
+        ],
+        "vat_type": null,
+        "has_employee": null
+      },
+      "easy": "매출이 일정 규모를 넘으면 세무사 확인을 받아야 하고, 기한이 한 달 늘어납니다.",
+      "where": "홈택스 또는 관할 세무서",
+      "docs": [
+        "성실신고확인서",
+        "장부 및 증빙"
+      ],
+      "penalty": "미제출 가산세",
+      "source": "소득세법 제70조의2",
+      "verified": true,
+      "caution": "업종별 매출 기준을 넘는 사업자만 해당합니다. 해당 여부는 세무서·세무사에게 확인하세요.",
+      "conditional": "성실신고확인대상자만 (업종별 매출 기준 초과)",
+      "exclusive_group": "income-tax"
+    },
+    {
+      "id": "withholding-half-1st",
+      "title": "원천세 반기납부 (상반기분)",
+      "due": "07-10",
+      "covers": "1월 ~ 6월 지급분",
+      "applies_to": {
+        "entity_type": null,
+        "vat_type": null,
+        "has_employee": true
+      },
+      "easy": "직원 월급에서 떼어둔 소득세를 냅니다. 반기납부 승인을 받은 경우입니다.",
+      "where": "홈택스",
+      "docs": [
+        "급여대장"
+      ],
+      "penalty": "납부지연가산세",
+      "source": "소득세법 제128조",
+      "verified": true,
+      "conditional": "원천세 반기납부 승인을 받은 경우만",
+      "exclusive_group": "withholding"
+    },
+    {
+      "id": "vat-1st-final",
+      "title": "부가가치세 1기 확정신고·납부",
+      "due": "07-25",
+      "covers": "1월 1일 ~ 6월 30일 (예정신고를 한 경우 4월 1일 ~ 6월 30일)",
+      "applies_to": {
+        "entity_type": null,
+        "vat_type": [
+          "일반과세"
+        ],
+        "has_employee": null
+      },
+      "easy": "상반기에 판 물건·서비스에 붙은 부가세를 정산해서 냅니다.",
+      "where": "홈택스 또는 관할 세무서",
+      "docs": [
+        "매출·매입 세금계산서",
+        "신용카드 매출자료",
+        "현금영수증 내역"
+      ],
+      "penalty": "무신고가산세 20%",
+      "source": "부가가치세법 제49조",
+      "verified": true
+    },
+    {
+      "id": "vat-2nd-preliminary",
+      "title": "부가가치세 2기 예정신고·납부",
+      "due": "10-25",
+      "covers": "7월 1일 ~ 9월 30일",
+      "applies_to": {
+        "entity_type": [
+          "법인"
+        ],
+        "vat_type": [
+          "일반과세"
+        ],
+        "has_employee": null
+      },
+      "easy": "법인은 3개월마다 부가세를 신고합니다.",
+      "where": "홈택스",
+      "docs": [
+        "매출·매입 세금계산서"
+      ],
+      "penalty": "무신고가산세 20%",
+      "source": "부가가치세법 제48조",
+      "verified": true,
+      "caution": "직전 과세기간 공급가액 1억 5천만 원 미만인 소규모 법인은 예정신고 대신 예정고지를 받는다. 개인 일반과세자도 예정고지 대상이다."
+    },
+    {
+      "id": "vat-2nd-preliminary-notice",
+      "title": "부가가치세 예정고지 납부 (개인)",
+      "due": "10-25",
+      "covers": "직전 과세기간 납부세액의 절반",
+      "applies_to": {
+        "entity_type": [
+          "개인"
+        ],
+        "vat_type": [
+          "일반과세"
+        ],
+        "has_employee": null
+      },
+      "easy": "신고하지 않고, 세무서가 보내준 고지서 금액(직전 과세기간 납부세액의 50%)만 냅니다. 낸 돈은 1월 확정신고 때 차감됩니다.",
+      "where": "홈택스 또는 은행",
+      "docs": [
+        "예정고지서"
+      ],
+      "penalty": "납부지연가산세",
+      "source": "부가가치세법 제48조제3항",
+      "verified": true,
+      "caution": "개인 일반과세자와 소규모 법인(직전 공급가액 1억 5천만 원 미만)이 대상이다."
+    },
+    {
+      "id": "withholding-monthly",
+      "title": "원천세 신고·납부 (매월)",
+      "due": "매월 10일",
+      "recurrence": "monthly",
+      "covers": "직전 달 지급분",
+      "applies_to": {
+        "entity_type": null,
+        "vat_type": null,
+        "has_employee": true
+      },
+      "easy": "직원에게 월급을 줬다면, 떼어둔 소득세를 다음 달 10일까지 냅니다.",
+      "where": "홈택스",
+      "docs": [
+        "급여대장"
+      ],
+      "penalty": "납부지연가산세",
+      "source": "소득세법 제128조",
+      "verified": true,
+      "caution": "직원이 상시 20명 이하면 반기납부를 신청할 수 있습니다. 승인받으면 1월·7월 두 번만 내면 됩니다.",
+      "conditional": "반기납부 승인을 받지 않은 경우 (기본)",
+      "exclusive_group": "withholding"
+    }
+  ],
+  "conditional_note": "conditional 이 붙은 항목은 '해당되는 사람만' 하는 것이다. 프로필만으로는 해당 여부를 알 수 없다. 기본 목록에 섞어서 보여주면 안 된다 — 종합소득세가 5월·6월 두 번 뜨거나 원천세가 매월·반기 둘 다 떠서 사장님이 헷갈린다. '해당되면 이것도' 같은 별도 묶음으로 내보낼 것.",
+  "sources": [
+    "부가가치세 과세기간·신고납부기한 — 국세청 https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?mi=2273&cntntsId=7694",
+    "종합소득세 신고납부기한 — 국세청 https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?mi=2225&cntntsId=7665",
+    "성실신고확인제도 — 국세청 https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7672&mi=2234",
+    "사업장현황신고 — 국세청 https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7699&mi=2283",
+    "법인세 신고납부기한 — 국세청 https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?mi=2371&cntntsId=7745",
+    "원천징수이행상황신고 — 국세청 https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?mi=2414&cntntsId=7702",
+    "월별 세무일정 — 국세청 https://www.nts.go.kr/nts/ad/taxSchdul/selectList.do"
+  ],
+  "due_note": "due 는 **법정기한**이다. 그대로 화면에 띄우면 틀린다.\n국세청 규정: \"신고기한이 공휴일·토요일인 경우 그 다음 날을 신고기한으로 한다.\"\n2026년만 봐도 법정기한 10개 중 6개가 밀린다 — 1/10→1/12, 1/25→1/26, 4/25→4/27, 5/31→6/1, 7/25→7/27, 10/25→10/26.\n국세청 세무일정 페이지도 밀린 날짜로 표기한다(1/12·1/26 확인). 화면은 반드시 실제 기한을 계산해서 보여줄 것. 주말뿐 아니라 공휴일도 밀린다."
+}

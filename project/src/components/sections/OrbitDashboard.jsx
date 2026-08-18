@@ -7,7 +7,6 @@ import findImg from '../../../design/find.png'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
 // 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
-const GEMINI_KEY = null
 
 function calcDDay(endDate) {
   if (!endDate) return null
@@ -22,7 +21,7 @@ const STATUS_STYLE = {
 
 async function generateCardDesc(title) {
   const text = await generateText({
-    model:   GROQ_MODEL,
+    // 제공자는 서버가 고른다 (groq → xai → gemini, 실패하면 다음으로)
     jsonMode: true,
     userPrompt: `소상공인 지원사업 공고명: "${title}"
 

@@ -15,11 +15,15 @@
 import { apiUrl } from '../api'
 
 export const GROQ_MODEL   = 'groq/compound-mini'
+export const XAI_MODEL    = 'grok-3'
 export const GEMINI_MODEL = 'gemini-3.6-flash'
 
 /**
  * @param {object} opts
- * @param {'gemini'|'groq'} [opts.provider]  현재 서버는 gemini 만 쓴다
+ * @param {'groq'|'xai'|'gemini'} [opts.provider]
+ *        생략하면 서버가 키가 꽂힌 것 중에서 고른다 (groq → xai → gemini).
+ *        하나가 실패하면 다음 것으로 넘어간다. 호출부는 신경 쓸 필요 없다.
+ *        'grok' 이라고 써도 xai 로 받아준다 — Groq 과 헷갈리기 쉬워서.
  * @param {string}  [opts.apiKey]            더 이상 쓰지 않는다 (하위호환용)
  * @param {string}  [opts.model]
  * @param {string}  [opts.systemPrompt]
@@ -44,7 +48,9 @@ export async function generateText({
       prompt: userPrompt,
       system: systemPrompt,
       json:   jsonMode,
-      model:  model || GEMINI_MODEL,
+      // 모델명은 제공자마다 다르다. 여기서 고정해 보내면 다른 제공자로
+      // 넘어갔을 때 404 가 난다. 서버가 고르게 둔다.
+      ...(model ? { model } : {}),
       schema: responseSchema,
       history,
     }),

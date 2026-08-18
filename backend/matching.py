@@ -309,6 +309,12 @@ def _judge_condition(condition: str, user_profile: dict[str, Any], rule: dict[st
     user_value = user_profile.get(user_field)
     rule_type = rule.get("type", "allowed")
 
+    if rule_type == "open":
+        # 공고가 지원대상을 "소상공인"이라고만 적은 경우. 따로 걸린 조건이
+        # 없는 게 맞으므로 통과시킨다. 조건을 아예 안 만들면 화면에서
+        # 매칭 이유가 비어버리니, 근거를 남기고 충족으로 표시한다.
+        return {"condition": condition, "status": SATISFIED,
+                "detail": rule.get("detail", "소상공인이면 신청할 수 있습니다")}
     if rule_type == "unknown":
         # 공고문 첨부가 스캔 이미지라 자격 요건을 읽지 못한 경우.
         # 조건이 없는 것과는 다르다. 추측해서 통과시키지 않고 확인 필요로 남긴다.
@@ -382,12 +388,23 @@ def normalize_policy(policy: dict[str, Any]) -> dict[str, Any]:
     eligibility = policy.get("eligibility", {})
     conditions: dict[str, dict[str, Any]] = {}
 
-    if eligibility.get("requirements_unknown"):
+    if eligibility.get("requirements_open"):
+        target = eligibility["requirements_open"]
+        conditions["requirements"] = {
+            "type": "open",
+            "label": "지원 자격",
+            "detail": f"지원대상: {target}" if isinstance(target, str)
+                      else "소상공인이면 신청할 수 있습니다",
+        }
+    elif eligibility.get("requirements_unknown"):
+        detail = eligibility["requirements_unknown"]
         conditions["requirements"] = {
             "type": "unknown",
+            # 공고에 적힌 지원대상을 그대로 보여준다. "확인하지 못했습니다"
+            # 보다 "중소 제조업체만"이 사장님에게 훨씬 쓸모 있다.
             "label": "지원 자격",
-            "detail": eligibility["requirements_unknown"]
-                      if isinstance(eligibility["requirements_unknown"], str)
+            "detail": f"지원대상: {detail} — 해당되는지 문의처로 확인해주세요"
+                      if isinstance(detail, str) and not detail.startswith("공고문에서")
                       else "공고문에서 자격 요건을 확인하지 못했습니다",
         }
 
