@@ -1,108 +1,68 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  TrendingUp, TrendingDown, Minus,
-  Users, ShoppingBag, RefreshCw, Star,
-  ChevronRight, Info,
+  CalendarClock, FileText, MapPin, ChevronRight, ChevronDown,
+  AlertTriangle, ExternalLink, Pencil, Lock,
 } from 'lucide-react'
 import Header from '../components/layout/Header'
 import { useNavigate } from 'react-router-dom'
+import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
+import { taxSchedule, nextDeadline, holidaysKnown } from '../utils/taxSchedule'
+import calendar from '../data/tax_calendar.json'
 
-// ── 목업 데이터 ─────────────────────────────────────────────────────
+/**
+ * 내 매장 현황.
+ *
+ * **이 화면에는 출처 없는 숫자를 두지 않는다.**
+ * 전에는 매출 3,650만원 · 재방문율 38% · 별점 4.3 · 업종 내 상위 28% 를
+ * 그렸는데 전부 지어낸 값이었다. POS 도 카드매출도 연동한 적이 없다.
+ * 하단에 "목업" 이라고 적어둬도, 그 한 줄을 읽은 사람은 이 서비스의 다른
+ * 숫자까지 의심하게 된다. 그래서 지웠다.
+ *
+ * 지금 여기 있는 것은 셋 다 실제 값이다.
+ *   1. 프로필     — 사장님이 온보딩에서 직접 답한 것
+ *   2. 세무일정   — 국세청 원문으로 대조한 14건 (tax_calendar.json)
+ *   3. 지원사업   — /api/match 가 돌려준 실제 공고 판정
+ *
+ * 매출 분석을 넣고 싶으면 POS 나 카드매출을 실제로 연동한 뒤에 넣을 것.
+ */
 
-const STORE_PROFILE = {
-  name:     '나의 카페',
-  category: '카페·음료',
-  region:   '동탄2동',
-  openedAt: '2024-08',   // 개업 월
+// ── 날짜 유틸 ────────────────────────────────────────────────────
+
+const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토']
+
+/**
+ * 'YYYY-MM-DD' → '1월 26일 (월)'.
+ * 올해가 아니면 연도를 붙인다. 안 붙이면 내년 1월 일정이 이번 달 것처럼 보인다.
+ */
+function korDate(iso) {
+  if (!iso) return ''
+  const d = new Date(iso + 'T00:00:00')
+  const y = d.getFullYear() === new Date().getFullYear() ? '' : `${d.getFullYear()}년 `
+  return `${y}${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAY[d.getDay()]})`
 }
 
-const MONTHS = ['3월', '4월', '5월', '6월', '7월', '8월']
-
-// 월별 추이 데이터 (단위: 만원 / 명)
-const MONTHLY = {
-  revenue:  [2820, 3050, 2940, 3380, 3190, 3650],
-  visitors: [830,  880,  855,  975,  910,  1045],
-  avgSpend: [34.0, 34.7, 34.4, 34.7, 35.1, 34.9],
+/** 'MM-DD' → '1/25' */
+function shortLegal(due) {
+  if (!due || !due.includes('-')) return due
+  const [m, d] = due.split('-')
+  return `${Number(m)}/${Number(d)}`
 }
 
-// 업종 내 상대 위치 (상위 %)
-const RANK = { pct: 28, label: '상위 28%', total: 87, better: 62 }
-
-// 올해 수령한 지원사업
-const SUPPORTS = [
-  { name: '화성시 소상공인 경영안정자금',   amount: 500,  date: '2025-03', status: '수령 완료' },
-  { name: '경기도 청년창업 육성지원',        amount: 300,  date: '2025-05', status: '수령 완료' },
-  { name: '소상공인 스마트화 지원',           amount: 400,  date: '2025-07', status: '수령 완료' },
-]
-
-// 경쟁 환경 요약
-const COMPETITION = {
-  nearby:    87,    // 동탄 내 동종업체 수
-  newOpen:   5,     // 이번 달 신규 개업
-  closedCnt: 2,     // 이번 달 폐업
-  myScore:   74,    // 경쟁력 점수 (0~100)
+function dDay(iso, today = new Date()) {
+  if (!iso) return null
+  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const d = new Date(iso + 'T00:00:00')
+  return Math.round((d - t) / 86400000)
 }
 
-// ── 유틸 ──────────────────────────────────────────────────────────
-
-function delta(arr) {
-  const cur  = arr[arr.length - 1]
-  const prev = arr[arr.length - 2]
-  const pct  = ((cur - prev) / prev * 100).toFixed(1)
-  return { cur, prev, pct: Number(pct), up: pct > 0 }
+function dDayLabel(n) {
+  if (n == null) return ''
+  if (n === 0) return '오늘'
+  if (n < 0) return `${-n}일 지남`
+  return `D-${n}`
 }
 
-function TrendChip({ pct }) {
-  if (pct > 0) return (
-    <span className="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600">
-      <TrendingUp size={11} /> +{pct}%
-    </span>
-  )
-  if (pct < 0) return (
-    <span className="flex items-center gap-0.5 text-[10px] font-bold text-sunset-orange">
-      <TrendingDown size={11} /> {pct}%
-    </span>
-  )
-  return (
-    <span className="flex items-center gap-0.5 text-[10px] font-bold text-warm-text">
-      <Minus size={11} /> 보합
-    </span>
-  )
-}
-
-// ── 바 차트 ──────────────────────────────────────────────────────
-
-function BarChart({ data, months, color = 'bg-navy', unit = '' }) {
-  const max = Math.max(...data)
-  return (
-    <div className="flex items-end gap-1.5 h-28">
-      {data.map((v, i) => {
-        const isLast = i === data.length - 1
-        const pct    = Math.round((v / max) * 100)
-        return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1">
-            {isLast && (
-              <span className="text-[8px] font-bold text-navy leading-none mb-0.5">
-                {unit === '만원' ? `${v.toLocaleString()}` : v.toLocaleString()}
-              </span>
-            )}
-            <div className="w-full flex-1 flex items-end">
-              <div
-                className={`w-full rounded-t-md transition-all ${isLast ? color : color + '/30'}`}
-                style={{ height: `${pct}%` }}
-              />
-            </div>
-            <span className={`text-[9px] font-medium ${isLast ? 'text-navy' : 'text-warm-gray'}`}>
-              {months[i]}
-            </span>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── 섹션 래퍼 ────────────────────────────────────────────────────
+// ── 공통 조각 ────────────────────────────────────────────────────
 
 function Card({ children, className = '' }) {
   return (
@@ -116,38 +76,205 @@ function SectionTitle({ children, sub }) {
   return (
     <div className="mb-3">
       <h2 className="text-sm font-bold text-navy">{children}</h2>
-      {sub && <p className="text-[10px] text-warm-text mt-0.5">{sub}</p>}
+      {sub && <p className="text-[10px] text-warm-text mt-0.5 leading-relaxed">{sub}</p>}
     </div>
   )
 }
 
-// ── 탭 ───────────────────────────────────────────────────────────
+/** 법정기한이 휴일이라 밀린 경우에만 붙인다. 안 붙이면 사장님이 하루 늦게 안다. */
+function MovedNote({ legal, actual }) {
+  return (
+    <p className="text-[10px] text-sunset-orange mt-1 leading-relaxed">
+      법정기한 {shortLegal(legal)} 이 휴일이라 {korDate(actual)} 로 밀렸어요
+    </p>
+  )
+}
 
-const TABS = ['매출', '방문자', '객단가']
+// ── 세무일정 한 줄 ───────────────────────────────────────────────
 
-// ── 메인 페이지 ──────────────────────────────────────────────────
+function TaxRow({ item, open, onToggle }) {
+  const n = dDay(item.dueDate)
+  const urgent = n != null && n >= 0 && n <= 14
+
+  return (
+    <div className="border-b border-warm-gray/10 last:border-0">
+      <button onClick={onToggle} className="w-full flex items-center gap-3 py-3 text-left">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-navy">{item.title}</p>
+          <p className="text-[10px] text-warm-text mt-0.5">
+            {item.recurrence === 'monthly' ? '매월 10일' : korDate(item.dueDate)}
+            {item.moved && <span className="text-sunset-orange"> · 밀림</span>}
+          </p>
+        </div>
+        {item.recurrence !== 'monthly' && (
+          <span className={`text-[10px] font-bold flex-shrink-0 ${urgent ? 'text-sunset-orange' : 'text-warm-text'}`}>
+            {dDayLabel(n)}
+          </span>
+        )}
+        <ChevronDown
+          size={14}
+          className={`text-warm-gray flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {open && (
+        <div className="pb-3 space-y-2">
+          <p className="text-[11px] text-gray-700 leading-relaxed">{item.easy}</p>
+
+          {item.moved && <MovedNote legal={item.due} actual={item.dueDate} />}
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-primary-bg rounded-lg px-2.5 py-2">
+              <p className="text-[9px] text-warm-text">어디서</p>
+              <p className="text-[11px] font-semibold text-navy mt-0.5">{item.where}</p>
+            </div>
+            <div className="bg-primary-bg rounded-lg px-2.5 py-2">
+              <p className="text-[9px] text-warm-text">기간</p>
+              <p className="text-[11px] font-semibold text-navy mt-0.5 leading-snug">{item.covers}</p>
+            </div>
+          </div>
+
+          {item.docs?.length > 0 && (
+            <div>
+              <p className="text-[9px] text-warm-text mb-1">준비할 것</p>
+              <div className="flex flex-wrap gap-1">
+                {item.docs.map(d => (
+                  <span key={d} className="text-[10px] text-navy bg-navy/5 rounded-full px-2 py-0.5">
+                    {d}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {item.caution && (
+            <p className="text-[10px] text-warm-text leading-relaxed bg-warm-gray/10 rounded-lg px-2.5 py-2">
+              {item.caution}
+            </p>
+          )}
+
+          <p className="text-[10px] text-sunset-orange leading-relaxed">
+            안 하면 — {item.penalty}
+          </p>
+          <p className="text-[9px] text-warm-text/70">근거 {item.source}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── 프로필 요약 ──────────────────────────────────────────────────
+
+function ProfileCard({ profile, onEdit }) {
+  const chips = [
+    profile?.category,
+    profile?.region,
+    profile?.business_status,
+    profile?.business_period_months ? `영업 ${profile.business_period_months}개월째` : null,
+    profile?.entity_type,
+    profile?.vat_type,
+    profile?.has_employee === true ? '직원 있음'
+      : profile?.has_employee === false ? '혼자 운영' : null,
+  ].filter(Boolean)
+
+  // 세무일정을 거르는 데 쓰는 답이 빠져 있으면, 해당 없는 일정까지 다 보인다.
+  const missing = ['entity_type', 'vat_type'].filter(k => !profile?.[k]).length
+    + (profile?.has_employee == null ? 1 : 0)
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-start justify-between mb-3">
+        <SectionTitle sub="온보딩에서 답해주신 내용이에요">내 정보</SectionTitle>
+        <button onClick={onEdit}
+          className="flex items-center gap-1 text-[10px] text-navy font-semibold flex-shrink-0">
+          <Pencil size={10} /> 고치기
+        </button>
+      </div>
+
+      {chips.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {chips.map(c => (
+            <span key={c} className="text-[11px] font-medium text-navy bg-primary-bg rounded-full px-2.5 py-1">
+              {c}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[11px] text-warm-text">아직 알려주신 게 없어요.</p>
+      )}
+
+      {missing > 0 && (
+        <div className="mt-3 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
+          <AlertTriangle size={12} className="text-sunset-orange mt-0.5 flex-shrink-0" />
+          <p className="text-[10px] text-warm-text leading-relaxed">
+            세무 질문 {missing}개를 아직 안 하셨어요. 모른다고 빼버리면 해야 할 신고를
+            통째로 놓칠 수 있어서, <b className="text-navy">일단 다 보여드리고 있어요.</b>{' '}
+            <button onClick={onEdit} className="text-navy font-semibold underline underline-offset-2">
+              답해주시면
+            </button>{' '}
+            해당되는 것만 남습니다.
+          </p>
+        </div>
+      )}
+    </Card>
+  )
+}
+
+// ── 메인 ─────────────────────────────────────────────────────────
 
 export default function MyStore() {
-  const navigate  = useNavigate()
-  const [tab, setTab] = useState(0)
+  const navigate = useNavigate()
 
-  // 현재 탭에 맞는 데이터
-  const chartData = [MONTHLY.revenue, MONTHLY.visitors, MONTHLY.avgSpend][tab]
-  const chartUnit = ['만원', '명', '만원'][tab]
-  const chartColor = ['bg-navy', 'bg-emerald-500', 'bg-sunset-orange'][tab]
+  const [profile, setProfile] = useState(null)
+  const [matches, setMatches] = useState(null)   // null = 아직 안 옴
+  const [failed, setFailed]   = useState(false)
+  const [openId, setOpenId]   = useState(null)
+  const [showIf, setShowIf]   = useState(false)
 
-  const revD  = delta(MONTHLY.revenue)
-  const visD  = delta(MONTHLY.visitors)
-  const spnD  = delta(MONTHLY.avgSpend)
+  useEffect(() => {
+    const saved = (() => {
+      try { return JSON.parse(localStorage.getItem('mars-fit-profile')) } catch { return null }
+    })()
+    setProfile(saved)
 
-  const totalSupport = SUPPORTS.reduce((s, x) => s + x.amount, 0)
+    fetchMatches(saved ?? DEFAULT_PROFILE)
+      .then(r => setMatches(r?.results ?? []))
+      .catch(() => setFailed(true))
+  }, [])
 
-  // 개업 개월수 계산
-  const openDate = new Date(STORE_PROFILE.openedAt + '-01')
-  const months   = Math.max(1,
-    (new Date().getFullYear() - openDate.getFullYear()) * 12 +
-    (new Date().getMonth() - openDate.getMonth())
+  const year = new Date().getFullYear()
+  const { mustDo, ifApplicable, holidaysKnown } = useMemo(
+    () => taxSchedule(profile, year), [profile, year],
   )
+  const next = useMemo(() => nextDeadline(profile), [profile])
+
+  // 공고 판정 집계. 대상아님은 애초에 세지 않는다.
+  const counts = useMemo(() => {
+    if (!matches) return null
+    const live = matches.filter(r => r.overall_status !== '대상아님')
+    const soon = live.filter(r => {
+      const n = dDay(r.apply_period?.end)
+      return r.application_status === '접수중' && n != null && n >= 0 && n <= 14
+    })
+    // 숫자만 보여주면 뭘 먼저 해야 할지 모른다. 제일 급한 한 건을 집어준다.
+    const upcoming = live
+      .filter(r => {
+        const n = dDay(r.apply_period?.end)
+        return r.application_status === '접수중' && n != null && n >= 0
+      })
+      .sort((a, b) => dDay(a.apply_period?.end) - dDay(b.apply_period?.end))
+
+    return {
+      total:   live.length,
+      can:     live.filter(r => r.overall_status === '신청가능').length,
+      maybe:   live.filter(r => r.overall_status === '조건부').length,
+      check:   live.filter(r => r.overall_status === '확인필요').length,
+      soon:    soon.length,
+      nearest: upcoming[0] ?? null,
+    }
+  }, [matches])
+
+  const nextN = next ? dDay(next.dueDate) : null
 
   return (
     <div className="min-h-screen bg-primary-bg pb-24">
@@ -155,221 +282,255 @@ export default function MyStore() {
 
       <div className="max-w-4xl mx-auto px-5 pt-4 pb-2">
         <h1 className="text-lg font-extrabold text-navy">내 매장 현황</h1>
-        <p className="text-xs text-warm-text mt-0.5">목업 데이터 · 실제 POS 연동 예정</p>
+        <p className="text-xs text-warm-text mt-0.5">
+          챙겨야 할 신고와 받을 수 있는 지원사업을 한 곳에 모았어요
+        </p>
       </div>
 
       <div className="max-w-4xl mx-auto px-5 space-y-5">
 
-        {/* ① 매장 요약 헤더 카드 */}
-        <Card className="p-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-bold text-emerald-600">영업 중</span>
-                <span className="text-[10px] text-warm-text bg-warm-gray/15 rounded-full px-2 py-0.5">
-                  {months}개월째
-                </span>
-              </div>
-              <p className="text-base font-extrabold text-navy">{STORE_PROFILE.category}</p>
-              <p className="text-xs text-warm-text mt-0.5">{STORE_PROFILE.region}</p>
+        {/* ① 프로필 */}
+        <ProfileCard profile={profile} onEdit={() => navigate('/onboarding')} />
+
+        {/* ② 다음 세무일정 — 이 화면에서 제일 급한 것 */}
+        {next && (
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <CalendarClock size={14} className="text-sunset-orange" />
+              <h2 className="text-sm font-bold text-navy">다음 세무일정</h2>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] text-warm-text">이번 달 매출</p>
-              <p className="text-xl font-extrabold text-navy leading-tight">
-                {revD.cur.toLocaleString()}
-                <span className="text-xs font-medium text-warm-text ml-0.5">만원</span>
-              </p>
-              <TrendChip pct={revD.pct} />
-            </div>
-          </div>
-        </Card>
 
-        {/* ② 핵심 지표 3칸 */}
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { icon: ShoppingBag, label: '이달 매출',   value: `${revD.cur.toLocaleString()}`, unit: '만원', pct: revD.pct  },
-            { icon: Users,       label: '이달 방문자', value: `${visD.cur.toLocaleString()}`, unit: '명',   pct: visD.pct  },
-            { icon: Star,        label: '평균 객단가', value: `${spnD.cur.toFixed(1)}`,       unit: '만원', pct: spnD.pct  },
-          ].map(({ icon: Icon, label, value, unit, pct }, i) => (
-            <Card key={i} className="p-3 text-center">
-              <Icon size={16} className="mx-auto text-warm-text mb-1.5" />
-              <p className="text-[10px] text-warm-text leading-tight">{label}</p>
-              <p className="text-sm font-extrabold text-navy mt-0.5 leading-none">
-                {value}
-                <span className="text-[9px] font-medium text-warm-text ml-0.5">{unit}</span>
-              </p>
-              <div className="mt-0.5 flex justify-center">
-                <TrendChip pct={pct} />
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-base font-extrabold text-navy leading-snug">{next.title}</p>
+                <p className="text-xs text-warm-text mt-1">{korDate(next.dueDate)}</p>
+                {next.moved && <MovedNote legal={next.due} actual={next.dueDate} />}
               </div>
-            </Card>
-          ))}
-        </div>
+              <div className="text-right flex-shrink-0">
+                <p className={`text-2xl font-extrabold leading-none ${
+                  nextN != null && nextN <= 14 ? 'text-sunset-orange' : 'text-navy'
+                }`}>
+                  {dDayLabel(nextN)}
+                </p>
+              </div>
+            </div>
 
-        {/* ③ 추이 차트 */}
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <SectionTitle sub="최근 6개월">추이 분석</SectionTitle>
-            <span className="text-[10px] text-warm-text">전월 대비</span>
-          </div>
-
-          {/* 탭 */}
-          <div className="flex gap-1 mb-4">
-            {TABS.map((t, i) => (
-              <button key={t} onClick={() => setTab(i)}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all
-                  ${tab === i ? 'bg-navy text-white' : 'bg-warm-gray/15 text-warm-text hover:bg-warm-gray/30'}`}
-              >{t}</button>
-            ))}
-          </div>
-
-          <BarChart
-            data={chartData}
-            months={MONTHS}
-            color={chartColor}
-            unit={chartUnit}
-          />
-
-          {/* 전월 대비 요약 */}
-          <div className="mt-4 pt-3 border-t border-warm-gray/15 flex items-center justify-between">
-            <p className="text-[10px] text-warm-text">
-              7월 대비 &nbsp;
-              <span className={`font-bold ${
-                [revD, visD, spnD][tab].pct > 0 ? 'text-emerald-600' : 'text-sunset-orange'
-              }`}>
-                {[revD, visD, spnD][tab].pct > 0 ? '+' : ''}{[revD, visD, spnD][tab].pct}%
-              </span>
+            <p className="text-[11px] text-gray-700 leading-relaxed mt-3 bg-primary-bg rounded-xl px-3 py-2.5">
+              {next.easy}
             </p>
-            <p className="text-[10px] text-warm-text">
-              {[revD, visD, spnD][tab].prev.toLocaleString()} → {[revD, visD, spnD][tab].cur.toLocaleString()} {chartUnit}
-            </p>
-          </div>
-        </Card>
 
-        {/* ④ 업종 내 상대적 위치 */}
+            {/* 다음 일정이 내년으로 넘어갔는데 그 해 공휴일을 안 적어뒀으면
+                주말만 반영된 날짜다. 틀린 날을 확정처럼 보여주면 안 된다. */}
+            {!holidaysKnown(Number(next.dueDate.slice(0, 4))) && (
+              <div className="mt-2 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
+                <AlertTriangle size={12} className="text-sunset-orange mt-0.5 flex-shrink-0" />
+                <p className="text-[10px] text-warm-text leading-relaxed">
+                  {next.dueDate.slice(0, 4)}년 공휴일이 아직 등록되지 않아 주말만 반영된
+                  날짜예요. 연말에 확인해 주세요.
+                </p>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* ③ 올해 해야 할 신고 */}
         <Card className="p-4">
-          <SectionTitle sub={`${STORE_PROFILE.region} ${STORE_PROFILE.category} ${COMPETITION.nearby}개 업체 중`}>
-            업종 내 위치
+          <SectionTitle sub={`${year}년 · 사장님께 해당되는 것만 골랐어요`}>
+            올해 해야 할 신고
           </SectionTitle>
 
-          <div className="flex items-end justify-between mb-2">
-            <p className="text-2xl font-extrabold text-navy">
-              상위 <span className="text-sunset-orange">{RANK.pct}%</span>
-            </p>
-            <p className="text-[10px] text-warm-text text-right leading-relaxed">
-              {COMPETITION.nearby}개 업체 중<br />
-              상위 {COMPETITION.better}위
-            </p>
-          </div>
-
-          {/* 게이지 바 */}
-          <div className="relative h-3 bg-warm-gray/20 rounded-full overflow-hidden mb-3">
-            <div
-              className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-emerald-400 to-navy transition-all duration-700"
-              style={{ width: `${100 - RANK.pct}%` }}
-            />
-            {/* 내 위치 마커 */}
-            <div
-              className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border-2 border-navy shadow"
-              style={{ left: `calc(${100 - RANK.pct}% - 6px)` }}
-            />
-          </div>
-
-          <div className="flex justify-between text-[9px] text-warm-text mb-3">
-            <span>최상위</span>
-            <span>하위</span>
-          </div>
-
-          {/* 경쟁 환경 요약 */}
-          <div className="grid grid-cols-3 gap-2 pt-3 border-t border-warm-gray/15">
-            {[
-              { label: '이달 신규 개업', value: COMPETITION.newOpen,     unit: '곳', color: 'text-sunset-orange' },
-              { label: '이달 폐업',      value: COMPETITION.closedCnt,   unit: '곳', color: 'text-warm-text'    },
-              { label: '경쟁력 점수',    value: COMPETITION.myScore,      unit: '점', color: 'text-navy'         },
-            ].map((d, i) => (
-              <div key={i} className="text-center">
-                <p className={`text-base font-extrabold ${d.color}`}>
-                  {d.value}
-                  <span className="text-[9px] font-medium text-warm-text ml-0.5">{d.unit}</span>
-                </p>
-                <p className="text-[9px] text-warm-text mt-0.5">{d.label}</p>
+          {mustDo.length > 0 ? (
+            <>
+              <p className="text-[10px] font-bold text-navy mb-1">
+                반드시 해야 하는 것 {mustDo.length}건
+              </p>
+              <div className="mb-1">
+                {mustDo.map(e => (
+                  <TaxRow key={e.id} item={e} open={openId === e.id}
+                    onToggle={() => setOpenId(openId === e.id ? null : e.id)} />
+                ))}
               </div>
-            ))}
-          </div>
-        </Card>
+            </>
+          ) : (
+            <p className="text-[11px] text-warm-text py-2">해당되는 신고가 없어요.</p>
+          )}
 
-        {/* ⑤ 재방문·충성 고객 */}
-        <Card className="p-4">
-          <SectionTitle sub="최근 3개월 기준">고객 현황</SectionTitle>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { icon: RefreshCw, label: '재방문율',      value: '38',  unit: '%',   sub: '전월 +2%p' },
-              { icon: Users,     label: '신규 고객',     value: '648', unit: '명',  sub: '전월 대비 +8%' },
-              { icon: Star,      label: '평균 별점',     value: '4.3', unit: '점',  sub: '리뷰 127건' },
-              { icon: ShoppingBag, label: '피크 시간대', value: '14시', unit: '',   sub: '~16시 최다 방문' },
-            ].map(({ icon: Icon, label, value, unit, sub }, i) => (
-              <div key={i} className="flex items-center gap-3 bg-primary-bg rounded-xl px-3 py-3">
-                <div className="w-8 h-8 rounded-full bg-white border border-warm-gray/20 flex items-center justify-center flex-shrink-0">
-                  <Icon size={14} className="text-navy" />
-                </div>
-                <div>
-                  <p className="text-[10px] text-warm-text">{label}</p>
-                  <p className="text-sm font-extrabold text-navy leading-tight">
-                    {value}<span className="text-[9px] font-medium text-warm-text ml-0.5">{unit}</span>
+          {/* 해당되면 이것도 — 반드시 따로 그린다.
+              섞으면 종합소득세가 5월·6월 두 번 뜨고 원천세가 매월·반기 둘 다 뜬다. */}
+          {ifApplicable.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-warm-gray/15">
+              <button onClick={() => setShowIf(v => !v)}
+                className="w-full flex items-center justify-between text-left">
+                <span className="text-[10px] font-bold text-warm-text">
+                  해당되면 이것도 {ifApplicable.length}건
+                </span>
+                <ChevronDown size={14}
+                  className={`text-warm-gray transition-transform ${showIf ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showIf && (
+                <div className="mt-1">
+                  <p className="text-[10px] text-warm-text leading-relaxed mb-2">
+                    답해주신 것만으로는 해당되는지 알 수 없는 신고예요. 조건을 읽어보고
+                    본인 얘기면 챙기세요.
                   </p>
-                  <p className="text-[9px] text-warm-text/70">{sub}</p>
+                  {ifApplicable.map(e => (
+                    <div key={e.id}>
+                      <p className="text-[10px] text-sunset-orange pt-2">{e.conditional}</p>
+                      <TaxRow item={e} open={openId === e.id}
+                        onToggle={() => setOpenId(openId === e.id ? null : e.id)} />
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+              )}
+            </div>
+          )}
 
-        {/* ⑥ 지원사업 수혜 현황 */}
-        <Card className="p-4">
-          <div className="flex items-start justify-between mb-3">
-            <SectionTitle sub="올해 누적">지원사업 수혜 현황</SectionTitle>
-            <div className="text-right">
-              <p className="text-[10px] text-warm-text">총 수혜액</p>
-              <p className="text-lg font-extrabold text-sunset-orange">
-                {totalSupport.toLocaleString()}
-                <span className="text-xs font-medium text-warm-text ml-0.5">만원</span>
+          {!holidaysKnown && (
+            <div className="mt-3 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
+              <AlertTriangle size={12} className="text-sunset-orange mt-0.5 flex-shrink-0" />
+              <p className="text-[10px] text-warm-text leading-relaxed">
+                {year}년 공휴일이 아직 등록되지 않아 주말만 반영된 날짜예요.
+                설·추석은 음력이라 자동 계산이 안 됩니다.
               </p>
             </div>
-          </div>
+          )}
+        </Card>
 
-          <div className="space-y-2">
-            {SUPPORTS.map((s, i) => (
-              <div key={i} className="flex items-center gap-3 py-2.5 border-b border-warm-gray/10 last:border-0">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-navy truncate">{s.name}</p>
-                  <p className="text-[10px] text-warm-text">{s.date}</p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-xs font-bold text-navy">{s.amount.toLocaleString()}만원</p>
-                  <p className="text-[10px] text-emerald-600 font-medium">{s.status}</p>
+        {/* ④ 내 지원사업 */}
+        <Card className="p-4">
+          <SectionTitle sub="지금 열려 있는 공고를 사장님 조건으로 판정한 결과예요">
+            내 지원사업
+          </SectionTitle>
+
+          {failed ? (
+            <p className="text-[11px] text-warm-text py-2">
+              공고를 불러오지 못했어요. 잠시 뒤 다시 열어주세요.
+            </p>
+          ) : !counts ? (
+            <div className="grid grid-cols-3 gap-2 animate-pulse">
+              {[0, 1, 2].map(i => <div key={i} className="h-14 bg-warm-gray/15 rounded-xl" />)}
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { label: '신청가능', value: counts.can,   color: 'text-emerald-600' },
+                  { label: '조건부',   value: counts.maybe, color: 'text-sunset-orange' },
+                  { label: '확인필요', value: counts.check, color: 'text-warm-text' },
+                ].map(d => (
+                  <div key={d.label} className="bg-primary-bg rounded-xl py-3 text-center">
+                    <p className={`text-xl font-extrabold leading-none ${d.color}`}>{d.value}</p>
+                    <p className="text-[10px] text-warm-text mt-1">{d.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {counts.nearest && (
+                <button
+                  onClick={() => {
+                    localStorage.setItem('mars-fit-selected-match', JSON.stringify(counts.nearest))
+                    navigate('/notice')
+                  }}
+                  className="mt-3 w-full flex items-center gap-3 text-left bg-primary-bg
+                             rounded-xl px-3 py-2.5 hover:bg-warm-gray/20 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] text-warm-text">가장 먼저 마감돼요</p>
+                    <p className="text-xs font-semibold text-navy truncate mt-0.5">
+                      {counts.nearest.notice_title}
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-bold text-sunset-orange flex-shrink-0">
+                    {dDayLabel(dDay(counts.nearest.apply_period?.end))}
+                  </span>
+                  <ChevronRight size={14} className="text-warm-gray flex-shrink-0" />
+                </button>
+              )}
+
+              {counts.soon > 0 && (
+                <p className="text-[11px] text-sunset-orange font-semibold mt-2">
+                  2주 안에 마감되는 공고가 {counts.soon}건 있어요
+                </p>
+              )}
+
+              <button
+                onClick={() => navigate('/home')}
+                className="mt-3 w-full flex items-center justify-center gap-1
+                           text-xs text-navy font-semibold py-2.5 rounded-xl
+                           bg-primary-bg hover:bg-warm-gray/20 transition-colors"
+              >
+                공고 {counts.total}건 보러가기 <ChevronRight size={14} />
+              </button>
+            </>
+          )}
+        </Card>
+
+        {/* ⑤ 아직 못 채운 것.
+            비워둔 자리를 숨기면 "기능이 없다" 로 보이고, 가짜 숫자로 채우면
+            나머지 숫자까지 의심받는다. 그래서 이름만 걸어두고 무엇이 있어야
+            열리는지 적는다. 여기에는 숫자를 한 개도 쓰지 않는다. */}
+        <Card className="p-4">
+          <SectionTitle sub="지어낸 숫자로 채우지 않고 비워뒀어요">
+            아직 못 보여드리는 것
+          </SectionTitle>
+
+          <div className="space-y-2.5">
+            {[
+              { name: '매출 · 방문자 · 객단가 추이', need: 'POS 또는 카드매출을 연결해야 알 수 있어요. 사업자등록증에는 매출이 적혀 있지 않아요.' },
+              { name: '재방문율 · 단골 비중',        need: 'POS 연결이 필요해요' },
+              { name: '별점 · 리뷰',                 need: '네이버·카카오 플레이스 연결이 필요해요' },
+              { name: '주변 동종업체 · 신규개업 · 폐업', need: '지자체 인허가 공공데이터를 붙이면 열려요' },
+              { name: '업종 내 내 매출 위치',        need: '업종별 매출 통계가 있어야 계산돼요' },
+              { name: '받은 지원금 이력',            need: '신청 기록 기능이 열리면 자동으로 쌓여요' },
+              { name: '사업자등록증으로 자동 입력',  need: 'OCR 등록 시 과세유형·개업일을 자동으로 채워요. 지금은 온보딩에서 직접 여쭤보고 있어요.' },
+            ].map(f => (
+              <div key={f.name} className="flex items-start gap-2.5">
+                <Lock size={11} className="text-warm-gray mt-1 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-warm-text">{f.name}</p>
+                  <p className="text-[10px] text-warm-text/70 leading-relaxed mt-0.5">{f.need}</p>
                 </div>
               </div>
             ))}
           </div>
-
-          <button
-            onClick={() => navigate('/home')}
-            className="mt-3 w-full flex items-center justify-center gap-1
-                       text-xs text-navy font-semibold py-2.5 rounded-xl
-                       bg-primary-bg hover:bg-warm-gray/20 transition-colors"
-          >
-            신청 가능한 지원사업 보기 <ChevronRight size={14} />
-          </button>
         </Card>
 
-        {/* 안내 */}
-        <div className="flex items-start gap-2 bg-navy/5 rounded-xl px-3 py-2.5">
-          <Info size={12} className="text-navy/50 mt-0.5 flex-shrink-0" />
-          <p className="text-[10px] text-warm-text leading-relaxed">
-            현재 표시되는 데이터는 목업 데이터입니다. 실제 POS·카드 매출 데이터 연동 시 정확한 현황을 확인할 수 있습니다.
-          </p>
-        </div>
+        {/* ⑥ 출처 */}
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <FileText size={12} className="text-warm-text" />
+            <h2 className="text-[11px] font-bold text-navy">이 화면의 숫자는 어디서 왔나</h2>
+          </div>
+
+          <ul className="space-y-1.5 text-[10px] text-warm-text leading-relaxed">
+            <li className="flex gap-1.5">
+              <MapPin size={10} className="mt-0.5 flex-shrink-0" />
+              <span>내 정보 — 온보딩에서 직접 답해주신 내용</span>
+            </li>
+            <li className="flex gap-1.5">
+              <CalendarClock size={10} className="mt-0.5 flex-shrink-0" />
+              <span>
+                세무일정 {calendar.events.length}건 — 국세청 원문으로 전부 대조했어요
+                (기준 {calendar.version}). 신고기한이 공휴일·토요일이면 다음 날로
+                밀리는 규칙까지 계산해서 보여드려요.
+              </span>
+            </li>
+            <li className="flex gap-1.5">
+              <FileText size={10} className="mt-0.5 flex-shrink-0" />
+              <span>지원사업 — 기업마당 공고 원문을 매일 새벽에 새로 받아옵니다</span>
+            </li>
+          </ul>
+
+          <a
+            href="https://www.nts.go.kr/nts/ad/taxSchdul/selectList.do"
+            target="_blank" rel="noreferrer"
+            className="mt-3 inline-flex items-center gap-1 text-[10px] text-navy font-semibold
+                       underline underline-offset-2"
+          >
+            국세청 세무일정 원문 확인 <ExternalLink size={9} />
+          </a>
+        </Card>
 
       </div>
     </div>
