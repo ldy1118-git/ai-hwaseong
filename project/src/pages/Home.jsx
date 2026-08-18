@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { TrendingUp, TrendingDown, Minus, ChevronRight } from 'lucide-react'
 import Header from '../components/layout/Header'
 import MarsGreeting from '../components/sections/MarsGreeting'
 import OrbitDashboard from '../components/sections/OrbitDashboard'
@@ -224,146 +223,41 @@ function ProfileEditDrawer({ field, profile, onSave, onClose }) {
   )
 }
 
-/* ── 유형 1: 사업 소유주 — 내 매장 현황 ─────────── */
+/* ── 유형 1: 사업 소유주 ────────────────────────── */
 
-// 지역명 → 상권 목업 지표 매핑
-const DISTRICT_MOCK = {
-  동탄:   { visitors: 12400, trend: 'up',   trendPct: 12, competitors: 87 },
-  향남:   { visitors: 6800,  trend: 'down', trendPct: 8,  competitors: 62 },
-  남양읍: { visitors: 5200,  trend: 'up',   trendPct: 6,  competitors: 45 },
-  봉담:   { visitors: 4100,  trend: 'flat', trendPct: 1,  competitors: 38 },
-}
-
-function TrendIcon({ trend }) {
-  if (trend === 'up')   return <TrendingUp   size={12} className="text-emerald-500" />
-  if (trend === 'down') return <TrendingDown size={12} className="text-sunset-orange" />
-  return <Minus size={12} className="text-warm-text" />
-}
-
-function BusinessOwnerSection({ profile, matches, navigate }) {
+function BusinessOwnerSection({ profile }) {
   const months   = profile.business_period_months || 0
   const category = profile.category || '업종'
   const region   = profile.region   || '화성시'
 
-  // 지역 키 추론 (화성시 내 상권명 매핑)
-  const districtKey = Object.keys(DISTRICT_MOCK).find(k => region.includes(k)) ?? null
-  const distData    = districtKey ? DISTRICT_MOCK[districtKey] : null
-
-  // 매칭 데이터 요약
-  const activeCnt = matches.filter(m => m.status === '모집중').length
-  const urgentMatches = matches
-    .filter(m => m.dDay !== null && m.dDay >= 0 && m.dDay <= 14)
-    .slice(0, 2)
-
   return (
-    <section className="px-5 mb-6 space-y-3">
-
-      {/* ① 매장 상태 헤더 카드 */}
-      <div className="bg-white rounded-2xl p-4 border border-warm-gray/20 shadow-sm">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-              <span className="text-xs font-bold text-emerald-600">영업 중</span>
-              {months > 0 && (
-                <span className="text-[10px] text-warm-text bg-warm-gray/15 rounded-full px-2 py-0.5">
-                  {months}개월째
-                </span>
-              )}
-            </div>
-            <p className="text-lg font-extrabold text-navy leading-tight">{category}</p>
-            <p className="text-xs text-warm-text mt-0.5">{region}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] text-warm-text mb-0.5">신청 가능 지원사업</p>
-            <p className="text-2xl font-extrabold text-sunset-orange leading-none">
-              {activeCnt}
-              <span className="text-xs font-medium text-warm-text ml-0.5">건</span>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* ② 주요 지표 3칸 */}
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          {
-            icon: '👥',
-            label: '월 유동인구',
-            value: distData ? distData.visitors.toLocaleString() : '—',
-            unit: '명',
-            sub: distData ? (
-              <span className="flex items-center justify-center gap-0.5">
-                <TrendIcon trend={distData.trend} />
-                <span className={distData.trend === 'up' ? 'text-emerald-600' : distData.trend === 'down' ? 'text-sunset-orange' : 'text-warm-text'}>
-                  {distData.trend === 'flat' ? '보합' : `${distData.trendPct}%`}
-                </span>
-              </span>
-            ) : '지역 미설정',
-          },
-          {
-            icon: '🏪',
-            label: '동종업체 수',
-            value: distData ? distData.competitors : '—',
-            unit: '개',
-            sub: distData ? `${districtKey} 기준` : '지역 미설정',
-          },
-          {
-            icon: '📋',
-            label: '내 지원이력',
-            value: matches.filter(m => m.appStatus && m.appStatus !== '미신청').length || '—',
-            unit: matches.filter(m => m.appStatus && m.appStatus !== '미신청').length ? '건' : '',
-            sub: '신청·완료 합산',
-          },
-        ].map((d, i) => (
-          <div key={i} className="bg-white rounded-2xl p-3 text-center border border-warm-gray/20 shadow-sm">
-            <span className="text-xl">{d.icon}</span>
-            <p className="text-[10px] text-warm-text mt-1 leading-tight">{d.label}</p>
-            <p className="text-sm font-extrabold text-navy mt-0.5 leading-none">
-              {d.value}
-              {d.unit && <span className="text-[9px] font-medium text-warm-text ml-0.5">{d.unit}</span>}
-            </p>
-            <div className="text-[9px] text-warm-text/80 mt-0.5">{d.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* ③ 마감 임박 지원사업 */}
-      {urgentMatches.length > 0 && (
-        <div className="bg-sunset-orange/6 border border-sunset-orange/20 rounded-2xl p-4 space-y-2">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-xs font-bold text-sunset-orange">⏰ 마감 임박</p>
-            <button onClick={() => navigate('/home')}
-              className="text-[10px] text-warm-text flex items-center gap-0.5 hover:text-navy transition-colors">
-              전체 보기 <ChevronRight size={11} />
-            </button>
-          </div>
-          {urgentMatches.map(m => (
-            <div key={m.id} className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5 shadow-sm">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-navy truncate">{m.title}</p>
-              </div>
-              <span className="text-[10px] font-bold text-sunset-orange flex-shrink-0 whitespace-nowrap">
-                D-{m.dDay}
-              </span>
-            </div>
-          ))}
+    <section className="px-5 mb-6">
+      {/* 운영 기간 뱃지 */}
+      {months > 0 && (
+        <div className="inline-flex items-center gap-2 bg-sunset-orange/10 border border-sunset-orange/20
+                        rounded-full px-4 py-2 mb-4">
+          <span className="w-2 h-2 rounded-full bg-sunset-orange animate-pulse flex-shrink-0" />
+          <span className="text-sm font-bold text-sunset-orange">개업 후 {months}개월 운영 중</span>
         </div>
       )}
 
-      {/* ④ 내 매장 현황 바로가기 */}
-      <button onClick={() => navigate('/district')}
-        className="w-full flex items-center justify-between bg-white border border-warm-gray/20
-                   rounded-2xl px-4 py-3 shadow-sm hover:border-navy/30 transition-colors group">
-        <div className="flex items-center gap-3">
-          <span className="text-xl">📈</span>
-          <div className="text-left">
-            <p className="text-xs font-bold text-navy">내 매장 현황 보기</p>
-            <p className="text-[10px] text-warm-text">매출·방문자·업종 내 위치 확인</p>
+      {/* 내 상권 현황 */}
+      <h3 className="text-sm font-bold text-navy mb-2">내 상권 현황</h3>
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { icon: '🏪', top: `${region} 동종업종`, mid: `${category} 87개`,  sub: '내 상권 기준' },
+          { icon: '👥', top: '주간 유동인구',       mid: '1,200명',           sub: '동탄2 평균'  },
+          { icon: '🏆', top: '지원 수혜 사례',      mid: '평균 3개월',        sub: '신청→수령'   },
+        ].map((d, i) => (
+          <div key={i}
+            className="bg-white border border-warm-gray/20 rounded-2xl p-3 text-center shadow-sm">
+            <span className="text-2xl">{d.icon}</span>
+            <p className="text-[10px] text-warm-text mt-1 leading-tight">{d.top}</p>
+            <p className="text-xs font-bold text-navy mt-0.5">{d.mid}</p>
+            <p className="text-[9px] text-warm-text/70 mt-0.5">{d.sub}</p>
           </div>
-        </div>
-        <ChevronRight size={16} className="text-warm-text group-hover:text-navy transition-colors" />
-      </button>
+        ))}
+      </div>
     </section>
   )
 }
@@ -550,7 +444,7 @@ export default function Home() {
         <ProfileChips profile={profile} onEdit={setEditingField} />
 
         {/* 유형별 위젯 */}
-        {role === 1 && <BusinessOwnerSection profile={profile} matches={allMatches} navigate={navigate} />}
+        {role === 1 && <BusinessOwnerSection profile={profile} />}
         {role === 2 && <StartupPlannerSection profile={profile} />}
         {role === 3 && <ExplorerSection profile={profile} navigate={navigate} />}
 
