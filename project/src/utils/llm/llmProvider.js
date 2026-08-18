@@ -14,7 +14,7 @@
 
 import { apiUrl } from '../api'
 
-export const GROQ_MODEL   = 'llama-3.3-70b-versatile'
+export const GROQ_MODEL   = 'groq/compound'
 export const GEMINI_MODEL = 'gemini-3.6-flash'
 
 /**
@@ -44,7 +44,7 @@ export async function generateText({
       prompt: userPrompt,
       system: systemPrompt,
       json:   jsonMode,
-      model:  model || GEMINI_MODEL,
+      model:  model || GROQ_MODEL,
       schema: responseSchema,
       history,
     }),
