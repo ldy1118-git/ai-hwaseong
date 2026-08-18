@@ -486,7 +486,7 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
 
   function handleLogout() {
     localStorage.removeItem('mars-fit-profile')
-    localStorage.removeItem('mars-token')
+    localStorage.removeItem('mars-fit-token')
     navigate('/')
   }
 
