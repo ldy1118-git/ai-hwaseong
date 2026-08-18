@@ -4,7 +4,7 @@ import Button from '../components/ui/Button'
 import logoImg from '../../design/logo.png'
 import marsImg from '../../design/mars.png'
 import findImg from '../../design/find.png'
-import { getToken, saveOnboarding, apiUrl } from '../utils/api'
+import { getToken, clearToken, saveOnboarding, apiUrl } from '../utils/api'
 import { generateText } from '../utils/llm/llmProvider'
 import { RotateCcw, LogOut } from 'lucide-react'
 
@@ -486,7 +486,12 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
 
   function handleLogout() {
     localStorage.removeItem('mars-fit-profile')
-    localStorage.removeItem('mars-fit-token')
+    // 토큰 키를 여기서 문자열로 또 적으면 키 이름이 바뀔 때 어긋난다.
+    // 한 번 어긋나서 로그아웃이 안 되던 적이 있다.
+    clearToken()
+    // 안 지우면 로그아웃하고 다른 계정으로 들어와도 이전 사람이 보던
+    // 공고가 서류 준비 화면에 그대로 뜬다.
+    localStorage.removeItem('mars-fit-selected-match')
     navigate('/')
   }
 

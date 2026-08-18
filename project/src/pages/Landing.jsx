@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import Button from '../components/ui/Button'
+import KakaoButton from '../components/ui/KakaoButton'
+import { getToken } from '../utils/api'
 import logoImg  from '../../design/logo.png'
 import marsImg  from '../../design/mars.png'
 
@@ -33,9 +35,14 @@ function FeatureSlider() {
   const [animating, setAnimating] = useState(false)
   const timerRef = useRef(null)
 
+  // 사용자가 직접 고르면 타이머를 처음부터 다시 센다. 안 그러면 2번을
+  // 골랐는데 남아 있던 시간만큼 뒤에 3번으로 제멋대로 넘어간다.
+  const [tick, setTick] = useState(0)
+
   function goTo(idx) {
     if (animating || idx === current) return
     setAnimating(true)
+    setTick(t => t + 1)
     setTimeout(() => {
       setCurrent(idx)
       setAnimating(false)
@@ -51,7 +58,7 @@ function FeatureSlider() {
       }, 200)
     }, 3000)
     return () => clearInterval(timerRef.current)
-  }, [])
+  }, [tick])
 
   const f = FEATURES[current]
 
@@ -94,6 +101,46 @@ const STEPS = [
 
 export default function Landing() {
   const navigate = useNavigate()
+
+  // 로그인한 사람에게 "카카오톡으로 시작" 을 다시 보여주면 로그인이 안 된
+  // 줄 알고 또 누른다. 로그인 여부는 첫 렌더에 알아야 버튼이 바뀌었다가
+  // 다시 바뀌는 깜빡임이 없다.
+  const [loggedIn] = useState(() => !!getToken())
+  const hasProfile = !!localStorage.getItem('mars-fit-profile')
+
+  /** 로그인 상태에 따라 CTA 를 통째로 갈아끼운다. */
+  function Cta({ light = false }) {
+    if (loggedIn) {
+      return (
+        <>
+          <Button variant="sunset-orange" size="lg" fullWidth
+            onClick={() => navigate(hasProfile ? '/home' : '/onboarding')}>
+            {hasProfile ? '내 지원사업 보러가기' : '조건 입력하고 시작하기'}
+          </Button>
+          <button
+            onClick={() => navigate('/onboarding')}
+            className={`text-sm underline underline-offset-2 transition-colors
+              ${light ? 'text-warm-text hover:text-white' : 'text-warm-text hover:text-navy'}`}
+          >
+            내 정보 확인하기
+          </button>
+        </>
+      )
+    }
+    return (
+      <>
+        <KakaoButton onClick={() => navigate('/auth')} />
+        <button
+          onClick={() => navigate('/onboarding')}
+          className={`text-sm underline underline-offset-2 transition-colors
+            ${light ? 'text-warm-text hover:text-white' : 'text-warm-text hover:text-navy'}`}
+        >
+          로그인 없이 둘러보기
+        </button>
+      </>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-primary-bg flex flex-col">
 
@@ -169,15 +216,7 @@ export default function Landing() {
         </div>
 
         <div className="relative flex flex-col items-center gap-3 w-full max-w-xs">
-          <Button variant="sunset-orange" size="lg" fullWidth
-            onClick={() => navigate('/onboarding')}>
-            로그인 없이 둘러보기
-          </Button>
-          <Button variant="outline" size="lg" fullWidth
-            onClick={() => navigate('/auth')}
-            className="border-white/40 text-white hover:bg-white/10">
-            카카오톡으로 시작
-          </Button>
+          <Cta light />
         </div>
       </section>
 
@@ -216,15 +255,7 @@ export default function Landing() {
         <p className="text-base font-bold text-navy mb-1">지금 바로 내 지원사업을 찾아보세요</p>
         <p className="text-sm text-warm-text mb-6">화성시 소재 소상공인이라면 누구나 무료로 이용할 수 있어요</p>
         <div className="flex flex-col items-center gap-3 w-full max-w-xs">
-          <Button variant="navy" size="lg" fullWidth onClick={() => navigate('/auth')}>
-            카카오톡으로 시작
-          </Button>
-          <button
-            onClick={() => navigate('/onboarding')}
-            className="text-sm text-warm-text hover:text-navy underline underline-offset-2 transition-colors"
-          >
-            로그인 없이 둘러보기
-          </button>
+          <Cta />
         </div>
       </section>
 
