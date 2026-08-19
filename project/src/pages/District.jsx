@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useCallback, useState } from 'react'
 import {
   CalendarClock, FileText, MapPin, ChevronRight, ChevronDown,
   AlertTriangle, ExternalLink, Pencil, Lock,
-  TrendingUp, TrendingDown, Minus, Users, ShoppingBag, RefreshCw, Star, Info,
+  TrendingUp, TrendingDown, Users, ShoppingBag, RefreshCw, Star, Info,
   School, Utensils, BookOpen, Coffee, Building2, Search, Train,
-  Plus, Maximize2, X as XIcon,
+  Maximize2, X as XIcon,
 } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -513,8 +513,8 @@ function CommercialAnalysisView() {
     setSearching(false)
   }, [address, applyPosition])
 
-  const adjustRadius = useCallback((key, delta) => {
-    setRadii(prev => ({ ...prev, [key]: Math.max(100, Math.min(3000, prev[key] + delta)) }))
+  const setRadius = useCallback((key, value) => {
+    setRadii(prev => ({ ...prev, [key]: Number(value) }))
   }, [])
 
   return (
@@ -575,14 +575,14 @@ function CommercialAnalysisView() {
           </form>
         </div>
 
-        {/* 우측: 시설 정보 + 범위 조정 */}
+        {/* 우측: 시설 정보 + 범위 슬라이더 */}
         <Card className="flex-1 p-3 flex flex-col">
           <p className="text-[11px] font-bold text-navy mb-2">이 위치에는</p>
-          <div className="space-y-2.5 flex-1">
+          <div className="space-y-3 flex-1">
             {AMENITY_CONFIG.map(({ key, label, Icon, color }) => (
               <div key={key}>
                 {/* 시설명 + 개수 */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 mb-1">
                   <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
                     style={{ background: color + '22', border: `1.5px solid ${color}` }}>
                     <Icon size={10} style={{ color }} />
@@ -591,25 +591,19 @@ function CommercialAnalysisView() {
                   <span className="text-xs font-extrabold text-navy">{amenities[key]}</span>
                   <span className="text-[9px] text-warm-text">개</span>
                 </div>
-                {/* 반경 조정 */}
-                <div className="flex items-center gap-1 mt-1 pl-6">
-                  <button
-                    onClick={() => adjustRadius(key, -10)}
-                    className="w-4 h-4 rounded bg-warm-gray/20 flex items-center justify-center
-                               hover:bg-warm-gray/40 active:scale-90 transition-all"
-                  >
-                    <Minus size={8} className="text-warm-text" />
-                  </button>
-                  <span className="text-[9px] text-warm-text/80 w-11 text-center tabular-nums">
+                {/* 반경 슬라이더 */}
+                <div className="pl-6 flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={100} max={3000} step={50}
+                    value={radii[key]}
+                    onChange={e => setRadius(key, e.target.value)}
+                    className="flex-1 h-1 rounded-full appearance-none cursor-pointer"
+                    style={{ accentColor: color }}
+                  />
+                  <span className="text-[9px] text-warm-text/80 w-10 text-right tabular-nums flex-shrink-0">
                     {radii[key]}m
                   </span>
-                  <button
-                    onClick={() => adjustRadius(key, +10)}
-                    className="w-4 h-4 rounded bg-warm-gray/20 flex items-center justify-center
-                               hover:bg-warm-gray/40 active:scale-90 transition-all"
-                  >
-                    <Plus size={8} className="text-warm-text" />
-                  </button>
                 </div>
               </div>
             ))}
