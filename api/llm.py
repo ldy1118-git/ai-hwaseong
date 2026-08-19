@@ -278,6 +278,18 @@ class handler(Base):  # noqa: N801
         # 그대로 넘기면 404 가 난다. 지정한 제공자가 하나일 때만 존중한다.
         override = str(payload.get("model") or "") if len(ready) == 1 else ""
 
+        # 특정 키 하나만 써보게 한다. 확인용이다.
+        #
+        # 평소에는 첫 키가 살아 있는 한 계속 첫 키로 나간다. 그러면 두 번째
+        # 키가 오타든 죽은 키든 **첫 키가 바닥나는 순간에야** 알게 되는데,
+        # 그 순간이 하필 시연 중이다. 예비 키를 둔 이유와 정반대다.
+        # 시연 전에 한 개씩 찔러서 다 살아 있는지 미리 보라고 열어둔다.
+        # 키 값은 여전히 내보내지 않는다 — 되는지 안 되는지만 나온다.
+        try:
+            only_slot = int(payload.get("slot") or 0)
+        except (TypeError, ValueError):
+            only_slot = 0
+
         # 제공자를 순서대로 돌고, 한 제공자 안에서는 꽂힌 키를 순서대로
         # 돈다. 하루 한도(429)에 걸린 키는 그냥 다음 키로 넘어간다.
         # 죽은 키(401)도 같은 길로 건너뛴다 — 시연 중에 한 개가 막혔다고
@@ -288,7 +300,13 @@ class handler(Base):  # noqa: N801
             spec = PROVIDERS[name]
             model = override or spec["model"]
             keys = read_keys(spec["env"])
-            for slot, key in enumerate(keys, 1):
+            if only_slot:
+                if only_slot > len(keys):
+                    failures.append(f"{spec['label']}: {only_slot}번 키가 없습니다 (총 {len(keys)}개)")
+                    continue
+                keys = keys[only_slot - 1:only_slot]
+            for offset, key in enumerate(keys):
+                slot = only_slot or offset + 1
                 # 키가 하나뿐이면 번호를 붙이지 않는다. 붙이면 로그가
                 # 괜히 복잡해 보인다.
                 who = spec["label"] if len(keys) == 1 else f"{spec['label']} 키{slot}"
