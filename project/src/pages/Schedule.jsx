@@ -31,7 +31,7 @@ function AlwaysOpen({ matches }) {
   if (list.length === 0) return null
 
   return (
-    <section className="mt-6">
+    <section className="mt-6 lg:mt-0">
       <div className="flex items-baseline gap-2 mb-1">
         <h3 className="text-base font-bold text-navy">상시 접수</h3>
         <span className="text-sm font-bold text-sunset-orange">{list.length}건</span>
@@ -39,7 +39,9 @@ function AlwaysOpen({ matches }) {
       <p className="text-sm text-warm-text mb-3 leading-snug">
         마감일이 정해져 있지 않아 달력에는 없어요. 예산이 떨어지면 닫히니 서두르는 게 좋아요.
       </p>
-      <div className="space-y-2">
+      {/* 30건이 그대로 늘어서면 달력 옆에서 화면을 한참 넘긴다.
+          넓은 화면에서만 높이를 재고 안에서 스크롤한다. */}
+      <div className="space-y-2 lg:max-h-[62vh] lg:overflow-y-auto lg:pr-1">
         {list.map(m => (
           <button key={m.id}
             onClick={() => {
@@ -128,13 +130,25 @@ export default function Schedule() {
   return (
     <div className="min-h-screen bg-primary-bg pb-20">
       <Header />
-      <div className="max-w-4xl mx-auto px-5 pt-4">
+      <div className="max-w-4xl lg:max-w-6xl mx-auto px-5 pt-4 lg:pt-6">
         <h2 className="text-base font-bold text-navy mb-4">신청 마감 일정</h2>
         {inProgress && (
           <InProgressCard inProgress={inProgress} onResume={resumeApply} />
         )}
-        <DeadlineCalendar matches={matches} loading={loading} inProgress={inProgress} />
-        <AlwaysOpen matches={matches} />
+
+        {/* 넓은 화면에서는 두 단으로 편다.
+            달력은 날짜가 있는 것만 그릴 수 있고, 상시 접수는 날짜가 없다.
+            성격이 아예 다른 둘을 세로로 쌓아두면 상시 접수가 달력 밑에
+            묻혀서 안 보인다 — 그런데 그게 59건 중 30건이다.
+            나란히 놓으면 「날짜가 있는 것 / 없는 것」이 한눈에 갈린다. */}
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-x-6 lg:items-start">
+          <div className="min-w-0">
+            <DeadlineCalendar matches={matches} loading={loading} inProgress={inProgress} />
+          </div>
+          <div className="min-w-0">
+            <AlwaysOpen matches={matches} />
+          </div>
+        </div>
       </div>
     </div>
   )
