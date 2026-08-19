@@ -1,19 +1,28 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Home, BarChart2, CalendarDays, MessageCircle, UserCircle2 } from 'lucide-react'
 
-const TABS = [
+const BASE_TABS = [
   { icon: Home,          label: '홈',     path: '/home' },
-  { icon: BarChart2,     label: '내 매장',  path: '/district' },
+  { icon: BarChart2,     label: null,      path: '/district' },
   { icon: CalendarDays,  label: '일정',   path: '/schedule' },
   { icon: MessageCircle, label: '챗봇',   path: '/mission' },
   { icon: UserCircle2,   label: '내 정보', path: '/onboarding' },
 ]
 
-const NAV_PATHS = new Set(TABS.map(t => t.path))
+const NAV_PATHS = new Set(BASE_TABS.map(t => t.path))
 
 export default function BottomNav() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+
+  const profile = (() => {
+    try { return JSON.parse(localStorage.getItem('mars-fit-profile')) } catch { return null }
+  })()
+  const isOwner = profile?.business_status === '운영중'
+
+  const TABS = BASE_TABS.map(t =>
+    t.path === '/district' ? { ...t, label: isOwner ? '내 매장' : '상권분석' } : t
+  )
 
   if (!NAV_PATHS.has(pathname)) return null
 
