@@ -321,9 +321,6 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
   const [termDefs, setTermDefs]           = useState([])
 
   useEffect(() => {
-    setShowMoreUrgent(false)
-    setShowMoreRegular(false)
-
     const signal = { cancelled: false }
 
     // Home.jsx 가 미리 fetch 한 데이터가 있으면 자체 네트워크 호출 스킵
