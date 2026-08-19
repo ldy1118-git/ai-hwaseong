@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useCallback, useState } from 'react'
 import {
   CalendarClock, FileText, MapPin, ChevronRight, ChevronDown,
   AlertTriangle, ExternalLink, Pencil, Lock,
   TrendingUp, TrendingDown, Minus, Users, ShoppingBag, RefreshCw, Star, Info,
+  School, Utensils, BookOpen, Coffee, Building2, Search, Train,
 } from 'lucide-react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import Header from '../components/layout/Header'
 import { useNavigate } from 'react-router-dom'
 import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
@@ -221,315 +224,215 @@ function ProfileCard({ profile, onEdit }) {
   )
 }
 
+// ── Leaflet 아이콘 CDN 고정 (Vite 번들링 우회) ───────────────────
+const leafletIcon = L.icon({
+  iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize:    [25, 41],
+  iconAnchor:  [12, 41],
+  shadowSize:  [41, 41],
+})
+
+// ── 순수 Leaflet 지도 컴포넌트 ───────────────────────────────────
+
+function LeafletMap({ position, onMove }) {
+  const containerRef = useRef(null)
+  const mapRef       = useRef(null)
+  const markerRef    = useRef(null)
+  const onMoveRef    = useRef(onMove)
+  useEffect(() => { onMoveRef.current = onMove }, [onMove])
+
+  // 지도 최초 초기화 (마운트 1회)
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return
+
+    const map = L.map(containerRef.current, {
+      center: [position.lat, position.lng],
+      zoom: 14,
+      zoomControl: false,
+    })
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
+
+    const marker = L.marker([position.lat, position.lng], {
+      draggable: true,
+      icon: leafletIcon,
+    }).addTo(map)
+
+    marker.on('dragend', () => {
+      const { lat, lng } = marker.getLatLng()
+      onMoveRef.current({ lat, lng })
+    })
+
+    mapRef.current    = map
+    markerRef.current = marker
+
+    return () => { map.remove(); mapRef.current = null; markerRef.current = null }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 외부에서 position이 바뀌면 지도·마커 동기화
+  useEffect(() => {
+    markerRef.current?.setLatLng([position.lat, position.lng])
+    mapRef.current?.setView([position.lat, position.lng], mapRef.current.getZoom(), { animate: true })
+  }, [position.lat, position.lng])
+
+  return <div ref={containerRef} style={{ height: '100%', width: '100%' }} />
+}
+
 // ── 상권분석 뷰 (예비창업자·탐색자용, 목업 데이터) ──────────────
 
-const AREA_NAMES = ['동탄2신도시', '향남읍내', '봉담읍내', '남양뉴타운']
-const AREA_MONTHS = ['3월', '4월', '5월', '6월', '7월', '8월']
+const HWS_CENTER = { lat: 37.1999, lng: 126.8317 }
 
-const AREA_DATA = {
-  동탄2신도시: {
-    traffic:   [28500, 29800, 31200, 32400, 30800, 32000],
-    compCount: [198,   203,   210,   215,   212,   218  ],
-    rent:      [165,   165,   170,   175,   175,   180  ],
-    score: 92, scoreLabel: '창업 유망',
-    daily: '일 3.2만명', nearby: 218, rentRange: '월 180만원~',
-    newOpen: 8, closed: 3, density: '높음',
-    peak: '12~14시', mainAge: '30대 38%',
-  },
-  향남읍내: {
-    traffic:   [12000, 12500, 13100, 14000, 13600, 14200],
-    compCount: [88,    91,    92,    94,    93,    95   ],
-    rent:      [85,    85,    88,    90,    90,    92   ],
-    score: 78, scoreLabel: '성장 중',
-    daily: '일 1.4만명', nearby: 95, rentRange: '월 90만원~',
-    newOpen: 4, closed: 2, density: '보통',
-    peak: '11~13시', mainAge: '40대 41%',
-  },
-  봉담읍내: {
-    traffic:   [9800, 10200, 10500, 11000, 10700, 11200],
-    compCount: [54,   55,    57,    58,    57,    59   ],
-    rent:      [70,   70,    72,    75,    75,    76   ],
-    score: 71, scoreLabel: '진입 기회',
-    daily: '일 1.1만명', nearby: 59, rentRange: '월 75만원~',
-    newOpen: 2, closed: 1, density: '낮음',
-    peak: '12~14시', mainAge: '40대 37%',
-  },
-  남양뉴타운: {
-    traffic:   [7500, 7800,  8200,  8700,  8400,  9000 ],
-    compCount: [38,   40,    42,    44,    43,    46   ],
-    rent:      [60,   60,    62,    65,    65,    66   ],
-    score: 65, scoreLabel: '개발 중',
-    daily: '일 0.9만명', nearby: 46, rentRange: '월 65만원~',
-    newOpen: 3, closed: 0, density: '낮음',
-    peak: '10~12시', mainAge: '30대 32%',
-  },
+function seededRand(seed, min, max) {
+  const x = Math.sin(seed) * 10000
+  return min + Math.floor((x - Math.floor(x)) * (max - min + 1))
 }
 
-function areaDelta(arr) {
-  const cur  = arr[arr.length - 1]
-  const prev = arr[arr.length - 2]
-  const pct  = ((cur - prev) / prev * 100).toFixed(1)
-  return { cur, prev, pct: Number(pct) }
+function getMockAmenities(lat, lng) {
+  const s = Math.abs(Math.round(lat * 100) * 1000 + Math.round(lng * 100))
+  return {
+    schools:     seededRand(s,     1, 6),
+    restaurants: seededRand(s + 1, 10, 85),
+    academies:   seededRand(s + 2, 2, 28),
+    cafes:       seededRand(s + 3, 4, 38),
+    apartments:  seededRand(s + 4, 1, 18),
+    stations:    seededRand(s + 5, 0, 3),
+  }
 }
 
-function TrendChip({ pct }) {
-  if (pct > 0) return (
-    <span className="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600">
-      <TrendingUp size={11} /> +{pct}%
-    </span>
-  )
-  if (pct < 0) return (
-    <span className="flex items-center gap-0.5 text-[10px] font-bold text-sunset-orange">
-      <TrendingDown size={11} /> {pct}%
-    </span>
-  )
-  return (
-    <span className="flex items-center gap-0.5 text-[10px] font-bold text-warm-text">
-      <Minus size={11} /> 보합
-    </span>
-  )
+function getFootTrafficText(am) {
+  const score = am.schools * 220 + am.restaurants * 55 + am.cafes * 90
+              + am.apartments * 160 + am.stations * 650
+  if (score >= 8000) {
+    return `일 평균 ${(score / 10000).toFixed(1)}만명 이상이 지나갈 것으로 예상해요! 역세권·학교·아파트가 많아 출퇴근 피크가 뚜렷해요`
+  }
+  if (score >= 4000) {
+    return `일 평균 약 ${score.toLocaleString()}명이 지나갈 것으로 예상해요! 음식점과 카페가 밀집해 점심·저녁 시간대 방문이 활발해요`
+  }
+  return `일 평균 약 ${score.toLocaleString()}명 수준으로 예상해요. 조용한 주거 중심 상권으로 단골 손님 비중이 높아요`
 }
 
-function BarChart({ data, months, color = 'bg-navy' }) {
-  const max = Math.max(...data)
-  return (
-    <div className="flex items-end gap-1.5 h-28">
-      {data.map((v, i) => {
-        const isLast = i === data.length - 1
-        const pct    = Math.round((v / max) * 100)
-        return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1">
-            {isLast && (
-              <span className="text-[8px] font-bold text-navy leading-none mb-0.5">
-                {v.toLocaleString()}
-              </span>
-            )}
-            <div className="w-full flex-1 flex items-end">
-              <div
-                className={`w-full rounded-t-md transition-all ${isLast ? color : color + '/30'}`}
-                style={{ height: `${pct}%` }}
-              />
-            </div>
-            <span className={`text-[9px] font-medium ${isLast ? 'text-navy' : 'text-warm-gray'}`}>
-              {months[i]}
-            </span>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
+const AMENITY_ITEMS = [
+  { key: 'schools',     label: '학교',       Icon: School    },
+  { key: 'restaurants', label: '음식점',     Icon: Utensils  },
+  { key: 'academies',   label: '학원',       Icon: BookOpen  },
+  { key: 'cafes',       label: '카페',       Icon: Coffee    },
+  { key: 'apartments',  label: '아파트 단지', Icon: Building2 },
+  { key: 'stations',    label: '역',         Icon: Train     },
+]
 
-const CHART_TABS = ['유동인구', '경쟁업체', '임대료']
+function CommercialAnalysisView() {
+  const [position, setPosition] = useState(HWS_CENTER)
+  const [address, setAddress]   = useState('')
+  const [searching, setSearching] = useState(false)
+  const [amenities, setAmenities] = useState(() => getMockAmenities(HWS_CENTER.lat, HWS_CENTER.lng))
 
-function CommercialAnalysisView({ profile }) {
-  const [areaIdx, setAreaIdx] = useState(0)
-  const [chartTab, setChartTab] = useState(0)
+  const footTraffic = useMemo(() => getFootTrafficText(amenities), [amenities])
 
-  const areaName = AREA_NAMES[areaIdx]
-  const area = AREA_DATA[areaName]
+  const applyPosition = useCallback((pos) => {
+    setPosition(pos)
+    setAmenities(getMockAmenities(pos.lat, pos.lng))
+  }, [])
 
-  const chartData  = [area.traffic, area.compCount, area.rent][chartTab]
-  const chartColor = ['bg-navy', 'bg-emerald-500', 'bg-sunset-orange'][chartTab]
-  const chartUnit  = ['명', '개', '만원'][chartTab]
+  const handleMarkerMove = useCallback((pos) => {
+    applyPosition(pos)
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.lat}&lon=${pos.lng}&format=json`)
+      .then(r => r.json())
+      .then(d => {
+        const addr = d.address
+        if (addr) {
+          const parts = [addr.road, addr.neighbourhood, addr.suburb, addr.city || addr.county].filter(Boolean)
+          setAddress(parts.slice(0, 2).join(' '))
+        }
+      })
+      .catch(() => {})
+  }, [applyPosition])
 
-  const trafficD = areaDelta(area.traffic)
-  const compD    = areaDelta(area.compCount)
-  const rentD    = areaDelta(area.rent)
-  const curDeltas = [trafficD, compD, rentD]
-
-  const densityColor = area.density === '높음'
-    ? 'text-red-500'
-    : area.density === '보통' ? 'text-sunset-orange' : 'text-emerald-600'
+  const handleSearch = useCallback(async (e) => {
+    e.preventDefault()
+    const q = address.trim()
+    if (!q) return
+    setSearching(true)
+    try {
+      const res  = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=kr`
+      )
+      const data = await res.json()
+      if (data[0]) {
+        applyPosition({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) })
+      }
+    } catch {}
+    setSearching(false)
+  }, [address, applyPosition])
 
   return (
-    <div className="max-w-4xl mx-auto px-5 space-y-5 pb-8">
+    <div className="max-w-4xl mx-auto px-4 space-y-4 pb-8">
 
       {/* 목업 안내 */}
       <div className="flex items-start gap-2 bg-star-yellow/20 border border-star-yellow/50 rounded-xl px-3.5 py-2.5">
         <Info size={12} className="text-navy/50 mt-0.5 flex-shrink-0" />
         <p className="text-[11px] text-warm-text leading-relaxed">
-          아래 데이터는 <strong className="text-navy">목업(샘플)</strong>이에요.
-          실제 창업 전 현장 조사를 꼭 병행하세요.
+          시설 수·유동인구는 <strong className="text-navy">목업(샘플)</strong>이에요.
+          핀을 옮기거나 주소를 검색해 원하는 위치를 살펴보세요.
         </p>
       </div>
 
-      {/* 상권 선택 탭 */}
-      <div className="flex gap-2">
-        {AREA_NAMES.map((name, i) => (
-          <button key={name} onClick={() => { setAreaIdx(i); setChartTab(0) }}
-            className={`flex-1 py-2 rounded-xl text-[11px] font-semibold transition-all
-              ${areaIdx === i
-                ? 'bg-navy text-white shadow'
-                : 'bg-white border border-warm-gray/30 text-warm-text hover:bg-warm-gray/10'
-              }`}
-          >{name}</button>
-        ))}
+      {/* 지도 + 정보 2열 */}
+      <div className="flex gap-3 items-stretch">
+
+        {/* 좌측: 지도 + 주소 입력 */}
+        <div className="flex flex-col gap-2" style={{ flex: '0 0 58%' }}>
+          <div className="rounded-2xl overflow-hidden border border-warm-gray/20 shadow-sm" style={{ height: 300 }}>
+            <LeafletMap position={position} onMove={handleMarkerMove} />
+          </div>
+
+          {/* 도로명주소 입력 */}
+          <form onSubmit={handleSearch} className="flex gap-1.5">
+            <input
+              type="text"
+              value={address}
+              onChange={e => setAddress(e.target.value)}
+              placeholder="도로명주소 입력 후 검색"
+              className="flex-1 min-w-0 text-[11px] bg-white border border-warm-gray/30 rounded-xl
+                         px-3 py-2 text-navy placeholder:text-warm-gray/60
+                         focus:outline-none focus:border-navy transition-colors"
+            />
+            <button
+              type="submit"
+              disabled={searching}
+              className="flex-shrink-0 bg-navy text-white rounded-xl px-2.5 py-2
+                         disabled:opacity-50 transition-opacity"
+            >
+              <Search size={14} />
+            </button>
+          </form>
+        </div>
+
+        {/* 우측: 시설 정보 */}
+        <Card className="flex-1 p-4 flex flex-col justify-between">
+          <p className="text-[11px] font-bold text-navy mb-3 leading-snug">이 위치에는</p>
+          <div className="space-y-2.5 flex-1">
+            {AMENITY_ITEMS.map(({ key, label, Icon }) => (
+              <div key={key} className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-primary-bg flex items-center justify-center flex-shrink-0">
+                  <Icon size={11} className="text-navy" />
+                </div>
+                <span className="text-[10px] text-warm-text flex-1">{label}</span>
+                <span className="text-xs font-extrabold text-navy">{amenities[key]}</span>
+                <span className="text-[9px] text-warm-text">개</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-warm-text mt-3">가 있어요</p>
+        </Card>
       </div>
 
-      {/* ① 상권 헤더 카드 */}
-      <Card className="p-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="w-2 h-2 rounded-full bg-navy animate-pulse" />
-              <span className="text-xs font-bold text-navy">{areaName}</span>
-              {profile?.category && (
-                <span className="text-[10px] text-warm-text bg-warm-gray/15 rounded-full px-2 py-0.5">
-                  {profile.category}
-                </span>
-              )}
-            </div>
-            <p className="text-base font-extrabold text-navy">{area.scoreLabel}</p>
-            <p className="text-xs text-warm-text mt-0.5">{area.daily}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] text-warm-text">창업 적합도</p>
-            <p className="text-xl font-extrabold text-navy leading-tight">
-              {area.score}
-              <span className="text-xs font-medium text-warm-text ml-0.5">점</span>
-            </p>
-            <TrendChip pct={trafficD.pct} />
-          </div>
-        </div>
-      </Card>
-
-      {/* ② 핵심 지표 3칸 */}
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { icon: Users,       label: '일 유동인구', value: (trafficD.cur / 10000).toFixed(1), unit: '만명', pct: trafficD.pct },
-          { icon: ShoppingBag, label: '동종업체 수', value: String(compD.cur),                 unit: '개',   pct: compD.pct   },
-          { icon: MapPin,      label: '평균 임대료', value: String(rentD.cur),                 unit: '만원', pct: rentD.pct   },
-        ].map(({ icon: Icon, label, value, unit, pct }, i) => (
-          <Card key={i} className="p-3 text-center">
-            <Icon size={16} className="mx-auto text-warm-text mb-1.5" />
-            <p className="text-[10px] text-warm-text leading-tight">{label}</p>
-            <p className="text-sm font-extrabold text-navy mt-0.5 leading-none">
-              {value}
-              <span className="text-[9px] font-medium text-warm-text ml-0.5">{unit}</span>
-            </p>
-            <div className="mt-0.5 flex justify-center">
-              <TrendChip pct={pct} />
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* ③ 추이 차트 */}
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <SectionTitle sub="최근 6개월 추이">상권 트렌드</SectionTitle>
-          <span className="text-[10px] text-warm-text">전월 대비</span>
-        </div>
-
-        <div className="flex gap-1 mb-4">
-          {CHART_TABS.map((t, i) => (
-            <button key={t} onClick={() => setChartTab(i)}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all
-                ${chartTab === i ? 'bg-navy text-white' : 'bg-warm-gray/15 text-warm-text hover:bg-warm-gray/30'}`}
-            >{t}</button>
-          ))}
-        </div>
-
-        <BarChart data={chartData} months={AREA_MONTHS} color={chartColor} />
-
-        <div className="mt-4 pt-3 border-t border-warm-gray/15 flex items-center justify-between">
-          <p className="text-[10px] text-warm-text">
-            7월 대비&nbsp;
-            <span className={`font-bold ${curDeltas[chartTab].pct > 0 ? 'text-emerald-600' : 'text-sunset-orange'}`}>
-              {curDeltas[chartTab].pct > 0 ? '+' : ''}{curDeltas[chartTab].pct}%
-            </span>
-          </p>
-          <p className="text-[10px] text-warm-text">
-            {curDeltas[chartTab].prev.toLocaleString()} → {curDeltas[chartTab].cur.toLocaleString()} {chartUnit}
-          </p>
-        </div>
-      </Card>
-
-      {/* ④ 창업 적합도 게이지 */}
-      <Card className="p-4">
-        <SectionTitle sub="화성시 4개 상권 비교">창업 적합도 위치</SectionTitle>
-
-        <div className="flex items-end justify-between mb-2">
-          <p className="text-2xl font-extrabold text-navy">
-            <span className="text-sunset-orange">{area.score}</span>점
-          </p>
-          <p className="text-[10px] text-warm-text text-right leading-relaxed">
-            {area.scoreLabel}<br />
-            임대료 {area.rentRange}
-          </p>
-        </div>
-
-        <div className="relative h-3 bg-warm-gray/20 rounded-full overflow-hidden mb-3">
-          <div
-            className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-emerald-400 to-navy transition-all duration-700"
-            style={{ width: `${area.score}%` }}
-          />
-          <div
-            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border-2 border-navy shadow"
-            style={{ left: `calc(${area.score}% - 6px)` }}
-          />
-        </div>
-
-        <div className="flex justify-between text-[9px] text-warm-text mb-3">
-          <span>100점 (최상)</span>
-          <span>0점</span>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-warm-gray/15">
-          {[
-            { label: '이달 신규 개업', value: `${area.newOpen}곳`, color: 'text-sunset-orange' },
-            { label: '이달 폐업',      value: `${area.closed}곳`,  color: 'text-warm-text'    },
-            { label: '경쟁 밀도',      value: area.density,         color: densityColor        },
-          ].map((d, i) => (
-            <div key={i} className="text-center">
-              <p className={`text-base font-extrabold ${d.color}`}>{d.value}</p>
-              <p className="text-[9px] text-warm-text mt-0.5">{d.label}</p>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* ⑤ 상권 특성 */}
-      <Card className="p-4">
-        <SectionTitle sub="최근 3개월 기준">상권 특성</SectionTitle>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { icon: RefreshCw,   label: '방문 피크',  value: area.peak,       sub: '방문자 집중 시간대' },
-            { icon: Users,       label: '주 연령대',  value: area.mainAge,    sub: '핵심 소비층'       },
-            { icon: Star,        label: '동종업체',   value: `${area.nearby}개`, sub: '화성시 내 추정' },
-            { icon: ShoppingBag, label: '임대료',     value: area.rentRange,  sub: '3.3㎡당 월 기준'   },
-          ].map(({ icon: Icon, label, value, sub }, i) => (
-            <div key={i} className="flex items-center gap-3 bg-primary-bg rounded-xl px-3 py-3">
-              <div className="w-8 h-8 rounded-full bg-white border border-warm-gray/20 flex items-center justify-center flex-shrink-0">
-                <Icon size={14} className="text-navy" />
-              </div>
-              <div>
-                <p className="text-[10px] text-warm-text">{label}</p>
-                <p className="text-xs font-extrabold text-navy leading-tight">{value}</p>
-                <p className="text-[9px] text-warm-text/70">{sub}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* ⑥ 창업 준비 체크 */}
-      <div className="bg-navy rounded-2xl p-4">
-        <p className="text-xs font-bold text-white mb-3">창업 전 확인 리스트</p>
-        <div className="space-y-2">
-          {[
-            '현장 방문 — 평일·주말 유동인구 직접 확인',
-            '경쟁 업소 조사 — 반경 500m 내 동종 업소 수',
-            '임대차 계약 — 권리금·보증금·월세 협상',
-            '소상공인 지원사업 신청 — 초기 비용 절감',
-          ].map((item, i) => (
-            <div key={i} className="flex items-start gap-2.5">
-              <span className="w-4 h-4 rounded-full border border-white/40 flex-shrink-0 flex items-center justify-center text-[9px] text-white/60 mt-0.5">{i + 1}</span>
-              <p className="text-xs text-white/80 leading-relaxed">{item}</p>
-            </div>
-          ))}
-        </div>
+      {/* 하단: 유동인구 예측 */}
+      <div className="bg-navy rounded-2xl px-4 py-4">
+        <p className="text-[10px] font-semibold text-white/60 mb-1">유동인구 예측</p>
+        <p className="text-xs text-white leading-relaxed">
+          이 위치에서는 {footTraffic}
+        </p>
       </div>
 
     </div>
