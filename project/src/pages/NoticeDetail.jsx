@@ -240,9 +240,15 @@ export default function NoticeDetail() {
 
       {/* 하단 고정 액션 */}
       <div className="fixed bottom-0 left-0 right-0 bg-primary-bg/95 backdrop-blur border-t border-warm-gray/30 px-4 py-2">
-        <div className="max-w-2xl mx-auto flex gap-3">
+        <div className="max-w-2xl mx-auto flex flex-col gap-2">
+          {item.source_url && (
+            <a href={item.source_url} target="_blank" rel="noreferrer" className="w-full">
+              <Button variant="ghost" size="sm" fullWidth>공고문 원문 보기 →</Button>
+            </a>
+          )}
+        <div className="flex gap-3">
           <Button
-            variant="outline" size="sm" fullWidth
+            variant="outline" size="sm" fullWidth className="flex-1"
             onClick={() => {
               localStorage.setItem('mars-fit-selected-match', JSON.stringify(item))
               navigate('/apply')
@@ -255,10 +261,11 @@ export default function NoticeDetail() {
               <Button variant="sunset-orange" size="sm" fullWidth>신청하러 가기</Button>
             </a>
           ) : (
-            <Button variant="sunset-orange" size="sm" fullWidth disabled>
+            <Button variant="sunset-orange" size="sm" fullWidth disabled className="flex-1">
               {item.apply_method ? '문의처로 접수' : '접수처 확인 필요'}
             </Button>
           )}
+        </div>
         </div>
       </div>
     </div>
