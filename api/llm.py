@@ -45,6 +45,13 @@ from _shared import Base, read_json, send_json
 GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 TIMEOUT = 55  # Vercel 무료 플랜 함수 실행 한도가 60초다
 
+# urllib 은 User-Agent 를 안 붙이면 "Python-urllib/3.x" 로 보낸다. Groq 앞단의
+# Cloudflare 가 그걸 보고 봇으로 판정해서 403 error code 1010 을 돌려준다.
+# 키가 맞아도 못 뚫는다 — 응답이 Groq 이 아니라 Cloudflare 에서 나오기 때문에
+# 에러 본문에 힌트도 없다. 가짜 키로 재보니 UA 없으면 403/1010, 붙이면
+# 401 invalid_api_key 로 바뀐다. 통과 지점이 다르다.
+USER_AGENT = "mars-fit/1.0 (+https://ai-hwaseong-ten.vercel.app)"
+
 # 제공자별 설정. 고르는 순서이기도 하다 — 앞에 있는 키가 꽂혀 있으면 그걸 쓴다.
 #
 # Groq 을 앞에 둔 이유는 무료 한도다. 성현이 벤치마크에서 Gemini 무료는
@@ -130,7 +137,8 @@ def call_openai_compatible(url: str, key: str, model: str, system: str,
         url,
         data=json.dumps(body).encode("utf-8"),
         headers={"Content-Type": "application/json",
-                 "Authorization": f"Bearer {key}"},
+                 "Authorization": f"Bearer {key}",
+                 "User-Agent": USER_AGENT},
         method="POST",
     )
     with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
@@ -168,7 +176,8 @@ def call_gemini(key: str, model: str, system: str, prompt: str,
     request = urllib.request.Request(
         GEMINI_ENDPOINT.format(model=model),
         data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json", "x-goog-api-key": key},
+        headers={"Content-Type": "application/json", "x-goog-api-key": key,
+                 "User-Agent": USER_AGENT},
         method="POST",
     )
     with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
