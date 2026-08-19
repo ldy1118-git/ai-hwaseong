@@ -6,6 +6,7 @@ import ChecklistSection from '../components/sections/ChecklistSection'
 import DocumentStepDrawer from '../components/ui/DocumentStepDrawer'
 import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
 import { generateChecklistV1 } from '../utils/llm/generateChecklist'
+import { cleanDocName } from '../utils/docName'
 import termsData from '../data/terms.json'
 import searchImg from '../../design/search.png'
 import marsImg from '../../design/mars.png'
@@ -336,17 +337,24 @@ export default function ApplicationGuide() {
       try {
         const result = await generateChecklistV1(matched, noticeJson, termsData)
         if (result.parsed?.checklist?.length) {
-          baseItems = result.parsed.checklist.map((it, i) => ({
+          baseItems = result.parsed.checklist.map((it, i) => {
+            // 공고문 첨부(HWP·PDF)에서 뽑은 이름이라 「자가점검표 ● 진흥원 서식」
+            // 처럼 원문 글머리표가 붙어 있다. 데이터는 그대로 두고 보여줄 때만
+            // 다듬는다 — 원문에 뭐라 적혀 있었는지가 근거라서 지우면 안 된다.
+            const { name, note } = cleanDocName(it.document)
+            return {
             id:       i + 1,
-            label:    it.document,
+            label:    name,
             desc:     [
+              note && `붙임: ${note}`,
               it.how_to_get,
               it.fee            ? `수수료: ${it.fee}`              : null,
               it.estimated_time ? `소요시간: ${it.estimated_time}` : null,
             ].filter(Boolean).join(' · ') || it.required_type,
             issueUrl: it.url ?? null,
             checked:  false,
-          }))
+            }
+          })
           setProgramName(result.parsed.program_name      ?? '')
           setNotes(result.parsed.important_notes         ?? [])
           setPending(result.parsed.pending_conditions    ?? [])
