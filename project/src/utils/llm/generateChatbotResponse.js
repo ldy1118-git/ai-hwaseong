@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
 import { generateText, GROQ_MODEL } from './llmProvider.js'
+import { todayKR } from '../today.js'
 import { nextMockChatbotResponse, delay } from '../../mocks/index.js'
 
 const MOCK = localStorage.getItem('mars-mock') === 'true'
@@ -153,7 +154,7 @@ export async function generateChatbotResponseV1(question, history, termsData) {
 3. confidence 필드: RAG 데이터로 충분히 답변 가능하면 "high", 부분적이면 "medium", 없으면 "low".
 4. retrieved_terms/retrieved_docs는 실제로 답변에 활용한 항목 이름만 기재.
 5. followup은 사장님이 이어서 물어볼 법한 질문 1~2개. 마이다 말투로 작성.
-6. 오늘 날짜는 2026년 8월 17일.
+6. 오늘 날짜는 ${todayKR()}.
 7. RAG 데이터에 url이 있으면 answer에 반드시 포함하세요 (예: "https://..." 형태로).
 8. RAG 데이터에 caution이 있으면 answer에 자연스럽게 안내하세요.
 9. RAG 데이터에 "⚠ 발급 정보 미검증" 표시가 있으면 answer에 "⚠ 발급처·수수료 정보는 아직 마이다가 검증 못 한 내용이라, 접수 기관에 한 번 더 확인해 주세요!"를 포함하세요.
