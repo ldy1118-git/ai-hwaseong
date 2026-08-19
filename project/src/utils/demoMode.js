@@ -21,7 +21,19 @@ export const DEMO_PROFILES = [
       career_experience: '있음', asset_group: '일반',
       business_period_months: 24, marital_status: '기혼',
       living_with_parents: false, entity_type: '개인',
-      vat_type: '간이과세', has_employee: false,
+      // 간이과세 · 직원 없음이었다. 계산은 맞았지만 이 조합은 세무일정에
+      // 「반드시 해야 하는 것」이 두 건뿐이고 둘 다 이미 지나서, 8월에
+      // 「내 매장」을 열면 다음 일정이 2027년 1월로 나왔다. 5개월 뒤
+      // 날짜에 「2027년 공휴일 미등록」 경고까지 붙어 화면이 비어 보였다.
+      //
+      // 일반과세 · 직원 있음으로 바꾸면 필수 5건 · 해당시 4건이 차고
+      // 다음 일정이 10/26(부가세 예정고지)로 당겨진다. 24개월 운영
+      // 음식점으로 전혀 어색하지 않은 조합이다.
+      //
+      // 매칭 숫자는 그대로다 — vat_type 과 has_employee 는 세무일정에만
+      // 쓰이고 공고 자격조건에는 들어가지 않는다. 두 조합 모두 신청가능
+      // 30건으로 같은 것을 확인했다. 발표 8장의 숫자를 안 건드린다.
+      vat_type: '일반과세', has_employee: true,
     },
   },
   {
