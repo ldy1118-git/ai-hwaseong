@@ -165,9 +165,10 @@ export default function Landing() {
           <span className="text-star-yellow">신청까지</span><br />
           Mars가 함께해요
         </h1>
-        <p className="relative text-sm text-warm-text leading-relaxed mb-8 max-w-xs">
+        <p className="relative text-sm text-warm-text leading-relaxed mb-8 max-w-sm">
           조건을 입력하면 나에게 딱 맞는 지원사업을 찾아드리고,<br />
-          서류 준비부터 마감까지 빠짐없이 챙겨드려요.
+          서류 준비부터 실제 신청까지 빠짐없이<br />
+          Mars-Fit의 탐사대원 "마이다"가 함께 챙겨드려요!
         </p>
 
         {/* Mars 캐릭터 */}

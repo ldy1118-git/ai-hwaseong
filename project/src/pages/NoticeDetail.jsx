@@ -29,6 +29,41 @@ function dDay(end) {
   return Math.ceil((new Date(end) - new Date()) / 86400000)
 }
 
+function TermTooltip({ term }) {
+  const [show, setShow] = useState(false)
+  return (
+    <span className="relative" style={{ display: 'inline-block' }}>
+      <span
+        className="border-b-2 border-dotted border-navy text-navy font-semibold cursor-help"
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+      >
+        {term.term}
+      </span>
+      {show && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-navy text-white text-xs rounded-xl p-3 shadow-xl z-50 pointer-events-none">
+          <p className="font-bold mb-1">{term.term}</p>
+          <p className="leading-relaxed">{term.easy}</p>
+          {term.caution && (
+            <p className="text-yellow-300 mt-1.5 leading-relaxed">주의 · {term.caution}</p>
+          )}
+          <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-navy rotate-45" />
+        </div>
+      )}
+    </span>
+  )
+}
+
+function annotate(text, terms) {
+  if (!text || !terms.length) return text
+  const escaped = terms.map(t => t.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const pattern = new RegExp(`(${escaped.join('|')})`, 'g')
+  return text.split(pattern).map((part, i) => {
+    const term = terms.find(t => t.term === part)
+    return term ? <TermTooltip key={i} term={term} /> : part
+  })
+}
+
 function Section({ title, children }) {
   return (
     <section className="mt-6">
@@ -119,7 +154,7 @@ export default function NoticeDetail() {
     <div className="min-h-screen bg-primary-bg">
       <Header />
 
-      <main className="max-w-2xl mx-auto px-5 pb-32">
+      <main className="max-w-2xl mx-auto px-5 pb-48">
         <button
           onClick={() => navigate('/home')}
           className="mt-4 text-sm font-medium text-navy hover:underline"
@@ -137,11 +172,11 @@ export default function NoticeDetail() {
           <span className="text-xs text-warm-text">{item.application_status}</span>
         </div>
 
-        <h1 className="text-lg font-bold text-navy leading-snug">{item.notice_title}</h1>
+        <h1 className="text-lg font-bold text-navy leading-snug">{annotate(item.notice_title, terms)}</h1>
 
         {item.summary && (
           <p className="mt-2 text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-            {item.summary}
+            {annotate(item.summary, terms)}
           </p>
         )}
 
@@ -170,23 +205,6 @@ export default function NoticeDetail() {
             )}
           </div>
         </Section>
-
-        {/* 공고문에 나온 어려운 말 */}
-        {terms.length > 0 && (
-          <Section title="공고문에 나온 어려운 말">
-            <div className="bg-star-yellow/20 border border-star-yellow/60 rounded-2xl p-4 space-y-3">
-              {terms.map(t => (
-                <div key={t.term}>
-                  <p className="text-sm font-bold text-navy">{t.term}</p>
-                  <p className="text-sm text-gray-700 leading-relaxed mt-0.5">{t.easy}</p>
-                  {t.caution && (
-                    <p className="text-xs text-sunset-orange leading-relaxed mt-1">주의 · {t.caution}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </Section>
-        )}
 
         {/* 서류 — 어디서 어떻게 떼는지까지 */}
         {docs.length > 0 && (
@@ -239,7 +257,7 @@ export default function NoticeDetail() {
       </main>
 
       {/* 하단 고정 액션 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-primary-bg/95 backdrop-blur border-t border-warm-gray/30 px-4 py-2">
+      <div className="fixed bottom-16 left-0 right-0 bg-primary-bg/95 backdrop-blur border-t border-warm-gray/30 px-4 py-2">
         <div className="max-w-2xl mx-auto flex flex-col gap-2">
           {item.source_url && (
             <a href={item.source_url} target="_blank" rel="noreferrer" className="w-full">

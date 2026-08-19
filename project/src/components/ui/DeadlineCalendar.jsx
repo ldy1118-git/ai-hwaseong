@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
-export default function DeadlineCalendar({ matches = [], loading }) {
+export default function DeadlineCalendar({ matches = [], loading, inProgress = null }) {
   const navigate = useNavigate()
   const today    = new Date()
 
@@ -40,6 +40,14 @@ export default function DeadlineCalendar({ matches = [], loading }) {
   const firstDay    = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const cells       = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
+
+  const inProgressKey = (() => {
+    const end = inProgress?.apply_period?.end
+    if (!end) return null
+    const d = new Date(end)
+    if (isNaN(d)) return null
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+  })()
 
   const selData = selKey ? (deadlineMap[selKey] ?? { urgent: [], regular: [] }) : null
   const selList = selData ? [...selData.urgent, ...selData.regular] : []
@@ -88,6 +96,7 @@ export default function DeadlineCalendar({ matches = [], loading }) {
             const dl      = deadlineMap[key]
             const hasU    = (dl?.urgent?.length ?? 0) > 0
             const hasR    = (dl?.regular?.length ?? 0) > 0
+            const hasIP   = inProgressKey === key
             const isSun   = (firstDay + day - 1) % 7 === 0
             const isSat   = (firstDay + day - 1) % 7 === 6
 
@@ -118,9 +127,12 @@ export default function DeadlineCalendar({ matches = [], loading }) {
                   isToday && !isSel ? 'ring-1 ring-inset ring-navy/40' : '',
                 ].join(' ')}>
                 <span className={`text-xs leading-none ${textClass}`}>{day}</span>
-                <div className="h-3 flex items-center mt-0.5">
+                <div className="h-3 flex items-center mt-0.5 gap-0.5">
                   {(hasU || hasR) && !isSel && (
                     <span className={`text-[9px] leading-none ${hasU ? 'text-sunset-orange' : 'text-navy'}`}>★</span>
+                  )}
+                  {hasIP && !isSel && (
+                    <span className="text-[9px] leading-none text-blue-400">◉</span>
                   )}
                 </div>
               </button>
@@ -129,7 +141,7 @@ export default function DeadlineCalendar({ matches = [], loading }) {
         </div>
 
         {/* 범례 */}
-        <div className="flex gap-5 mt-3 pt-3 border-t border-warm-gray/20">
+        <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-3 pt-3 border-t border-warm-gray/20">
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] leading-none text-sunset-orange">★</span>
             <span className="text-[11px] text-warm-text">긴급 마감 (D-14 이내)</span>
@@ -138,6 +150,12 @@ export default function DeadlineCalendar({ matches = [], loading }) {
             <span className="text-[11px] leading-none text-navy">★</span>
             <span className="text-[11px] text-warm-text">일반 마감</span>
           </div>
+          {inProgress && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] leading-none text-blue-400">◉</span>
+              <span className="text-[11px] text-warm-text">서류 준비 중</span>
+            </div>
+          )}
         </div>
       </div>
 
