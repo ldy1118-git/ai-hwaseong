@@ -13,6 +13,37 @@ import marsImg from '../../design/mars.png'
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
 // 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
 
+const PROGRESS_KEY = 'mars-fit-checklist-progress'
+
+function saveProgress(prog, itms) {
+  if (!prog?.notice_id) return
+  try {
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify({
+      notice_id:    prog.notice_id,
+      notice_title: prog.notice_title,
+      apply_period: prog.apply_period ?? {},
+      checkedCount: itms.filter(i => i.checked).length,
+      totalCount:   itms.length,
+      items:        itms.map(({ id, label, checked }) => ({ id, label, checked })),
+      raw:          prog,
+    }))
+  } catch {}
+}
+
+function restoreChecked(newItems, noticeId) {
+  if (!noticeId) return newItems
+  try {
+    const saved = JSON.parse(localStorage.getItem(PROGRESS_KEY) ?? 'null')
+    if (saved?.notice_id !== noticeId || !saved?.items?.length) return newItems
+    return newItems.map(it => {
+      const s = saved.items.find(si => si.label === it.label)
+      return s ? { ...it, checked: s.checked } : it
+    })
+  } catch {
+    return newItems
+  }
+}
+
 const STATIC_ITEMS = [
   { id: 1, label: '사업자등록증 사본',     desc: '주소·업종 변경 여부 확인 후 제출',  issueUrl: 'https://www.hometax.go.kr', checked: false },
   { id: 2, label: '신분증 사본',           desc: '대표자 신분증 앞면',                issueUrl: null,                       checked: false },
@@ -284,34 +315,33 @@ export default function ApplicationGuide() {
 
       // LLM 실패는 치명적이지 않다 — 기본 서류 목록을 그냥 보여주면 된다.
       // LLM 에러를 에러 화면으로 올리면 유저가 아무것도 못 한다.
+      let baseItems = STATIC_ITEMS.map(it => ({ ...it }))
       try {
         const result = await generateChecklistV1(matched, noticeJson, termsData)
         if (result.parsed?.checklist?.length) {
-          setItems(
-            result.parsed.checklist.map((it, i) => ({
-              id:       i + 1,
-              label:    it.document,
-              desc:     [
-                it.how_to_get,
-                it.fee            ? `수수료: ${it.fee}`              : null,
-                it.estimated_time ? `소요시간: ${it.estimated_time}` : null,
-              ].filter(Boolean).join(' · ') || it.required_type,
-              issueUrl: it.url ?? null,
-              checked:  false,
-            }))
-          )
+          baseItems = result.parsed.checklist.map((it, i) => ({
+            id:       i + 1,
+            label:    it.document,
+            desc:     [
+              it.how_to_get,
+              it.fee            ? `수수료: ${it.fee}`              : null,
+              it.estimated_time ? `소요시간: ${it.estimated_time}` : null,
+            ].filter(Boolean).join(' · ') || it.required_type,
+            issueUrl: it.url ?? null,
+            checked:  false,
+          }))
           setProgramName(result.parsed.program_name      ?? '')
           setNotes(result.parsed.important_notes         ?? [])
           setPending(result.parsed.pending_conditions    ?? [])
         } else {
-          // JSON 파싱 성공했지만 체크리스트가 비어있음 — 기본 목록 유지
           setLlmWarn('AI 분석 결과가 비어있어요. 기본 서류 목록을 보여드려요.')
         }
       } catch (llmErr) {
-        // LLM 오류: 에러 화면 대신 기본 서류 목록 + 경고 배너
         console.error('AI checklist LLM error:', llmErr)
         setLlmWarn(`AI 서버에 연결하지 못했어요 (${llmErr?.message ?? '알 수 없는 오류'}). 기본 서류 목록을 보여드려요.`)
       }
+      // 이전에 체크한 항목 복원
+      setItems(restoreChecked(baseItems, matched.notice_id))
     } catch (err) {
       // 매칭 자체가 실패한 경우 — 이때만 에러 화면
       console.error('AI checklist error:', err)
@@ -324,12 +354,20 @@ export default function ApplicationGuide() {
 
   // 체크박스 직접 토글 (즉시 반영)
   function handleToggle(id) {
-    setItems(prev => prev.map(it => it.id === id ? { ...it, checked: !it.checked } : it))
+    setItems(prev => {
+      const next = prev.map(it => it.id === id ? { ...it, checked: !it.checked } : it)
+      saveProgress(program, next)
+      return next
+    })
   }
 
   // DocumentStepDrawer 에서 모든 단계 완료 후 호출
   function handleComplete(id) {
-    setItems(prev => prev.map(it => it.id === id ? { ...it, checked: true } : it))
+    setItems(prev => {
+      const next = prev.map(it => it.id === id ? { ...it, checked: true } : it)
+      saveProgress(program, next)
+      return next
+    })
   }
 
   const checkedCount = items.filter(it => it.checked).length
@@ -347,7 +385,22 @@ export default function ApplicationGuide() {
     <div className="min-h-screen bg-primary-bg flex flex-col">
       <Header />
 
-      <div className="flex-1 overflow-y-auto pb-36">
+      <div className="max-w-4xl mx-auto w-full px-5 pt-3 flex items-center justify-between">
+        <button
+          onClick={() => navigate(-1)}
+          className="text-sm font-medium text-navy hover:underline"
+        >
+          ← 이전
+        </button>
+        <button
+          onClick={() => navigate('/home')}
+          className="text-sm font-medium text-navy hover:underline"
+        >
+          홈으로
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto pb-52">
         <div className="max-w-4xl mx-auto">
 
           {/* 프로그램명 */}
@@ -501,7 +554,7 @@ export default function ApplicationGuide() {
 
       {/* 고정 하단 버튼 */}
       {!loading && (
-        <div className="fixed bottom-0 inset-x-0 z-30 bg-primary-bg/95 backdrop-blur-sm border-t border-warm-gray/20 px-5 py-4">
+        <div className="fixed bottom-16 inset-x-0 z-30 bg-primary-bg/95 backdrop-blur-sm border-t border-warm-gray/20 px-5 py-4">
           <div className="max-w-4xl mx-auto flex flex-col gap-2.5">
 
             {/* 정책 신청 버튼 – 모든 서류 완료 시 노출 */}

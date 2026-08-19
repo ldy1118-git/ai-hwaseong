@@ -9,7 +9,7 @@ const BASE_TABS = [
   { icon: UserCircle2,   label: '내 정보', path: '/onboarding' },
 ]
 
-const NAV_PATHS = new Set(BASE_TABS.map(t => t.path))
+const HIDE_PATHS = new Set(['/', '/auth'])
 
 export default function BottomNav() {
   const { pathname } = useLocation()
@@ -24,7 +24,7 @@ export default function BottomNav() {
     t.path === '/district' ? { ...t, label: isOwner ? '내 매장' : '상권분석' } : t
   )
 
-  if (!NAV_PATHS.has(pathname)) return null
+  if (HIDE_PATHS.has(pathname)) return null
 
   return (
     <nav
