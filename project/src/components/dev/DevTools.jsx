@@ -215,7 +215,7 @@ function ProfileSwitcher() {
 
   return (
     <div className="space-y-2">
-      <p className="text-[10px] text-warm-text font-semibold uppercase tracking-wide">유형 전환 (Home 이동)</p>
+      <p className="text-[12px] text-warm-text font-semibold uppercase tracking-wide">유형 전환 (Home 이동)</p>
       {MOCK_PROFILES.map(m => {
         const isActive =
           current?.business_status === m.profile.business_status &&
@@ -233,12 +233,12 @@ function ProfileSwitcher() {
           >
             <span className="text-base flex-shrink-0">{m.emoji}</span>
             <span className="font-semibold flex-1">{m.label}</span>
-            {isActive && <span className="text-[10px] opacity-70">현재</span>}
+            {isActive && <span className="text-[12px] opacity-70">현재</span>}
           </button>
         )
       })}
       {current && (
-        <div className="mt-2 bg-gray-50 rounded-lg p-2 font-mono text-[10px] text-warm-text break-all max-h-28 overflow-y-auto">
+        <div className="mt-2 bg-gray-50 rounded-lg p-2 font-mono text-[12px] text-warm-text break-all max-h-28 overflow-y-auto">
           {JSON.stringify(current, null, 2)}
         </div>
       )}
@@ -290,7 +290,7 @@ export default function DevTools() {
           <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-warm-gray/20">
             <div className="flex flex-col">
               <span className="text-xs font-bold text-navy">Mock 모드</span>
-              <span className="text-[10px] text-warm-text">
+              <span className="text-[12px] text-warm-text">
                 {mock ? 'API 호출 없이 목업 데이터 사용 중' : '실제 API 호출 중'}
               </span>
             </div>
@@ -342,7 +342,7 @@ export default function DevTools() {
                   >
                     <span>{p.emoji}</span>
                     <span className="font-mono">{p.path}</span>
-                    <span className="ml-auto text-warm-text text-[10px]">{p.label}</span>
+                    <span className="ml-auto text-warm-text text-[12px]">{p.label}</span>
                   </button>
                 ))}
               </div>

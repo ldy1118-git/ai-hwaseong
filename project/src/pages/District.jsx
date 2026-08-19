@@ -80,7 +80,7 @@ function SectionTitle({ children, sub }) {
   return (
     <div className="mb-3">
       <h2 className="text-sm font-bold text-navy">{children}</h2>
-      {sub && <p className="text-[10px] text-warm-text mt-0.5 leading-relaxed">{sub}</p>}
+      {sub && <p className="text-[12px] text-warm-text mt-0.5 leading-relaxed">{sub}</p>}
     </div>
   )
 }
@@ -88,7 +88,7 @@ function SectionTitle({ children, sub }) {
 /** 법정기한이 휴일이라 밀린 경우에만 붙인다. 안 붙이면 사장님이 하루 늦게 안다. */
 function MovedNote({ legal, actual }) {
   return (
-    <p className="text-[10px] text-sunset-orange mt-1 leading-relaxed">
+    <p className="text-[12px] text-sunset-orange mt-1 leading-relaxed">
       법정기한 {shortLegal(legal)} 이 휴일이라 {korDate(actual)} 로 밀렸어요
     </p>
   )
@@ -105,13 +105,13 @@ function TaxRow({ item, open, onToggle }) {
       <button onClick={onToggle} className="w-full flex items-center gap-3 py-3 text-left">
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold text-navy">{item.title}</p>
-          <p className="text-[10px] text-warm-text mt-0.5">
+          <p className="text-[12px] text-warm-text mt-0.5">
             {item.recurrence === 'monthly' ? '매월 10일' : korDate(item.dueDate)}
             {item.moved && <span className="text-sunset-orange"> · 밀림</span>}
           </p>
         </div>
         {item.recurrence !== 'monthly' && (
-          <span className={`text-[10px] font-bold flex-shrink-0 ${urgent ? 'text-sunset-orange' : 'text-warm-text'}`}>
+          <span className={`text-[12px] font-bold flex-shrink-0 ${urgent ? 'text-sunset-orange' : 'text-warm-text'}`}>
             {dDayLabel(n)}
           </span>
         )}
@@ -123,27 +123,27 @@ function TaxRow({ item, open, onToggle }) {
 
       {open && (
         <div className="pb-3 space-y-2">
-          <p className="text-[11px] text-gray-700 leading-relaxed">{item.easy}</p>
+          <p className="text-[13px] text-gray-700 leading-relaxed">{item.easy}</p>
 
           {item.moved && <MovedNote legal={item.due} actual={item.dueDate} />}
 
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-primary-bg rounded-lg px-2.5 py-2">
-              <p className="text-[9px] text-warm-text">어디서</p>
-              <p className="text-[11px] font-semibold text-navy mt-0.5">{item.where}</p>
+              <p className="text-[13px] text-warm-text">어디서</p>
+              <p className="text-[13px] font-semibold text-navy mt-0.5">{item.where}</p>
             </div>
             <div className="bg-primary-bg rounded-lg px-2.5 py-2">
-              <p className="text-[9px] text-warm-text">기간</p>
-              <p className="text-[11px] font-semibold text-navy mt-0.5 leading-snug">{item.covers}</p>
+              <p className="text-[13px] text-warm-text">기간</p>
+              <p className="text-[13px] font-semibold text-navy mt-0.5 leading-snug">{item.covers}</p>
             </div>
           </div>
 
           {item.docs?.length > 0 && (
             <div>
-              <p className="text-[9px] text-warm-text mb-1">준비할 것</p>
+              <p className="text-[13px] text-warm-text mb-1">준비할 것</p>
               <div className="flex flex-wrap gap-1">
                 {item.docs.map(d => (
-                  <span key={d} className="text-[10px] text-navy bg-navy/5 rounded-full px-2 py-0.5">
+                  <span key={d} className="text-[12px] text-navy bg-navy/5 rounded-full px-2 py-0.5">
                     {d}
                   </span>
                 ))}
@@ -152,15 +152,15 @@ function TaxRow({ item, open, onToggle }) {
           )}
 
           {item.caution && (
-            <p className="text-[10px] text-warm-text leading-relaxed bg-warm-gray/10 rounded-lg px-2.5 py-2">
+            <p className="text-[12px] text-warm-text leading-relaxed bg-warm-gray/10 rounded-lg px-2.5 py-2">
               {item.caution}
             </p>
           )}
 
-          <p className="text-[10px] text-sunset-orange leading-relaxed">
+          <p className="text-[12px] text-sunset-orange leading-relaxed">
             안 하면 — {item.penalty}
           </p>
-          <p className="text-[9px] text-warm-text/70">근거 {item.source}</p>
+          <p className="text-[13px] text-warm-text/70">근거 {item.source}</p>
         </div>
       )}
     </div>
@@ -190,7 +190,7 @@ function ProfileCard({ profile, onEdit }) {
       <div className="flex items-start justify-between mb-3">
         <SectionTitle sub="온보딩에서 답해주신 내용이에요">내 정보</SectionTitle>
         <button onClick={onEdit}
-          className="flex items-center gap-1 text-[10px] text-navy font-semibold flex-shrink-0">
+          className="flex items-center gap-1 text-[12px] text-navy font-semibold flex-shrink-0">
           <Pencil size={10} /> 고치기
         </button>
       </div>
@@ -198,19 +198,19 @@ function ProfileCard({ profile, onEdit }) {
       {chips.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
           {chips.map(c => (
-            <span key={c} className="text-[11px] font-medium text-navy bg-primary-bg rounded-full px-2.5 py-1">
+            <span key={c} className="text-[13px] font-medium text-navy bg-primary-bg rounded-full px-2.5 py-1">
               {c}
             </span>
           ))}
         </div>
       ) : (
-        <p className="text-[11px] text-warm-text">아직 알려주신 게 없어요.</p>
+        <p className="text-[13px] text-warm-text">아직 알려주신 게 없어요.</p>
       )}
 
       {missing > 0 && (
         <div className="mt-3 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
           <AlertTriangle size={12} className="text-sunset-orange mt-0.5 flex-shrink-0" />
-          <p className="text-[10px] text-warm-text leading-relaxed">
+          <p className="text-[12px] text-warm-text leading-relaxed">
             세무 질문 {missing}개를 아직 안 하셨어요. 모른다고 빼버리면 해야 할 신고를
             통째로 놓칠 수 있어서, <b className="text-navy">일단 다 보여드리고 있어요.</b>{' '}
             <button onClick={onEdit} className="text-navy font-semibold underline underline-offset-2">
@@ -371,7 +371,7 @@ function CommercialAnalysisView() {
       {/* 목업 안내 */}
       <div className="flex items-start gap-2 bg-star-yellow/20 border border-star-yellow/50 rounded-xl px-3.5 py-2.5">
         <Info size={12} className="text-navy/50 mt-0.5 flex-shrink-0" />
-        <p className="text-[11px] text-warm-text leading-relaxed">
+        <p className="text-[13px] text-warm-text leading-relaxed">
           시설 수·유동인구는 <strong className="text-navy">목업(샘플)</strong>이에요.
           핀을 옮기거나 주소를 검색해 원하는 위치를 살펴보세요.
         </p>
@@ -393,7 +393,7 @@ function CommercialAnalysisView() {
               value={address}
               onChange={e => setAddress(e.target.value)}
               placeholder="도로명주소 입력 후 검색"
-              className="flex-1 min-w-0 text-[11px] bg-white border border-warm-gray/30 rounded-xl
+              className="flex-1 min-w-0 text-[13px] bg-white border border-warm-gray/30 rounded-xl
                          px-3 py-2 text-navy placeholder:text-warm-gray/60
                          focus:outline-none focus:border-navy transition-colors"
             />
@@ -410,26 +410,26 @@ function CommercialAnalysisView() {
 
         {/* 우측: 시설 정보 */}
         <Card className="flex-1 p-4 flex flex-col justify-between">
-          <p className="text-[11px] font-bold text-navy mb-3 leading-snug">이 위치에는</p>
+          <p className="text-[13px] font-bold text-navy mb-3 leading-snug">이 위치에는</p>
           <div className="space-y-2.5 flex-1">
             {AMENITY_ITEMS.map(({ key, label, Icon }) => (
               <div key={key} className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-primary-bg flex items-center justify-center flex-shrink-0">
                   <Icon size={11} className="text-navy" />
                 </div>
-                <span className="text-[10px] text-warm-text flex-1">{label}</span>
+                <span className="text-[12px] text-warm-text flex-1">{label}</span>
                 <span className="text-xs font-extrabold text-navy">{amenities[key]}</span>
-                <span className="text-[9px] text-warm-text">개</span>
+                <span className="text-[13px] text-warm-text">개</span>
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-warm-text mt-3">가 있어요</p>
+          <p className="text-[12px] text-warm-text mt-3">가 있어요</p>
         </Card>
       </div>
 
       {/* 하단: 유동인구 예측 */}
       <div className="bg-navy rounded-2xl px-4 py-4">
-        <p className="text-[10px] font-semibold text-white/60 mb-1">유동인구 예측</p>
+        <p className="text-[12px] font-semibold text-white/60 mb-1">유동인구 예측</p>
         <p className="text-xs text-white leading-relaxed">
           이 위치에서는 {footTraffic}
         </p>
@@ -543,7 +543,7 @@ export default function MyStore() {
               </div>
             </div>
 
-            <p className="text-[11px] text-gray-700 leading-relaxed mt-3 bg-primary-bg rounded-xl px-3 py-2.5">
+            <p className="text-[13px] text-gray-700 leading-relaxed mt-3 bg-primary-bg rounded-xl px-3 py-2.5">
               {next.easy}
             </p>
 
@@ -552,7 +552,7 @@ export default function MyStore() {
             {next.dueDate && !holidaysKnown(Number(next.dueDate.slice(0, 4))) && (
               <div className="mt-2 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
                 <AlertTriangle size={12} className="text-sunset-orange mt-0.5 flex-shrink-0" />
-                <p className="text-[10px] text-warm-text leading-relaxed">
+                <p className="text-[12px] text-warm-text leading-relaxed">
                   {next.dueDate.slice(0, 4)}년 공휴일이 아직 등록되지 않아 주말만 반영된
                   날짜예요. 연말에 확인해 주세요.
                 </p>
@@ -569,7 +569,7 @@ export default function MyStore() {
 
           {mustDo.length > 0 ? (
             <>
-              <p className="text-[10px] font-bold text-navy mb-1">
+              <p className="text-[12px] font-bold text-navy mb-1">
                 반드시 해야 하는 것 {mustDo.length}건
               </p>
               <div className="mb-1">
@@ -580,7 +580,7 @@ export default function MyStore() {
               </div>
             </>
           ) : (
-            <p className="text-[11px] text-warm-text py-2">해당되는 신고가 없어요.</p>
+            <p className="text-[13px] text-warm-text py-2">해당되는 신고가 없어요.</p>
           )}
 
           {/* 해당되면 이것도 — 반드시 따로 그린다.
@@ -589,7 +589,7 @@ export default function MyStore() {
             <div className="mt-3 pt-3 border-t border-warm-gray/15">
               <button onClick={() => setShowIf(v => !v)}
                 className="w-full flex items-center justify-between text-left">
-                <span className="text-[10px] font-bold text-warm-text">
+                <span className="text-[12px] font-bold text-warm-text">
                   해당되면 이것도 {ifApplicable.length}건
                 </span>
                 <ChevronDown size={14}
@@ -598,13 +598,13 @@ export default function MyStore() {
 
               {showIf && (
                 <div className="mt-1">
-                  <p className="text-[10px] text-warm-text leading-relaxed mb-2">
+                  <p className="text-[12px] text-warm-text leading-relaxed mb-2">
                     답해주신 것만으로는 해당되는지 알 수 없는 신고예요. 조건을 읽어보고
                     본인 얘기면 챙기세요.
                   </p>
                   {ifApplicable.map(e => (
                     <div key={e.id}>
-                      <p className="text-[10px] text-sunset-orange pt-2">{e.conditional}</p>
+                      <p className="text-[12px] text-sunset-orange pt-2">{e.conditional}</p>
                       <TaxRow item={e} open={openId === e.id}
                         onToggle={() => setOpenId(openId === e.id ? null : e.id)} />
                     </div>
@@ -617,7 +617,7 @@ export default function MyStore() {
           {!thisYearKnown && (
             <div className="mt-3 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
               <AlertTriangle size={12} className="text-sunset-orange mt-0.5 flex-shrink-0" />
-              <p className="text-[10px] text-warm-text leading-relaxed">
+              <p className="text-[12px] text-warm-text leading-relaxed">
                 {year}년 공휴일이 아직 등록되지 않아 주말만 반영된 날짜예요.
                 설·추석은 음력이라 자동 계산이 안 됩니다.
               </p>
@@ -632,7 +632,7 @@ export default function MyStore() {
           </SectionTitle>
 
           {failed ? (
-            <p className="text-[11px] text-warm-text py-2">
+            <p className="text-[13px] text-warm-text py-2">
               공고를 불러오지 못했어요. 잠시 뒤 다시 열어주세요.
             </p>
           ) : !counts ? (
@@ -649,7 +649,7 @@ export default function MyStore() {
                 ].map(d => (
                   <div key={d.label} className="bg-primary-bg rounded-xl py-3 text-center">
                     <p className={`text-xl font-extrabold leading-none ${d.color}`}>{d.value}</p>
-                    <p className="text-[10px] text-warm-text mt-1">{d.label}</p>
+                    <p className="text-[12px] text-warm-text mt-1">{d.label}</p>
                   </div>
                 ))}
               </div>
@@ -664,12 +664,12 @@ export default function MyStore() {
                              rounded-xl px-3 py-2.5 hover:bg-warm-gray/20 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-warm-text">가장 먼저 마감돼요</p>
+                    <p className="text-[12px] text-warm-text">가장 먼저 마감돼요</p>
                     <p className="text-xs font-semibold text-navy truncate mt-0.5">
                       {counts.nearest.notice_title}
                     </p>
                   </div>
-                  <span className="text-[11px] font-bold text-sunset-orange flex-shrink-0">
+                  <span className="text-[13px] font-bold text-sunset-orange flex-shrink-0">
                     {dDayLabel(dDay(counts.nearest.apply_period?.end))}
                   </span>
                   <ChevronRight size={14} className="text-warm-gray flex-shrink-0" />
@@ -677,7 +677,7 @@ export default function MyStore() {
               )}
 
               {counts.soon > 0 && (
-                <p className="text-[11px] text-sunset-orange font-semibold mt-2">
+                <p className="text-[13px] text-sunset-orange font-semibold mt-2">
                   2주 안에 마감되는 공고가 {counts.soon}건 있어요
                 </p>
               )}
@@ -716,8 +716,8 @@ export default function MyStore() {
               <div key={f.name} className="flex items-start gap-2.5">
                 <Lock size={11} className="text-warm-gray mt-1 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold text-warm-text">{f.name}</p>
-                  <p className="text-[10px] text-warm-text/70 leading-relaxed mt-0.5">{f.need}</p>
+                  <p className="text-[13px] font-semibold text-warm-text">{f.name}</p>
+                  <p className="text-[12px] text-warm-text/70 leading-relaxed mt-0.5">{f.need}</p>
                 </div>
               </div>
             ))}
@@ -728,10 +728,10 @@ export default function MyStore() {
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-2">
             <FileText size={12} className="text-warm-text" />
-            <h2 className="text-[11px] font-bold text-navy">이 화면의 숫자는 어디서 왔나</h2>
+            <h2 className="text-[13px] font-bold text-navy">이 화면의 숫자는 어디서 왔나</h2>
           </div>
 
-          <ul className="space-y-1.5 text-[10px] text-warm-text leading-relaxed">
+          <ul className="space-y-1.5 text-[12px] text-warm-text leading-relaxed">
             <li className="flex gap-1.5">
               <MapPin size={10} className="mt-0.5 flex-shrink-0" />
               <span>내 정보 — 온보딩에서 직접 답해주신 내용</span>
@@ -753,7 +753,7 @@ export default function MyStore() {
           <a
             href="https://www.nts.go.kr/nts/ad/taxSchdul/selectList.do"
             target="_blank" rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1 text-[10px] text-navy font-semibold
+            className="mt-3 inline-flex items-center gap-1 text-[12px] text-navy font-semibold
                        underline underline-offset-2"
           >
             국세청 세무일정 원문 확인 <ExternalLink size={9} />

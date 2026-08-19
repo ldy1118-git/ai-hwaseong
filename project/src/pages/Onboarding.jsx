@@ -516,7 +516,7 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
               strokeDasharray={`${(filledCount / GRID_KEYS.length) * 100.5} 100.5`}
               strokeLinecap="round" />
           </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-[9px] font-extrabold text-navy">
+          <span className="absolute inset-0 flex items-center justify-center text-[13px] font-extrabold text-navy">
             {filledCount}/{GRID_KEYS.length}
           </span>
         </div>
@@ -542,10 +542,10 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
                 ].join(' ')}>
                 <span className="text-xl leading-none">{meta.emoji}</span>
                 <div className="w-full">
-                  <p className="text-[9px] text-warm-text font-medium leading-none mb-0.5">{meta.label}</p>
+                  <p className="text-[13px] text-warm-text font-medium leading-none mb-0.5">{meta.label}</p>
                   {filled
                     ? <p className="text-xs font-extrabold text-navy leading-tight truncate">{disp}</p>
-                    : <p className="text-[10px] text-warm-gray/40">미입력</p>
+                    : <p className="text-[12px] text-warm-gray/40">미입력</p>
                   }
                 </div>
               </button>

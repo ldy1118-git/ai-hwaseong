@@ -79,7 +79,7 @@ export default function DeadlineCalendar({ matches = [], loading, inProgress = n
         {/* 요일 헤더 */}
         <div className="grid grid-cols-7 mb-1">
           {WEEKDAYS.map((d, i) => (
-            <div key={d} className={`text-center text-[11px] font-semibold py-1
+            <div key={d} className={`text-center text-[13px] font-semibold py-1
               ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-warm-text'}`}>
               {d}
             </div>
@@ -129,10 +129,10 @@ export default function DeadlineCalendar({ matches = [], loading, inProgress = n
                 <span className={`text-xs leading-none ${textClass}`}>{day}</span>
                 <div className="h-3 flex items-center mt-0.5 gap-0.5">
                   {(hasU || hasR) && !isSel && (
-                    <span className={`text-[9px] leading-none ${hasU ? 'text-sunset-orange' : 'text-navy'}`}>★</span>
+                    <span className={`text-[13px] leading-none ${hasU ? 'text-sunset-orange' : 'text-navy'}`}>★</span>
                   )}
                   {hasIP && !isSel && (
-                    <span className="text-[9px] leading-none text-blue-400">◉</span>
+                    <span className="text-[13px] leading-none text-blue-400">◉</span>
                   )}
                 </div>
               </button>
@@ -143,17 +143,17 @@ export default function DeadlineCalendar({ matches = [], loading, inProgress = n
         {/* 범례 */}
         <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-3 pt-3 border-t border-warm-gray/20">
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] leading-none text-sunset-orange">★</span>
-            <span className="text-[11px] text-warm-text">긴급 마감 (D-14 이내)</span>
+            <span className="text-[13px] leading-none text-sunset-orange">★</span>
+            <span className="text-[13px] text-warm-text">긴급 마감 (D-14 이내)</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] leading-none text-navy">★</span>
-            <span className="text-[11px] text-warm-text">일반 마감</span>
+            <span className="text-[13px] leading-none text-navy">★</span>
+            <span className="text-[13px] text-warm-text">일반 마감</span>
           </div>
           {inProgress && (
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] leading-none text-blue-400">◉</span>
-              <span className="text-[11px] text-warm-text">서류 준비 중</span>
+              <span className="text-[13px] leading-none text-blue-400">◉</span>
+              <span className="text-[13px] text-warm-text">서류 준비 중</span>
             </div>
           )}
         </div>

@@ -254,9 +254,9 @@ function BusinessOwnerSection({ profile }) {
           <div key={i}
             className="bg-white border border-warm-gray/20 rounded-2xl p-3 text-center shadow-sm">
             <span className="text-2xl">{d.icon}</span>
-            <p className="text-[10px] text-warm-text mt-1 leading-tight">{d.top}</p>
+            <p className="text-[12px] text-warm-text mt-1 leading-tight">{d.top}</p>
             <p className="text-xs font-bold text-navy mt-0.5">{d.mid}</p>
-            <p className="text-[9px] text-warm-text/70 mt-0.5">{d.sub}</p>
+            <p className="text-[13px] text-warm-text/70 mt-0.5">{d.sub}</p>
           </div>
         ))}
       </div>
@@ -302,7 +302,7 @@ function StartupPlannerSection({ profile }) {
           {ORBIT_STEPS.map((_, i) => (
             <div key={i}
               className={[
-                'relative z-10 w-7 h-7 rounded-full border-2 flex items-center justify-center text-[11px] font-bold bg-white',
+                'relative z-10 w-7 h-7 rounded-full border-2 flex items-center justify-center text-[13px] font-bold bg-white',
                 i <  step ? 'border-navy bg-navy text-white' :
                 i === step ? 'border-navy text-navy' :
                              'border-warm-gray/30 text-warm-text',
@@ -314,7 +314,7 @@ function StartupPlannerSection({ profile }) {
         {/* 레이블 */}
         <div className="flex justify-between">
           {ORBIT_STEPS.map((s, i) => (
-            <p key={i} className={`text-[9px] text-center flex-1 leading-tight
+            <p key={i} className={`text-[13px] text-center flex-1 leading-tight
               ${i <= step ? 'text-navy font-semibold' : 'text-warm-text'}`}>
               {s}
             </p>
@@ -371,7 +371,7 @@ function ExplorerSection({ profile, navigate }) {
                   : 'bg-warm-gray/5 border-warm-gray/20',
               ].join(' ')}>
               <span className="text-2xl">{c.emoji}</span>
-              <span className={`text-[10px] font-semibold
+              <span className={`text-[12px] font-semibold
                 ${profile.category === c.label ? 'text-navy' : 'text-warm-text'}`}>
                 {c.label}
               </span>
@@ -409,9 +409,9 @@ function AppliedProgramsSection({ programs }) {
               <p className="text-xs text-warm-text mt-1.5">{p.organizer}</p>
             )}
             <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-warm-gray/15">
-              <p className="text-[11px] text-warm-text">{p.applied_at} 신청</p>
+              <p className="text-[13px] text-warm-text">{p.applied_at} 신청</p>
               {p.apply_period?.end && (
-                <p className="text-[11px] text-warm-text">마감 {p.apply_period.end}</p>
+                <p className="text-[13px] text-warm-text">마감 {p.apply_period.end}</p>
               )}
             </div>
           </div>
@@ -502,11 +502,11 @@ export default function Home() {
             <span className="text-sunset-orange text-sm leading-none mt-0.5">!</span>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-navy">지원사업을 불러오지 못했어요</p>
-              <p className="text-[10px] text-warm-text mt-0.5 leading-relaxed">{matchError}</p>
+              <p className="text-[12px] text-warm-text mt-0.5 leading-relaxed">{matchError}</p>
             </div>
             <button
               onClick={() => setProfile(p => ({ ...p }))}
-              className="text-[10px] font-bold text-navy underline underline-offset-2 flex-shrink-0"
+              className="text-[12px] font-bold text-navy underline underline-offset-2 flex-shrink-0"
             >
               다시 시도
             </button>

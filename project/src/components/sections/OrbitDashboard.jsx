@@ -39,8 +39,8 @@ function AnnotatedText({ text, termDefs }) {
             <span className="underline decoration-dotted decoration-navy/50 cursor-help font-medium text-navy">
               {part}
             </span>
-            <span className="absolute bottom-full left-0 mb-2 w-56 bg-navy text-white text-[10px] leading-relaxed rounded-xl px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg whitespace-normal">
-              <strong className="block text-[11px] mb-0.5">{def.term}</strong>
+            <span className="absolute bottom-full left-0 mb-2 w-56 bg-navy text-white text-[12px] leading-relaxed rounded-xl px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg whitespace-normal">
+              <strong className="block text-[13px] mb-0.5">{def.term}</strong>
               {def.easy}
               {def.caution && (
                 <span className="block mt-1 text-sunset-orange">주의 · {def.caution}</span>
@@ -74,7 +74,7 @@ function ScoreBar({ score, color }) {
           style={{ width: `${score}%` }}
         />
       </div>
-      <span className="text-[11px] text-warm-text font-medium flex-shrink-0">매칭 {score}%</span>
+      <span className="text-sm text-warm-text font-medium flex-shrink-0">매칭 {score}%</span>
     </div>
   )
 }
@@ -96,22 +96,22 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
 
       {/* 상단: 상태 배지 + D-Day */}
       <div className="flex items-center justify-between mb-1.5">
-        <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[item.status] ?? 'text-warm-text bg-warm-gray/20'}`}>
+        <span className={`text-sm font-medium rounded-full px-2.5 py-0.5 ${STATUS_STYLE[item.status] ?? 'text-warm-text bg-warm-gray/20'}`}>
           {item.status}
         </span>
         {item.dDay !== null && (
-          <span className={`text-sm font-bold ${isUrgent ? 'text-sunset-orange' : 'text-navy'}`}>
+          <span className={`text-base font-bold ${isUrgent ? 'text-sunset-orange' : 'text-navy'}`}>
             D-{item.dDay}
           </span>
         )}
       </div>
 
       {/* 정책명 */}
-      <p className="text-sm font-bold text-navy leading-snug line-clamp-2">{item.title}</p>
+      <p className="text-base font-bold text-navy leading-snug line-clamp-2">{item.title}</p>
 
       {/* 공고 요약 — AI 요약 우선, 없으면 첫 문장 fallback. 어려운 단어는 툴팁 */}
       {(aiDesc || briefDesc(item.summary)) && (
-        <p className="mt-1.5 text-xs text-warm-text leading-relaxed">
+        <p className="mt-1.5 text-sm text-warm-text leading-relaxed">
           <AnnotatedText text={aiDesc || briefDesc(item.summary)} termDefs={termDefs} />
         </p>
       )}
@@ -119,8 +119,8 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
       {/* 주관기관 */}
       {item.organizer && (
         <div className={`mt-2 rounded-xl px-3 py-2 ${isUrgent ? 'bg-sunset-orange/10' : 'bg-navy/5'}`}>
-          <p className="text-[10px] font-bold text-warm-text mb-0.5">주관기관</p>
-          <p className="text-xs text-navy">{item.organizer}</p>
+          <p className="text-xs font-bold text-warm-text mb-0.5">주관기관</p>
+          <p className="text-sm text-navy">{item.organizer}</p>
         </div>
       )}
 
@@ -134,13 +134,13 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
             const s = COND_STYLE[c.status] ?? COND_STYLE['확인필요']
             return (
               <div key={i} className="flex items-start gap-2">
-                <span className={`mt-0.5 w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-white ${s.dot}`}>
+                <span className={`mt-0.5 w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white ${s.dot}`}>
                   {s.icon}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <span className={`text-[10px] font-bold ${s.text}`}>{c.condition}</span>
+                  <span className={`text-sm font-bold ${s.text}`}>{c.condition}</span>
                   {c.detail && (
-                    <p className="text-[10px] text-warm-text leading-snug mt-0.5">{c.detail}</p>
+                    <p className="text-sm text-warm-text leading-snug mt-0.5">{c.detail}</p>
                   )}
                 </div>
               </div>
@@ -154,14 +154,14 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
         {conditions.length > 0 ? (
           <button
             onClick={() => setShowReason(v => !v)}
-            className={`text-xs font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
+            className={`text-sm font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
           >
             매칭이유 {showReason ? '▲' : '▼'}
           </button>
         ) : <span />}
         <button
           onClick={onDetail}
-          className={`text-xs font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
+          className={`text-sm font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
         >
           자세히 →
         </button>
@@ -366,7 +366,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
         <>
           <div className="flex items-center gap-2 mb-3">
             <span className="w-2 h-2 rounded-full bg-sunset-orange animate-pulse" />
-            <h2 className="text-sm font-bold text-sunset-orange tracking-wide uppercase">긴급 마감</h2>
+            <h2 className="text-base font-bold text-sunset-orange tracking-wide uppercase">긴급 마감</h2>
           </div>
           <div className="grid grid-cols-1 gap-3 mb-3">
             {loading
@@ -379,7 +379,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
           {!loading && urgent.length > INITIAL_COUNT && (
             <button
               onClick={() => setShowMoreUrgent(v => !v)}
-              className="w-full mb-6 py-2.5 rounded-xl border border-sunset-orange/40 text-xs font-medium text-sunset-orange hover:bg-sunset-orange/5 transition-colors"
+              className="w-full mb-6 py-2.5 rounded-xl border border-sunset-orange/40 text-sm font-medium text-sunset-orange hover:bg-sunset-orange/5 transition-colors"
             >
               {showMoreUrgent ? '접기 ▲' : `추가 사업 더보기 +${urgent.length - INITIAL_COUNT} ▼`}
             </button>
@@ -391,7 +391,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
       {/* 지원사업 탐색 */}
       <div className="flex items-center gap-2 mb-3">
         <span className="w-2 h-2 rounded-full bg-navy" />
-        <h2 className="text-sm font-bold text-navy tracking-wide uppercase">지원사업 탐색</h2>
+        <h2 className="text-base font-bold text-navy tracking-wide uppercase">지원사업 탐색</h2>
       </div>
       <div className="grid grid-cols-1 gap-3">
         {loading
@@ -405,7 +405,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
       {!loading && regular.length > INITIAL_COUNT && (
         <button
           onClick={() => setShowMoreRegular(v => !v)}
-          className="w-full mt-3 py-2.5 rounded-xl border border-navy/30 text-xs font-medium text-navy hover:bg-navy/5 transition-colors"
+          className="w-full mt-3 py-2.5 rounded-xl border border-navy/30 text-sm font-medium text-navy hover:bg-navy/5 transition-colors"
         >
           {showMoreRegular ? '접기 ▲' : `추가 사업 더보기 +${regular.length - INITIAL_COUNT} ▼`}
         </button>
