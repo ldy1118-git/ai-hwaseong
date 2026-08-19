@@ -383,16 +383,55 @@ function ExplorerSection({ profile, navigate }) {
   )
 }
 
+/* ── 내가 신청한 사업 섹션 ──────────────────────── */
+
+function AppliedProgramsSection({ programs }) {
+  return (
+    <section className="px-5 pb-8">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+        <h2 className="text-sm font-bold text-navy">내가 신청한 사업</h2>
+      </div>
+      <div className="space-y-3">
+        {programs.map(p => (
+          <div key={p.notice_id}
+            className="bg-white border border-warm-gray/20 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-semibold text-navy line-clamp-2 leading-snug flex-1">
+                {p.notice_title}
+              </p>
+              <span className="flex-shrink-0 text-xs font-bold text-emerald-600
+                               bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                신청 완료
+              </span>
+            </div>
+            {p.organizer && (
+              <p className="text-xs text-warm-text mt-1.5">{p.organizer}</p>
+            )}
+            <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-warm-gray/15">
+              <p className="text-[11px] text-warm-text">{p.applied_at} 신청</p>
+              {p.apply_period?.end && (
+                <p className="text-[11px] text-warm-text">마감 {p.apply_period.end}</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 /* ── 메인 페이지 ─────────────────────────────────── */
 
 export default function Home() {
   const navigate = useNavigate()
 
-  const [profile,      setProfile]      = useState(null)
-  const [allMatches,   setAllMatches]   = useState([])
-  const [matchLoading, setMatchLoading] = useState(true)
-  const [editingField, setEditingField] = useState(null)
-  const [matchError,   setMatchError]   = useState('')
+  const [profile,          setProfile]          = useState(null)
+  const [allMatches,       setAllMatches]       = useState([])
+  const [matchLoading,     setMatchLoading]     = useState(true)
+  const [editingField,     setEditingField]     = useState(null)
+  const [matchError,       setMatchError]       = useState('')
+  const [appliedPrograms,  setAppliedPrograms]  = useState([])
 
   /* 진입 가드 + 프로필 로드 */
   useEffect(() => {
@@ -400,6 +439,11 @@ export default function Home() {
     if (!saved) { navigate('/onboarding', { replace: true }); return }
     try { setProfile(JSON.parse(saved)) }
     catch { navigate('/onboarding', { replace: true }) }
+
+    try {
+      const applied = JSON.parse(localStorage.getItem('mars-fit-applied-programs') ?? '[]')
+      setAppliedPrograms(applied)
+    } catch {}
   }, [navigate])
 
   /* 매칭 데이터 한 번만 fetch */
@@ -476,8 +520,11 @@ export default function Home() {
           prefetchedLoading={matchLoading}
         />
 
-        {/* 공통: 마감 캘린더 */}
-        <DeadlineCalendar matches={allMatches} loading={matchLoading} />
+        {/* 신청한 사업이 있으면 캘린더 대신 표시 */}
+        {appliedPrograms.length > 0
+          ? <AppliedProgramsSection programs={appliedPrograms} />
+          : <DeadlineCalendar matches={allMatches} loading={matchLoading} />
+        }
       </main>
 
       {/* 마이다 FAB */}
