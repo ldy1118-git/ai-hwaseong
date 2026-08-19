@@ -79,15 +79,18 @@ export default function DeadlineCalendar({ matches = [], loading, inProgress = n
         {/* 요일 헤더 */}
         <div className="grid grid-cols-7 mb-1">
           {WEEKDAYS.map((d, i) => (
-            <div key={d} className={`text-center text-[13px] font-semibold py-1
+            <div key={d} className={`text-center text-[13px] lg:text-sm font-semibold py-1
               ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-warm-text'}`}>
               {d}
             </div>
           ))}
         </div>
 
-        {/* 날짜 셀 */}
-        <div className="grid grid-cols-7">
+        {/* 날짜 셀 —
+            전에는 세로가 py-1.5 로 40px 쯤 고정이었다. 넓은 화면에서는
+            칸 폭이 100px 가까이 되는데 높이는 그대로라 납작해 보였다.
+            정사각형으로 두면 어느 폭에서든 달력다운 비율이 나온다. */}
+        <div className="grid grid-cols-7 gap-0.5 lg:gap-1">
           {cells.map((day, i) => {
             if (!day) return <div key={`e${i}`} />
             const key     = `${year}-${month}-${day}`
@@ -122,17 +125,18 @@ export default function DeadlineCalendar({ matches = [], loading, inProgress = n
               <button key={day}
                 onClick={() => setSelKey(prev => prev === key ? null : key)}
                 className={[
-                  'flex flex-col items-center py-1.5 rounded-xl transition-colors',
+                  'aspect-square flex flex-col items-center justify-center gap-1',
+                  'rounded-xl transition-colors',
                   bgClass,
                   isToday && !isSel ? 'ring-1 ring-inset ring-navy/40' : '',
                 ].join(' ')}>
-                <span className={`text-xs leading-none ${textClass}`}>{day}</span>
-                <div className="h-3 flex items-center mt-0.5 gap-0.5">
+                <span className={`text-xs lg:text-base leading-none ${textClass}`}>{day}</span>
+                <div className="h-3 flex items-center gap-0.5">
                   {(hasU || hasR) && !isSel && (
-                    <span className={`text-[13px] leading-none ${hasU ? 'text-sunset-orange' : 'text-navy'}`}>★</span>
+                    <span className={`text-[13px] lg:text-base leading-none ${hasU ? 'text-sunset-orange' : 'text-navy'}`}>★</span>
                   )}
                   {hasIP && !isSel && (
-                    <span className="text-[13px] leading-none text-blue-400">◉</span>
+                    <span className="text-[13px] lg:text-base leading-none text-blue-400">◉</span>
                   )}
                 </div>
               </button>

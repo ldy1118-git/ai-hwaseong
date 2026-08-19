@@ -141,7 +141,10 @@ export default function Schedule() {
             성격이 아예 다른 둘을 세로로 쌓아두면 상시 접수가 달력 밑에
             묻혀서 안 보인다 — 그런데 그게 59건 중 30건이다.
             나란히 놓으면 「날짜가 있는 것 / 없는 것」이 한눈에 갈린다. */}
-        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-x-6 lg:items-start">
+        {/* 달력 칸을 정사각형으로 바꿨더니 폭이 그대로면 한 칸이 100px 가까이
+            된다. 달력 쪽에 상한을 두고 남는 폭은 상시 접수에 준다 —
+            공고 제목이 길어서 넓을수록 읽기 좋다. */}
+        <div className="lg:grid lg:grid-cols-[minmax(0,620px)_minmax(0,1fr)] lg:gap-x-6 lg:items-start">
           <div className="min-w-0">
             <DeadlineCalendar matches={matches} loading={loading} inProgress={inProgress} />
           </div>
