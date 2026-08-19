@@ -3,17 +3,26 @@ export default function Card({
   className = '',
   onClick,
   padding = 'md',
+  tone = 'plain',
 }) {
   const paddings = { sm: 'p-3', md: 'p-5', lg: 'p-7', none: '' }
+
+  // 톤은 className 으로 덮지 않고 여기서 고른다. Tailwind 는 클래스를
+  // 쓴 순서가 아니라 스타일시트 순서로 이기기 때문에, bg-white 를
+  // 밖에서 bg-... 로 덮으면 어느 쪽이 이길지 예측할 수 없다.
+  const tones = {
+    // 기본 — 흰 면. 페이지 배경(#fafaf5)과 갈라진다.
+    plain:  'bg-white border-warm-gray/40',
+    // 마감이 급한 것. 왼쪽 색막대 대신 면을 살짝 덥힌다.
+    urgent: 'bg-[#fdf6e8] border-sunset-orange/25',
+  }
 
   return (
     <div
       onClick={onClick}
       className={[
-        // 배경을 흰색으로. 전에는 bg-primary-bg 였는데 페이지 배경이
-        // 같은 #fafaf5 라 카드가 바탕에 묻혔다 — 테두리와 그림자로만
-        // 겨우 구분돼서 투명해 보였다.
-        'bg-white border border-warm-gray/40 rounded-2xl',
+        'border rounded-2xl',
+        tones[tone] ?? tones.plain,
         'shadow-[0_2px_8px_rgba(42,60,119,0.08)]',
         paddings[padding] ?? paddings.md,
         onClick ? 'cursor-pointer hover:shadow-[0_4px_16px_rgba(42,60,119,0.12)] transition-shadow duration-200' : '',

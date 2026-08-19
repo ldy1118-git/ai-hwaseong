@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/layout/Header'
 import MarsGreeting from '../components/sections/MarsGreeting'
@@ -307,8 +307,10 @@ function StartupPlannerSection({ profile, matches = [] }) {
   return (
     <section className="px-5 mb-6 space-y-4">
       {/* 지금 신청할 수 있는 것 — 전부 실제 판정값이다 */}
-      <div className="bg-white border border-warm-gray/40 rounded-2xl p-4 shadow-sm">
-        <span className="inline-block text-xs bg-navy/8 text-navy rounded-full
+      {/* 이 화면에서 제일 먼저 봐야 할 숫자라 남색 면을 준다. 흰 카드
+          사이에서 하나만 어두우면 눈이 거기부터 간다. */}
+      <div className="bg-navy rounded-2xl p-4">
+        <span className="inline-block text-xs bg-white/15 text-white rounded-full
                          px-2.5 py-0.5 font-semibold">
           {profile.category ? `${profile.category} · 예비창업` : '예비창업'}
         </span>
@@ -316,20 +318,20 @@ function StartupPlannerSection({ profile, matches = [] }) {
         {matches.length > 0 ? (
           <>
             <p className="mt-2.5 flex items-baseline gap-1.5">
-              <span className="text-3xl font-extrabold text-navy tabular-nums">{canApply.length}</span>
-              <span className="text-sm font-bold text-navy">건</span>
-              <span className="text-sm text-warm-text">지금 신청할 수 있어요</span>
+              <span className="text-3xl font-extrabold text-star-yellow tabular-nums">{canApply.length}</span>
+              <span className="text-sm font-bold text-star-yellow">건</span>
+              <span className="text-sm text-white/85">지금 신청할 수 있어요</span>
             </p>
             {best && (
-              <p className="mt-1.5 text-xs text-warm-text leading-relaxed">
+              <p className="mt-1.5 text-xs text-white/60 leading-relaxed">
                 가장 잘 맞는 것 —{' '}
-                <span className="font-bold text-navy">{best.title}</span>
-                <span className="text-warm-gray"> · 매칭 {best.score}점</span>
+                <span className="font-bold text-white">{best.title}</span>
+                <span> · 매칭 {best.score}점</span>
               </p>
             )}
           </>
         ) : (
-          <p className="mt-2.5 text-sm text-warm-text">
+          <p className="mt-2.5 text-sm text-white/70">
             조건을 채우면 신청할 수 있는 사업을 골라드려요.
           </p>
         )}
@@ -370,6 +372,80 @@ function StartupPlannerSection({ profile, matches = [] }) {
         </div>
       </div>
     </section>
+  )
+}
+
+/* ───────── 스크롤을 뒤늦게 따라오는 칸 ─────────
+ *
+ * 왼쪽 단의 캘린더와 카드들이 화면 밖으로 밀려나면, 오른쪽 공고 목록을
+ * 읽는 동안 왼쪽을 볼 수가 없다. 그렇다고 position:sticky 로 딱 붙여두면
+ * 스크롤과 무관하게 멈춰 있어서 화면이 굳은 것처럼 보인다.
+ *
+ * 목표 위치로 매 프레임 조금씩 다가가게(lerp) 해서 관성을 준다. 스크롤을
+ * 멈추면 스르륵 따라와 자리를 잡는다.
+ *
+ * 세 가지를 지킨다.
+ *   · 넓은 화면(lg)에서만. 좁은 화면에서 이러면 멀미가 난다
+ *   · prefers-reduced-motion 을 켠 사람에게는 아예 안 움직인다
+ *   · 왼쪽 단이 오른쪽보다 짧을 때만 움직인다. 남는 자리(room)가 없으면
+ *     0 이라 제자리다 — 위로 떠서 다른 것을 덮는 일이 없다
+ */
+function StickyLag({ children, top = 80, ease = 0.14 }) {
+  const wrapRef = useRef(null)
+  const boxRef = useRef(null)
+
+  useEffect(() => {
+    const wrap = wrapRef.current
+    const box = boxRef.current
+    if (!wrap || !box) return
+
+    const wide = window.matchMedia('(min-width: 1024px)')
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
+
+    let cur = 0
+    let raf = 0
+    let alive = true
+
+    const rest = () => { cur = 0; box.style.transform = '' }
+
+    function step() {
+      if (!alive) return
+      raf = 0
+      if (!wide.matches || calm.matches) { rest(); return }
+
+      // wrap 은 자리를 지킨다. box 만 움직인다.
+      const wrapTop = wrap.getBoundingClientRect().top
+      const room = wrap.offsetHeight - box.offsetHeight
+      const want = Math.min(Math.max(0, top - wrapTop), Math.max(0, room))
+
+      cur += (want - cur) * ease
+      if (Math.abs(want - cur) < 0.4) cur = want
+      box.style.transform = cur === 0 ? '' : `translate3d(0, ${cur.toFixed(2)}px, 0)`
+
+      if (cur !== want) raf = requestAnimationFrame(step)
+    }
+
+    const kick = () => { if (!raf) raf = requestAnimationFrame(step) }
+
+    window.addEventListener('scroll', kick, { passive: true })
+    window.addEventListener('resize', kick)
+    wide.addEventListener?.('change', kick)
+    kick()
+
+    return () => {
+      alive = false
+      if (raf) cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', kick)
+      window.removeEventListener('resize', kick)
+      wide.removeEventListener?.('change', kick)
+      rest()
+    }
+  }, [top, ease])
+
+  return (
+    <div ref={wrapRef} className="lg:flex-1 lg:min-h-0">
+      <div ref={boxRef} className="lg:will-change-transform">{children}</div>
+    </div>
   )
 }
 
@@ -560,28 +636,37 @@ export default function Home() {
           **좁은 화면의 순서는 그대로 둔다.** 지금은 공고 목록이 캘린더보다
           위에 있는데, 그냥 묶으면 캘린더가 위로 올라와 버린다. order 로
           모바일 순서를 고정하고, 넓은 화면에서만 격자로 배치한다. */}
+      {/* items-start 를 뺐다. 왼쪽 칸이 줄 높이만큼 늘어나야 관성 칸이
+          움직일 자리가 생긴다. */}
       <main className="mx-auto flex flex-col max-w-4xl pt-2
                        lg:max-w-6xl lg:grid lg:grid-cols-[360px_minmax(0,1fr)]
-                       lg:gap-x-6 lg:items-start lg:px-4 lg:pt-6">
+                       lg:gap-x-6 lg:px-4 lg:pt-6">
 
-        {/* ── 왼쪽 위: 나에 대한 것 ── */}
-        <div className="order-1 lg:order-none lg:col-start-1 lg:row-start-1">
-          {/* 마이다 인사 */}
+        {/* ── 왼쪽: 나에 대한 것 ──
+            인사 → 마감 캘린더 → 신청 가능 건수 → 창업 궤도 순서다.
+            인사는 그냥 흘려보내고, 그 아래만 관성으로 따라오게 한다. */}
+        <div className="order-1 lg:order-none lg:col-start-1 lg:row-start-1
+                        lg:h-full lg:flex lg:flex-col">
           <MarsGreeting userName={userName} />
-
-          {/* 프로필 요약 칩 */}
           <ProfileChips profile={profile} onEdit={setEditingField} />
 
-          {/* 유형별 위젯 */}
-          {role === 1 && <BusinessOwnerSection profile={profile} matches={allMatches} />}
-          {role === 2 && <StartupPlannerSection profile={profile} matches={allMatches} />}
-          {role === 3 && <ExplorerSection profile={profile} navigate={navigate} />}
+          <StickyLag>
+            {/* 신청한 사업이 있으면 캘린더 대신 표시 */}
+            {appliedPrograms.length > 0
+              ? <AppliedProgramsSection programs={appliedPrograms} />
+              : <DeadlineCalendar matches={allMatches} loading={matchLoading} />
+            }
+
+            {role === 1 && <BusinessOwnerSection profile={profile} matches={allMatches} />}
+            {role === 2 && <StartupPlannerSection profile={profile} matches={allMatches} />}
+            {role === 3 && <ExplorerSection profile={profile} navigate={navigate} />}
+          </StickyLag>
         </div>
 
         {/* ── 오른쪽: 공고 (주인공) ── */}
         {/* 오른쪽 단은 왼쪽 인사 밴드와 높이가 다르다. 그냥 두면
             「긴급 마감」이 상단바에 붙어버린다. 넓은 화면에서만 내린다. */}
-        <div className="order-2 lg:order-none lg:col-start-2 lg:row-start-1 lg:row-span-2 min-w-0 lg:pt-2">
+        <div className="order-2 lg:order-none lg:col-start-2 lg:row-start-1 min-w-0 lg:pt-2">
         {matchError && (
           <div className="mx-5 mb-3 flex items-start gap-2.5 bg-sunset-orange/5
                           border border-sunset-orange/20 rounded-2xl px-3.5 py-3">
@@ -605,17 +690,6 @@ export default function Home() {
           prefetchedMatches={allMatches}
           prefetchedLoading={matchLoading}
         />
-        </div>
-
-        {/* ── 왼쪽 아래: 마감 캘린더 ──
-            좁은 화면에서는 공고 목록 다음(order-3), 넓은 화면에서는
-            왼쪽 단 아래칸이다. */}
-        <div className="order-3 lg:order-none lg:col-start-1 lg:row-start-2">
-          {/* 신청한 사업이 있으면 캘린더 대신 표시 */}
-          {appliedPrograms.length > 0
-            ? <AppliedProgramsSection programs={appliedPrograms} />
-            : <DeadlineCalendar matches={allMatches} loading={matchLoading} />
-          }
         </div>
       </main>
 

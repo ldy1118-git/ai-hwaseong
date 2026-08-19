@@ -96,7 +96,7 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
   // 눈에 안 남는다. 급한 것은 D-day 색과 「긴급 마감」 묶음이 이미
   // 말해주고 있어서 막대가 없어도 구분된다.
   return (
-    <Card padding="md">
+    <Card padding="md" tone={isUrgent ? 'urgent' : 'plain'}>
 
       {/* 상단: 상태 배지 + 매칭 점수 + D-Day */}
       <div className="flex items-center justify-between gap-3 mb-1.5">
