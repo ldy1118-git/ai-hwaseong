@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Card from '../ui/Card'
 import { fetchMatches, lookupTerms, DEFAULT_PROFILE } from '../../utils/api'
@@ -213,6 +213,76 @@ function SkeletonCard() {
 
 const INITIAL_COUNT = 3
 
+/* ───────── 목록 칸을 「카드 세 장」에 묶어둔다 ─────────
+ *
+ * 공고 서른 건을 그대로 세우면 페이지가 끝없이 길어져서, 오른쪽 공고를
+ * 읽는 동안 왼쪽 캘린더는 한참 위로 사라진다. 그렇다고 「더보기」로
+ * 접어두면 사장님이 목록을 보려고 버튼을 한 번 더 눌러야 한다.
+ * 칸 안에서만 스크롤시키면 둘 다 해결된다.
+ *
+ * 칸 높이를 62vh 로 못박아봤는데 그게 틀렸다. 화면이 짧은 노트북에서는
+ * 카드가 두 장 반만 보이고 큰 모니터에서는 네 장이 보인다 — 기준이
+ * 화면 높이지 카드가 아니기 때문이다.
+ *
+ * 그래서 첫 세 장이 실제로 차지하는 높이를 재서 그걸 상한으로 쓴다.
+ * 어느 화면에서든 정확히 세 장이 보이고, 나머지는 안에서 스크롤된다.
+ *
+ * ResizeObserver 로 계속 지켜본다. 카드 안에서 「매칭이유」를 펴거나
+ * AI 요약이 뒤늦게 붙어 높이가 변해도 기준이 따라간다. */
+function useThreeCardCap(deps) {
+  const ref = useRef(null)
+  const [cap, setCap] = useState(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+
+    const measure = () => {
+      const kids = Array.from(el.children)
+      // 세 장 이하면 넘칠 게 없다. 상한을 걸면 스크롤바만 생긴다.
+      if (kids.length <= INITIAL_COUNT) return setCap(null)
+      const third = kids[INITIAL_COUNT - 1]
+      // offsetTop 은 배치상의 위치라 스크롤해도 변하지 않는다. 칸을 이미
+      // 잘라놓은 뒤에도 세 장의 높이를 그대로 다시 잴 수 있다.
+      setCap(third.offsetTop + third.offsetHeight - kids[0].offsetTop)
+    }
+    measure()
+
+    // 칸에 상한이 걸리고 나면 컨테이너는 더 이상 커지지 않는다. 카드가
+    // 혼자 자라는 것(매칭이유 펼침, AI 요약 도착)을 놓치지 않으려면
+    // 카드도 같이 지켜봐야 한다.
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    Array.from(el.children).slice(0, INITIAL_COUNT).forEach(k => ro.observe(k))
+    return () => ro.disconnect()
+  }, deps)
+
+  return [ref, cap]
+}
+
+/* 넓은 화면에서만 칸에 가둔다. 좁은 화면에서 안쪽 스크롤을 만들면
+ * 바깥 페이지 스크롤과 엉켜서 손가락이 어디를 미는지 알 수 없게 된다. */
+function useIsWide() {
+  const [wide, setWide] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const on = e => setWide(e.matches)
+    setWide(mq.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  return wide
+}
+
+/* 접혀 있을 때는 아무 제한도 걸지 않는다 — 내용이 딱 맞아서 스크롤바가
+ * 생길 이유가 없다. 펼쳤을 때만 상한과 스크롤을 준다. */
+function capStyle(wide, cap) {
+  if (!wide || !cap) return undefined
+  return { maxHeight: cap, overflowY: 'auto' }
+}
+
 async function summarizeBatch(items, signal, setAiDescs) {
   // 화면에 바로 보이는 카드만 (각 섹션 top 3 = 최대 6개)
   const visible = items.slice(0, INITIAL_COUNT * 2)
@@ -247,8 +317,6 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
   const [regular, setRegular]             = useState([])
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState(null)
-  const [showMoreUrgent, setShowMoreUrgent]   = useState(false)
-  const [showMoreRegular, setShowMoreRegular] = useState(false)
   const [aiDescs, setAiDescs]             = useState({})
   const [termDefs, setTermDefs]           = useState([])
 
@@ -332,6 +400,12 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
     return () => { cancelled = true }
   }, [urgent, regular, aiDescs])
 
+  // 목록은 언제나 전부 그린다. 「더보기」는 없앴다 — 어차피 칸 안에서
+  // 스크롤하는데 버튼까지 두면 같은 일을 두 군데서 시키는 셈이다.
+  const wide = useIsWide()
+  const [urgentRef,  urgentCap]  = useThreeCardCap([urgent,  loading, aiDescs, termDefs])
+  const [regularRef, regularCap] = useThreeCardCap([regular, loading, aiDescs, termDefs])
+
   function handleDetail(item) {
     localStorage.setItem('mars-fit-selected-match', JSON.stringify(item.raw))
     navigate('/notice')
@@ -382,8 +456,6 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
     )
   }
 
-  const visibleUrgent  = showMoreUrgent  ? urgent  : urgent.slice(0, INITIAL_COUNT)
-  const visibleRegular = showMoreRegular ? regular : regular.slice(0, INITIAL_COUNT)
 
   return (
     <section className="px-5 pb-28">
@@ -394,30 +466,15 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             <span className="w-2 h-2 rounded-full bg-sunset-orange animate-pulse" />
             <h2 className="text-base font-bold text-sunset-orange tracking-wide uppercase">긴급 마감</h2>
           </div>
-          {/* 목록이 길어지면 페이지가 통째로 아래로 늘어나서, 오른쪽을
-              끝까지 읽는 동안 왼쪽 캘린더는 한참 위로 사라진다. 일정
-              화면의 「상시 접수」처럼 칸 안에서만 스크롤시킨다. max-h 라
-              항목이 적으면 줄어들고, 빈자리가 생기지 않는다.
-              좁은 화면은 원래대로 — 작은 화면 안에 또 스크롤 칸을 만들면
-              바깥 스크롤과 엉킨다. */}
-          <div className="grid grid-cols-1 gap-3 mb-3
-                          lg:max-h-[42vh] lg:overflow-y-auto lg:pr-1.5">
+          <div ref={urgentRef} style={capStyle(wide, urgentCap)}
+               className="grid grid-cols-1 gap-3 mb-6 lg:pr-1.5">
             {loading
               ? [1, 2].map(i => <SkeletonCard key={i} />)
-              : visibleUrgent.map(item => (
+              : urgent.map(item => (
                   <ProgramCard key={item.id} item={item} accent="orange" onDetail={() => handleDetail(item)} aiDesc={aiDescs[item.id]} termDefs={termDefs} />
                 ))
             }
           </div>
-          {!loading && urgent.length > INITIAL_COUNT && (
-            <button
-              onClick={() => setShowMoreUrgent(v => !v)}
-              className="w-full mb-6 py-2.5 rounded-xl border border-sunset-orange/40 text-sm font-medium text-sunset-orange hover:bg-sunset-orange/5 transition-colors"
-            >
-              {showMoreUrgent ? '접기 ▲' : `추가 사업 더보기 +${urgent.length - INITIAL_COUNT} ▼`}
-            </button>
-          )}
-          {!loading && urgent.length <= INITIAL_COUNT && <div className="mb-6" />}
         </>
       )}
 
@@ -426,24 +483,16 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
         <span className="w-2 h-2 rounded-full bg-navy" />
         <h2 className="text-base font-bold text-navy tracking-wide uppercase">지원사업 탐색</h2>
       </div>
-      <div className="grid grid-cols-1 gap-3
-                      lg:max-h-[58vh] lg:overflow-y-auto lg:pr-1.5">
+      <div ref={regularRef} style={capStyle(wide, regularCap)}
+           className="grid grid-cols-1 gap-3 lg:pr-1.5">
         {loading
           ? [1, 2, 3, 4].map(i => <SkeletonCard key={i} />)
-          : visibleRegular.map(item => (
+          : regular.map(item => (
               <ProgramCard key={item.id} item={item} accent="navy"
                 onDetail={() => handleDetail(item)} aiDesc={aiDescs[item.id]} termDefs={termDefs} />
             ))
         }
       </div>
-      {!loading && regular.length > INITIAL_COUNT && (
-        <button
-          onClick={() => setShowMoreRegular(v => !v)}
-          className="w-full mt-3 py-2.5 rounded-xl border border-navy/30 text-sm font-medium text-navy hover:bg-navy/5 transition-colors"
-        >
-          {showMoreRegular ? '접기 ▲' : `추가 사업 더보기 +${regular.length - INITIAL_COUNT} ▼`}
-        </button>
-      )}
 
       {!loading && urgent.length === 0 && regular.length === 0 && (
         <p className="text-sm text-warm-text text-center py-8">현재 조건에 맞는 지원사업이 없어요.</p>
