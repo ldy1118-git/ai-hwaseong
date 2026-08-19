@@ -383,6 +383,14 @@ function InlineEditDrawer({ field, profile, onSave, onClose }) {
     const v = profile?.[field]
     return v === undefined ? '' : String(v)
   })
+  // 가운데 창은 Esc 로 닫히는 게 기본 기대다. 시트일 때는 아래로 쓸어내려
+  // 닫았지만 이제 그 동작이 없다.
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   if (!cfg) return null
 
   function confirm(raw) {
@@ -392,17 +400,24 @@ function InlineEditDrawer({ field, profile, onSave, onClose }) {
     onSave(field, val)
   }
 
+  // 아래에서 올라오는 시트였는데 가운데로 옮겼다. 목록에서 한 줄을 눌러
+  // 고치는 흐름이라, 시선이 목록 가운데에 있는데 창은 화면 맨 아래에서
+  // 올라오면 눈이 두 번 움직인다. 손잡이(드래그 바)도 뺐다 — 가운데
+  // 창에서는 끌어내릴 데가 없어서 뜻 없는 장식이 된다.
   return (
-    <>
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
-      <div className="fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-3xl shadow-2xl max-w-4xl mx-auto"
-           style={{ animation: 'slideUp 0.22s ease' }}>
-        <style>{`@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
-        <div className="px-5 pt-4 pb-4 border-b border-warm-gray/20">
-          <div className="w-10 h-1 bg-warm-gray/40 rounded-full mx-auto mb-4" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-5"
+         style={{ animation: 'popIn 0.16s ease-out' }}>
+      <style>{`@keyframes popIn{from{opacity:0}to{opacity:1}}
+               @keyframes cardIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}`}</style>
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative w-full max-w-sm max-h-[85vh] overflow-y-auto
+                      bg-white rounded-3xl shadow-2xl"
+           style={{ animation: 'cardIn 0.18s ease-out' }}
+           role="dialog" aria-modal="true" aria-label={cfg.title}>
+        <div className="sticky top-0 bg-white px-5 pt-5 pb-4 border-b border-warm-gray/20 rounded-t-3xl">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-navy">{cfg.title}</h3>
-            <button onClick={onClose}
+            <button onClick={onClose} aria-label="닫기"
               className="w-8 h-8 rounded-full bg-warm-gray/15 flex items-center justify-center
                          text-warm-text hover:bg-warm-gray/30 transition-colors text-sm">✕</button>
           </div>
@@ -467,11 +482,11 @@ function InlineEditDrawer({ field, profile, onSave, onClose }) {
           )}
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
-// 3×3 순서
+// 목록에 그리는 순서
 const GRID_KEYS = [
   'business_status', 'category',        'business_period_months',
   'age',             'region',           'career_experience',

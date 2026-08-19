@@ -10,7 +10,10 @@ export default function Card({
     <div
       onClick={onClick}
       className={[
-        'bg-primary-bg border border-warm-gray/50 rounded-2xl',
+        // 배경을 흰색으로. 전에는 bg-primary-bg 였는데 페이지 배경이
+        // 같은 #fafaf5 라 카드가 바탕에 묻혔다 — 테두리와 그림자로만
+        // 겨우 구분돼서 투명해 보였다.
+        'bg-white border border-warm-gray/40 rounded-2xl',
         'shadow-[0_2px_8px_rgba(42,60,119,0.08)]',
         paddings[padding] ?? paddings.md,
         onClick ? 'cursor-pointer hover:shadow-[0_4px_16px_rgba(42,60,119,0.12)] transition-shadow duration-200' : '',
