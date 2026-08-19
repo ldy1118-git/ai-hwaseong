@@ -458,7 +458,24 @@ export default function Home() {
             .filter(r => r.overall_status !== '대상아님')
             .map(mapMatch)
             .filter(r => r.dDay === null || r.dDay >= 0)
-            .sort((a, b) => (a.dDay ?? 999) - (b.dDay ?? 999))
+            /* 마감이 코앞인 것(7일 이내)을 먼저, 그다음은 적합도 순.
+             *
+             * 마감 임박순으로만 두면 나에게 맞는 사업이 화면에 안 온다.
+             * 음식점 사장님으로 조회했을 때 상위 8건에 음식점 관련이
+             * 하나도 없었다 — 전부 일반 판로지원이었고, 정작
+             * 「음식점 미세먼지·악취 방지시설 지원」(94점)은 상시접수라
+             * 맨 뒤에 있었다.
+             *
+             * 그렇다고 점수만 보면 내일 마감하는 것을 놓친다. 그래서
+             * 급한 것 먼저, 나머지는 잘 맞는 것 먼저로 나눈다. */
+            .sort((a, b) => {
+              const urgent = d => d !== null && d <= 7
+              const ua = urgent(a.dDay), ub = urgent(b.dDay)
+              if (ua !== ub) return ua ? -1 : 1
+              if (ua) return a.dDay - b.dDay        // 급한 것끼리는 마감순
+              if (b.score !== a.score) return b.score - a.score
+              return (a.dDay ?? 999) - (b.dDay ?? 999)
+            })
         )
       })
       .catch(err => setMatchError(err?.message || '지원사업을 불러오지 못했어요'))
