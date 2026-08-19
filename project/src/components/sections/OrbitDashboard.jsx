@@ -99,11 +99,19 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
         <span className={`text-sm font-medium rounded-full px-2.5 py-0.5 ${STATUS_STYLE[item.status] ?? 'text-warm-text bg-warm-gray/20'}`}>
           {item.status}
         </span>
-        {item.dDay !== null && (
+        {/* 공고 59건 중 30건은 마감일이 날짜가 아니라 「예산 소진시까지」
+            같은 문구다. 예전에는 날짜가 없으면 이 자리를 통째로 비웠는데,
+            그러면 절반이 넘는 공고가 언제까지인지 아무 말도 안 해준다.
+            문구가 있으면 그걸 그대로 보여준다 — 사장님에게 필요한 정보다. */}
+        {item.dDay !== null ? (
           <span className={`text-base font-bold ${isUrgent ? 'text-sunset-orange' : 'text-navy'}`}>
             D-{item.dDay}
           </span>
-        )}
+        ) : item.raw?.apply_period?.note ? (
+          <span className="text-sm font-bold text-warm-text whitespace-nowrap">
+            {item.raw.apply_period.note}
+          </span>
+        ) : null}
       </div>
 
       {/* 정책명 */}

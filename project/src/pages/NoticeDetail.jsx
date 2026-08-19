@@ -232,7 +232,11 @@ export default function NoticeDetail() {
           <div className={BOX}>
             {[
               ['접수 방법', item.apply_method],
-              ['접수 기간', period.start || period.end ? `${period.start ?? '?'} ~ ${period.end ?? '?'}` : null],
+              // 날짜가 없는 공고가 절반이 넘는다(59건 중 30건). 그럴 때는
+              // 원문 문구를 그대로 쓴다. 비워두면 언제까지인지 알 길이 없다.
+              ['접수 기간', period.start || period.end
+                ? `${period.start ?? '?'} ~ ${period.end ?? '?'}`
+                : period.note ?? null],
               ['소관기관', item.organizer],
               ['수행기관', item.operator],
             ].filter(([, v]) => v).map(([label, value], i) => (
