@@ -501,18 +501,37 @@ export default function Home() {
     <div className="min-h-screen bg-primary-bg">
       <Header onAvatarClick={() => navigate('/onboarding')} />
 
-      <main className="max-w-4xl mx-auto">
-        {/* 마이다 인사 */}
-        <MarsGreeting userName={userName} />
+      {/* 넓은 화면에서는 두 단으로 편다.
+          앱 전체에 반응형 클래스가 열두 개뿐이라 사실상 휴대폰 화면
+          하나만 있었다. 그걸 노트북에 띄우면 가운데 896px 만 쓰고
+          양옆이 통째로 빈다 — 시연도 발표도 넓은 화면에서 본다.
 
-        {/* 프로필 요약 칩 */}
-        <ProfileChips profile={profile} onEdit={setEditingField} />
+          왼쪽은 「나에 대한 것」(인사·프로필·위젯·마감 캘린더),
+          오른쪽은 「공고」다. 공고가 주인공이라 폭을 더 준다.
 
-        {/* 유형별 위젯 */}
-        {role === 1 && <BusinessOwnerSection profile={profile} />}
-        {role === 2 && <StartupPlannerSection profile={profile} />}
-        {role === 3 && <ExplorerSection profile={profile} navigate={navigate} />}
+          **좁은 화면의 순서는 그대로 둔다.** 지금은 공고 목록이 캘린더보다
+          위에 있는데, 그냥 묶으면 캘린더가 위로 올라와 버린다. order 로
+          모바일 순서를 고정하고, 넓은 화면에서만 격자로 배치한다. */}
+      <main className="mx-auto flex flex-col max-w-4xl
+                       lg:max-w-6xl lg:grid lg:grid-cols-[360px_minmax(0,1fr)]
+                       lg:gap-x-6 lg:items-start lg:px-4">
 
+        {/* ── 왼쪽 위: 나에 대한 것 ── */}
+        <div className="order-1 lg:order-none lg:col-start-1 lg:row-start-1">
+          {/* 마이다 인사 */}
+          <MarsGreeting userName={userName} />
+
+          {/* 프로필 요약 칩 */}
+          <ProfileChips profile={profile} onEdit={setEditingField} />
+
+          {/* 유형별 위젯 */}
+          {role === 1 && <BusinessOwnerSection profile={profile} />}
+          {role === 2 && <StartupPlannerSection profile={profile} />}
+          {role === 3 && <ExplorerSection profile={profile} navigate={navigate} />}
+        </div>
+
+        {/* ── 오른쪽: 공고 (주인공) ── */}
+        <div className="order-2 lg:order-none lg:col-start-2 lg:row-start-1 lg:row-span-2 min-w-0">
         {matchError && (
           <div className="mx-5 mb-3 flex items-start gap-2.5 bg-sunset-orange/5
                           border border-sunset-orange/20 rounded-2xl px-3.5 py-3">
@@ -536,12 +555,18 @@ export default function Home() {
           prefetchedMatches={allMatches}
           prefetchedLoading={matchLoading}
         />
+        </div>
 
-        {/* 신청한 사업이 있으면 캘린더 대신 표시 */}
-        {appliedPrograms.length > 0
-          ? <AppliedProgramsSection programs={appliedPrograms} />
-          : <DeadlineCalendar matches={allMatches} loading={matchLoading} />
-        }
+        {/* ── 왼쪽 아래: 마감 캘린더 ──
+            좁은 화면에서는 공고 목록 다음(order-3), 넓은 화면에서는
+            왼쪽 단 아래칸이다. */}
+        <div className="order-3 lg:order-none lg:col-start-1 lg:row-start-2">
+          {/* 신청한 사업이 있으면 캘린더 대신 표시 */}
+          {appliedPrograms.length > 0
+            ? <AppliedProgramsSection programs={appliedPrograms} />
+            : <DeadlineCalendar matches={allMatches} loading={matchLoading} />
+          }
+        </div>
       </main>
 
       {/* 마이다 FAB */}
