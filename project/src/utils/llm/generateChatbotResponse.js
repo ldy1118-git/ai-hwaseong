@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
-import { generateText, GEMINI_MODEL, GROQ_MODEL } from './llmProvider.js'
+import { generateText, GROQ_MODEL } from './llmProvider.js'
 
 export const MODEL_NAME = GROQ_MODEL
 
@@ -117,7 +117,6 @@ function formatDocContext(docs) {
 
 export async function generateChatbotResponseBaseline(question, history) {
   const text = await generateText({
-    model: GROQ_MODEL,
     systemPrompt: SYSTEM_BASE,
     userPrompt: question,
     history,
@@ -159,7 +158,6 @@ ${hasContext ? `\n${termCtx}\n${docCtx}` : '\n=== RAG 데이터 없음 — 위 �
 응답 JSON 구조: {"answer":"답변 텍스트","retrieved_terms":["사용한 용어명"],"retrieved_docs":["사용한 서류명"],"confidence":"high|medium|low","followup":["후속질문1","후속질문2"]}`
 
   const text = await generateText({
-    model: GROQ_MODEL,
     systemPrompt,
     userPrompt: question,
     history,
