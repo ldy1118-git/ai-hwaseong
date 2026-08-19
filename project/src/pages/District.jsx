@@ -341,7 +341,7 @@ function LeafletMap({ position, onMove, radii, markers }) {
   return <div ref={containerRef} style={{ height: '100%', width: '100%' }} />
 }
 
-// ── 상권분석 뷰 (예비창업자·탐색자용, 목업 데이터) ──────────────
+// ── 상권분석 뷰 ──────────────────────────────────────────────────
 
 const HWS_CENTER = { lat: 37.1999, lng: 126.8317 }
 
@@ -352,17 +352,11 @@ function seededRand(seed, min, max) {
 
 const BASE_RADIUS = 500
 
-function getMockAmenities(lat, lng, radii) {
+// 아파트만 mock (실제 위치 데이터 없음)
+function getMockApartmentCount(lat, lng, radius) {
   const s  = Math.abs(Math.round(lat * 100) * 1000 + Math.round(lng * 100))
-  const sc = (r) => Math.max(0.04, (r / BASE_RADIUS) ** 1.8)
-  return {
-    schools:     Math.max(0, Math.round(seededRand(s,     1, 6)   * sc(radii.schools))),
-    restaurants: Math.max(0, Math.round(seededRand(s + 1, 10, 85) * sc(radii.restaurants))),
-    academies:   Math.max(0, Math.round(seededRand(s + 2, 2, 28)  * sc(radii.academies))),
-    cafes:       Math.max(0, Math.round(seededRand(s + 3, 4, 38)  * sc(radii.cafes))),
-    apartments:  Math.max(0, Math.round(seededRand(s + 4, 1, 18)  * sc(radii.apartments))),
-    stations:    Math.max(0, Math.min(8, Math.round(seededRand(s + 5, 0, 3) * sc(radii.stations)))),
-  }
+  const sc = Math.max(0.04, (radius / BASE_RADIUS) ** 1.8)
+  return Math.max(0, Math.round(seededRand(s + 4, 1, 18) * sc))
 }
 
 function getFootTrafficText(am, stationPassengers) {
@@ -392,7 +386,6 @@ const AMENITY_CONFIG = [
 const DEFAULT_RADII = { schools: 500, restaurants: 500, academies: 500, cafes: 500, apartments: 500, stations: 500 }
 
 const CAT_KEY = { r: 'restaurants', c: 'cafes', a: 'academies' }
-const REAL_KEYS = new Set(['restaurants', 'cafes', 'academies'])
 
 function CommercialAnalysisView() {
   const [position, setPosition]   = useState(HWS_CENTER)
@@ -402,99 +395,88 @@ function CommercialAnalysisView() {
   const [expanded, setExpanded]   = useState(false)
   const [storeData, setStoreData]     = useState(null)
   const [stationData, setStationData] = useState(null)
+  const [schoolData, setSchoolData]   = useState(null)
 
-  // 소상공인 + 역 데이터 로드 (1회)
+  // 실제 데이터 로드 (1회)
   useEffect(() => {
-    fetch('./data/hwaseong_stores.json')
-      .then(r => r.json())
-      .then(setStoreData)
-      .catch(() => {})
-    fetch('./data/hwaseong_stations.json')
-      .then(r => r.json())
-      .then(setStationData)
-      .catch(() => {})
+    fetch('./data/hwaseong_stores.json').then(r => r.json()).then(setStoreData).catch(() => {})
+    fetch('./data/hwaseong_stations.json').then(r => r.json()).then(setStationData).catch(() => {})
+    fetch('./data/hwaseong_schools.json').then(r => r.json()).then(setSchoolData).catch(() => {})
   }, [])
 
-  // 반경 내 실제 업소 필터링 + 목업 합산
+  // 반경 내 실제 데이터 필터링 (학교·역·음식점·카페·학원 모두 실제, 아파트만 mock)
   const { amenities, displayMarkers, stationPassengersTotal } = useMemo(() => {
-    const mockBase = getMockAmenities(position.lat, position.lng, radii)
+    // 아파트 (mock)
+    const aptCount = getMockApartmentCount(position.lat, position.lng, radii.apartments)
 
-    // 실제 역 데이터 반경 필터
+    // 역 필터
     const nearbyStations = stationData
       ? stationData.filter(s => haversine(position.lat, position.lng, s.lat, s.lng) <= radii.stations)
       : null
-
     const stationPassengersTotal = nearbyStations
       ? nearbyStations.reduce((sum, s) => sum + s.passengers, 0)
       : null
 
-    // 역 마커 빌더 (팝업 포함)
-    const buildStationMarkers = (list) =>
-      (list ?? []).slice(0, 12).map(s => ({
-        lat: s.lat, lng: s.lng, key: 'stations',
-        popup: `<b>${s.name}역</b> (${s.line})${s.passengers > 0 ? `<br>일 평균 ${s.passengers.toLocaleString()}명 이용` : ''}`,
-      }))
+    // 학교 필터
+    const nearbySchools = schoolData
+      ? schoolData.filter(s => haversine(position.lat, position.lng, s.lat, s.lng) <= radii.schools)
+      : null
 
-    // 데이터 미로드 시 전부 목업
-    if (!storeData) {
-      const amenitiesResult = { ...mockBase }
-      if (nearbyStations) amenitiesResult.stations = nearbyStations.length
-
-      const markers = []
-      AMENITY_CONFIG.forEach(({ key }) => {
-        if (key === 'stations' && nearbyStations) {
-          markers.push(...buildStationMarkers(nearbyStations))
-        } else {
-          mockMarkerPositions(position.lat, position.lng, radii[key], amenitiesResult[key])
-            .forEach(pos => markers.push({ lat: pos.lat, lng: pos.lng, key }))
-        }
-      })
-      return { amenities: amenitiesResult, displayMarkers: markers, stationPassengersTotal }
+    // 아직 데이터 미로드 시 단순 카운트 0 (마커도 없이 로딩 상태)
+    const amenities = {
+      schools:     nearbySchools  ? nearbySchools.length  : 0,
+      restaurants: 0,
+      academies:   0,
+      cafes:       0,
+      apartments:  aptCount,
+      stations:    nearbyStations ? nearbyStations.length : 0,
     }
+    const buckets = { restaurants: [], cafes: [], academies: [] }
 
-    const amenities = { ...mockBase, restaurants: 0, cafes: 0, academies: 0 }
-    if (nearbyStations) amenities.stations = nearbyStations.length
-    const buckets   = { restaurants: [], cafes: [], academies: [] }
-
-    // 바운딩박스 사전필터 후 Haversine
-    const latDelta = Math.max(radii.restaurants, radii.cafes, radii.academies) / 111320 * 1.1
-    const lngDelta = latDelta / Math.cos(position.lat * Math.PI / 180)
-
-    for (const s of storeData) {
-      const key = CAT_KEY[s.cat]
-      if (!key) continue
-      if (Math.abs(s.lat - position.lat) > latDelta) continue
-      if (Math.abs(s.lng - position.lng) > lngDelta) continue
-      const dist = haversine(position.lat, position.lng, s.lat, s.lng)
-      if (dist <= radii[key]) { amenities[key]++; buckets[key].push(s) }
+    if (storeData) {
+      const latDelta = Math.max(radii.restaurants, radii.cafes, radii.academies) / 111320 * 1.1
+      const lngDelta = latDelta / Math.cos(position.lat * Math.PI / 180)
+      for (const s of storeData) {
+        const key = CAT_KEY[s.cat]
+        if (!key) continue
+        if (Math.abs(s.lat - position.lat) > latDelta) continue
+        if (Math.abs(s.lng - position.lng) > lngDelta) continue
+        const dist = haversine(position.lat, position.lng, s.lat, s.lng)
+        if (dist <= radii[key]) { amenities[key]++; buckets[key].push(s) }
+      }
     }
 
     const displayMarkers = []
 
-    // 목업 마커: 학교·아파트
-    ;['schools', 'apartments'].forEach(key => {
-      mockMarkerPositions(position.lat, position.lng, radii[key], amenities[key])
-        .forEach(pos => displayMarkers.push({ lat: pos.lat, lng: pos.lng, key }))
-    })
-
-    // 실제 마커: 역 (팝업 포함)
-    if (nearbyStations) {
-      displayMarkers.push(...buildStationMarkers(nearbyStations))
-    } else {
-      mockMarkerPositions(position.lat, position.lng, radii.stations, amenities.stations)
-        .forEach(pos => displayMarkers.push({ lat: pos.lat, lng: pos.lng, key: 'stations' }))
+    // 실제 마커: 학교 (팝업: 학교명)
+    if (nearbySchools) {
+      nearbySchools.forEach(s =>
+        displayMarkers.push({ lat: s.lat, lng: s.lng, key: 'schools', popup: `<b>${s.name}</b><br>${s.level}` })
+      )
     }
+
+    // 실제 마커: 역 (팝업: 역명·승객수)
+    if (nearbyStations) {
+      nearbyStations.forEach(s =>
+        displayMarkers.push({
+          lat: s.lat, lng: s.lng, key: 'stations',
+          popup: `<b>${s.name}역</b> (${s.line})${s.passengers > 0 ? `<br>일 평균 ${s.passengers.toLocaleString()}명 이용` : ''}`,
+        })
+      )
+    }
+
+    // mock 마커: 아파트
+    mockMarkerPositions(position.lat, position.lng, radii.apartments, aptCount)
+      .forEach(pos => displayMarkers.push({ lat: pos.lat, lng: pos.lng, key: 'apartments' }))
 
     // 실제 마커: 음식점·카페·학원 (최대 40개씩 균등 샘플)
     for (const [key, stores] of Object.entries(buckets)) {
       const step = stores.length <= 40 ? 1 : Math.ceil(stores.length / 40)
-      stores.forEach((s, i) => {
-        if (i % step === 0) displayMarkers.push({ lat: s.lat, lng: s.lng, key })
-      })
+      stores.forEach((s, i) => { if (i % step === 0) displayMarkers.push({ lat: s.lat, lng: s.lng, key }) })
     }
 
     return { amenities, displayMarkers, stationPassengersTotal }
-  }, [storeData, stationData, position.lat, position.lng, radii])
+  }, [storeData, stationData, schoolData, position.lat, position.lng, radii])
 
   const footTraffic = useMemo(() => getFootTrafficText(amenities, stationPassengersTotal), [amenities, stationPassengersTotal])
 
@@ -542,9 +524,10 @@ function CommercialAnalysisView() {
       <div className="flex items-start gap-2 bg-star-yellow/20 border border-star-yellow/50 rounded-xl px-3.5 py-2.5">
         <Info size={12} className="text-navy/50 mt-0.5 flex-shrink-0" />
         <p className="text-[11px] text-warm-text leading-relaxed">
-          음식점·카페·학원은 <strong className="text-navy">소상공인시장진흥공단 실제 데이터</strong>(2026.06),
-          역은 <strong className="text-navy">한국철도공사 실제 위치·승객 데이터</strong>예요.
-          학교·아파트는 목업이에요.
+          음식점·카페·학원은 <strong className="text-navy">소상공인시장진흥공단</strong>(2026.06),
+          학교는 <strong className="text-navy">경기도교육청</strong>,
+          역은 <strong className="text-navy">한국철도공사</strong> 실제 데이터예요.
+          아파트 단지만 목업이에요.
         </p>
       </div>
 
