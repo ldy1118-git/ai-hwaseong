@@ -1,0 +1,33 @@
+{
+ "notice_id": "PBLN_000000000120164",
+ "title": "2026년 중소기업제품 전용판매장(면세장) 참여기업 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000120164",
+ "summary": "□ 신청자격\n◦「중소기업기본법」제 조의 규정에 따른 중소기업 또는「소상공인\n 2\n\n 기본법」제 조에 따른 소상공인2\n\n * 필수자격 : 중소기업확인서(소상공인확인서)를 보유한 기업\n\n◦ 정책면세점에 판매 입점 가능한 ( ) B2C 제품 을 생산(제조)하는 기업\n *\n\n * 판매(입점) 가능한 품목 : 화장품, 식품, 패션(잡화 포함), 생활용품, 전자제품 등\n** 제조기업 인정 범위 : 직접 생산 또는 외주 생산(OEM)\n\n□ 지원 제외 대상\n◦ 정책면세점 운영 취지에 부적합한 제품\n - 수입제품 의약품 소프트웨어 대‧중견기업 제품\n *\n , , ,\n\n * 수입제품은 해외 제조업소를 통한 주문자상표부착 제품(해외 OEM 제품)에 한하여\n 지원 가능하며, 신청 중소기업은 OEM계약서 또는 이에 준하는 증빙서류",
+ "apply_period": {
+  "note": "상시 접수"
+ },
+ "eligibility": {
+  "business_status": [
+   "운영중"
+  ]
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_url": "https://fanfandaero.kr/portal/v2/preSprtBizPbancDetail.do?sprtBizCd=202617020100&sprtBizTrgtYn=N&groupNo=",
+ "apply_method": "온라인 접수 (판판대로)",
+ "contact": "(공고 등 사업 관련) 한국중소벤처기업유통원 정책매장운영팀 032-743-5196, 5183, 5187, dutyfree@kodma.or.kr / (참여신청 전산시스템 관련) 판판대로 고객센터 02-2656-9021",
+ "organizer": "중소벤처기업부",
+ "operator": "한국중소벤처기업유통원"
+}

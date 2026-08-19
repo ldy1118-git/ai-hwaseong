@@ -1,0 +1,33 @@
+{
+ "notice_id": "PBLN_000000000117676",
+ "title": "2026년 희망리턴패키지 원스톱폐업지원 소상공인 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000117676",
+ "summary": "소상공인의 신속ㆍ안전한 폐업 및 폐업부담 경감을 위한 2026년 「희망리턴패키지 원스톱폐업지원」사업을 다음과 같이 공고합니다. ☞ 폐업(예정) 소상공인 ☞ 폐업에 필요한 사업 정리 컨설팅, 점포 철거비, 법률자문, 채무조정 지원",
+ "apply_period": {
+  "note": "세부사업별 상이"
+ },
+ "eligibility": {
+  "business_status": [
+   "운영중"
+  ]
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_url": "https://www.sbiz.or.kr/nhrp/main.do",
+ "apply_method": "온라인 접수\n- 사업정리 컨설팅, 법률자문ㆍ채무조정 : 희망리턴패키지 홈페이지\n- 점포철거비 지원 : 소상공인 24 홈페이지",
+ "contact": "소상공인 통합콜센터 1533-0100 (4번 희망리턴패키지)",
+ "organizer": "중소벤처기업부",
+ "operator": "소상공인시장진흥공단"
+}

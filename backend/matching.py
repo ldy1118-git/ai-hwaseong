@@ -137,6 +137,14 @@ def _application_period_status(apply_period: dict[str, Any] | None) -> dict[str,
             "status": "접수중",
             "detail": f"{end.isoformat()}까지 신청 가능",
         }
+    # 날짜가 없어도 원문 문구는 있을 수 있다. "예산 소진시까지" 처럼
+    # 지금 열려 있다는 뜻인 문구는 접수중으로 본다. 사장님에게는
+    # "신청기간 날짜 해석 필요" 보다 그 문구를 그대로 보여주는 게 낫다.
+    note = str(apply_period.get("note") or "").strip()
+    if note:
+        if re.search(r"예산\s*소진|소진\s*시|상시|연중|모집\s*(?:완료|마감)\s*시", note):
+            return {"status": "접수중", "detail": note}
+        return {"status": "기간미상", "detail": note}
     return {
         "status": "기간미상",
         "detail": "신청기간 날짜 해석 필요",

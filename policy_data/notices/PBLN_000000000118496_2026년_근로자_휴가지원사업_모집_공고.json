@@ -1,0 +1,51 @@
+{
+ "notice_id": "PBLN_000000000118496",
+ "title": "2026년 근로자 휴가지원사업 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000118496",
+ "summary": "직장 내 자유로운 휴가문화 조성과 국내여행 활성화를 위하여 정부와 기업이 함께 근로자의 국내여행경비(휴가비)를 지원하는 ‘2026년 근로자 휴가지원사업’을 아래와 같이 시행하오니 많은 관심과 참여 바랍니다. ☞ 중견기업, 중소기업, 소상공인, 비영리민간단체, 사회복지법인ㆍ시설 근로자 ☞ 참여증서 발급, 정부인증제도 평가 가점 부여 등 실적 인정 지원 - 우수참여기업 : 정부포상, 우수사례집 발간, 기업홍보 등  ※ 자세한 내용 공고문 참조",
+ "apply_period": {
+  "note": "예산 소진시까지"
+ },
+ "eligibility": {
+  "requirements_open": "중견기업, 중소기업, 소상공인, 비영리민간단체, 사회복지법인ㆍ시설 근로자"
+ },
+ "documents": [
+  {
+   "name": "중견기업 중견기업확인서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "주민등록등본",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 법인등기부등본"
+  },
+  {
+   "name": "중소기업확인서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 사업자등록증 및"
+  },
+  {
+   "name": "비영리 비영리민간단체등록증",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "사회복지 사회복지시설신고증",
+   "type": "common",
+   "confidence": "confirmed"
+  }
+ ],
+ "apply_url": "https://vacation.visitkorea.or.kr/travel/worker/renewal/workerRequest.do",
+ "apply_method": "온라인 접수 (근로자 휴가지원사업 누리집)",
+ "contact": "전담 지원센터 1670-1330 / vacation.benepia@sk.com",
+ "organizer": "문화체육관광부",
+ "operator": "한국관광공사"
+}

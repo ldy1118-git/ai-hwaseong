@@ -469,6 +469,12 @@ def build_notice(entry: dict, doc_text: str) -> tuple[dict, list[str]]:
         "organizer": field(entry, "jrsdInsttNm", "author"),
         "operator": field(entry, "excInsttNm"),
     }
+    # 날짜가 없으면 원문 문구를 그대로 남긴다. "예산 소진시까지" 는
+    # 사장님에게 필요한 정보인데, 날짜가 아니라는 이유로 지우면 화면에
+    # 아무것도 안 뜨고 마감이 임박한 것처럼 보인다.
+    if not notice["apply_period"]:
+        raw_period = clean(period)
+        notice["apply_period"] = {"note": raw_period} if raw_period else None
     if not notice["apply_period"]:
         notice.pop("apply_period")
     for key in ("apply_url", "apply_method", "contact", "organizer", "operator"):
@@ -497,8 +503,15 @@ def main() -> int:
         print("먼저 python3 policy_data/collect.py --raw 를 실행하세요.")
         return 1
     rows = json.loads(snapshots[-1].read_text(encoding="utf-8"))
+    # is_open 이 None 이면 "판단할 근거가 없다"는 뜻이지 "닫혔다"가 아니다.
+    # 예전에는 None 을 falsy 로 흘려버려서, 기간이 "예산 소진시까지" 나
+    # "세부사업별 상이" 로 적힌 공고 31건이 통째로 빠졌다. 그 안에
+    # 희망리턴패키지(폐업·재기)와 소상공인 고용보험료 지원이 있었다.
+    # 확실히 닫힌 것(False)만 걸러낸다 — 모른다는 이유로 자르면 사장님이
+    # 그 공고를 아예 못 본다. 공고 매칭·세무일정과 같은 원칙이다.
     rows = [r for r in rows
-            if SOSANG.search(haystack(r)) and scope(r) in USABLE and is_open(r)]
+            if SOSANG.search(haystack(r)) and scope(r) in USABLE
+            and is_open(r) is not False]
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     # 지난 실행에서 남은 파일을 지운다. 안 지우면 걸러내기로 한 공고가
