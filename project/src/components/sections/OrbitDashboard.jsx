@@ -17,7 +17,64 @@ function briefDesc(summary) {
   return m ? m[0] : clean
 }
 
-// 텍스트에서 어려운 단어를 찾아 마우스 오버 시 툴팁으로 뜻을 보여준다.
+/* 마우스가 있는 기기인가. NoticeDetail 과 같은 이유다 — 전에는 CSS
+   group-hover 로만 열려서, 마우스를 얹고 있는 동안에만 보였고 누를 수는
+   없었다. 터치 화면에서는 아예 안 열렸다. */
+const CAN_HOVER = typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(hover: hover)').matches
+
+/* 어려운 단어 하나. 눌러서 뜻을 펴고, 바깥을 누르거나 Esc 로 닫는다.
+   마우스가 있으면 올리기만 해도 열린다. */
+function Term({ label, def }) {
+  const [show, setShow] = useState(false)
+  const wrap = useRef(null)
+
+  useEffect(() => {
+    if (!show) return
+    const away = e => { if (wrap.current && !wrap.current.contains(e.target)) setShow(false) }
+    const esc = e => { if (e.key === 'Escape') setShow(false) }
+    document.addEventListener('pointerdown', away)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('pointerdown', away)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [show])
+
+  const hover = CAN_HOVER
+    ? { onMouseEnter: () => setShow(true), onMouseLeave: () => setShow(false) }
+    : {}
+
+  return (
+    <span className="relative inline" ref={wrap}>
+      <button
+        type="button"
+        aria-expanded={show}
+        aria-label={`${label} 뜻 보기`}
+        onClick={e => { e.stopPropagation(); setShow(v => !v) }}
+        {...hover}
+        className="underline decoration-dotted decoration-navy/50 cursor-help font-medium text-navy
+                   focus:outline-none focus-visible:ring-2 focus-visible:ring-navy/40 rounded-sm"
+      >
+        {label}
+      </button>
+      {show && (
+        <span className="absolute bottom-full left-0 mb-2 w-[min(14rem,72vw)] bg-navy text-white
+                         text-[12px] leading-relaxed rounded-xl px-3 py-2 z-50
+                         pointer-events-none shadow-lg whitespace-normal">
+          <strong className="block text-[13px] mb-0.5">{label}</strong>
+          {def.easy}
+          {def.caution && (
+            <span className="block mt-1 text-sunset-orange">주의 · {def.caution}</span>
+          )}
+        </span>
+      )}
+    </span>
+  )
+}
+
+// 텍스트에서 어려운 단어를 찾아 눌렀을 때(또는 마우스를 올렸을 때) 뜻을 보여준다.
 function AnnotatedText({ text, termDefs }) {
   if (!text || !termDefs?.length) return <>{text}</>
 
@@ -34,20 +91,7 @@ function AnnotatedText({ text, termDefs }) {
       {parts.map((part, i) => {
         const def = sorted.find(t => t.term === part)
         if (!def) return part
-        return (
-          <span key={i} className="relative group inline">
-            <span className="underline decoration-dotted decoration-navy/50 cursor-help font-medium text-navy">
-              {part}
-            </span>
-            <span className="absolute bottom-full left-0 mb-2 w-56 bg-navy text-white text-[12px] leading-relaxed rounded-xl px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg whitespace-normal">
-              <strong className="block text-[13px] mb-0.5">{def.term}</strong>
-              {def.easy}
-              {def.caution && (
-                <span className="block mt-1 text-sunset-orange">주의 · {def.caution}</span>
-              )}
-            </span>
-          </span>
-        )
+        return <Term key={i} label={part} def={def} />
       })}
     </>
   )
