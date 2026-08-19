@@ -111,6 +111,17 @@ class handler(Base):  # noqa: N801
 
         send_json(self, {"profile": row.get("profile"), "ignored_keys": ignored})
 
+    def do_DELETE(self) -> None:  # noqa: N802
+        """온보딩 답변 전체 삭제. 다시 들어오면 처음부터 묻는다."""
+        try:
+            _store.delete_profile(self._user())
+        except _auth.AuthError as error:
+            return send_json(self, {"error": str(error)}, 401)
+        except _store.StoreError as error:
+            return send_json(self, {"error": str(error)}, 503)
+
+        send_json(self, {"deleted": True, "onboarding_completed": False})
+
     def do_POST(self) -> None:  # noqa: N802
         # PUT 을 쓰라고 알려주되 그냥 처리해준다. 여기서 막으면 디버깅만 길어진다.
         self.do_PUT()

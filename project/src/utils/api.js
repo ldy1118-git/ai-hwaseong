@@ -133,3 +133,22 @@ export const loadOnboarding = () =>
 /** 일부 항목만 수정. 안 넘긴 항목은 그대로 남는다. */
 export const patchOnboarding = (profile) =>
   authed('/api/users/me/onboarding', 'PATCH', { profile })
+
+/** 저장된 온보딩 답변을 서버에서 지운다. 로그인 이력은 남는다. */
+export const deleteOnboarding = () =>
+  authed('/api/users/me/onboarding', 'DELETE')
+
+/** 이 기기에 남은 것을 전부 지운다.
+ *
+ *  키를 하나씩 적어두면 새 키가 생겼을 때 빠뜨린다 — 실제로 로그아웃이
+ *  applied-programs 와 checklist-progress 를 안 지우고 있었다. 접두어로
+ *  훑어서 통째로 지운다. */
+export function clearLocalData() {
+  const keys = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i)
+    if (k && k.startsWith('mars-fit-')) keys.push(k)
+  }
+  keys.forEach(k => localStorage.removeItem(k))
+  return keys
+}
