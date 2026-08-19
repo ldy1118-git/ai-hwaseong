@@ -4,6 +4,7 @@ import {
   AlertTriangle, ExternalLink, Pencil, Lock,
   TrendingUp, TrendingDown, Minus, Users, ShoppingBag, RefreshCw, Star, Info,
   School, Utensils, BookOpen, Coffee, Building2, Search, Train,
+  Plus, Maximize2, X as XIcon,
 } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -234,40 +235,65 @@ const leafletIcon = L.icon({
   shadowSize:  [41, 41],
 })
 
+// ── 시설 마커 위치 생성 (황금각 분산) ────────────────────────────
+
+function mockMarkerPositions(centerLat, centerLng, radiusMeters, count) {
+  const latScale = radiusMeters / 111320
+  const lngScale = radiusMeters / (111320 * Math.cos(centerLat * Math.PI / 180))
+  return Array.from({ length: Math.min(count, 12) }, (_, i) => {
+    const a = Math.abs(Math.sin((i + 1) * 137.508) * 10000)
+    const b = Math.abs(Math.sin((i + 1) * 137.508 + 50) * 10000)
+    const angle = (a - Math.floor(a)) * 2 * Math.PI
+    const dist  = Math.sqrt(b - Math.floor(b)) * 0.88
+    return {
+      lat: centerLat + Math.cos(angle) * dist * latScale,
+      lng: centerLng + Math.sin(angle) * dist * lngScale,
+    }
+  })
+}
+
+// ── Haversine 거리 (m) ────────────────────────────────────────────
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371000
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2
+          + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.asin(Math.sqrt(a))
+}
+
 // ── 순수 Leaflet 지도 컴포넌트 ───────────────────────────────────
 
-function LeafletMap({ position, onMove }) {
+function LeafletMap({ position, onMove, radii, markers }) {
   const containerRef = useRef(null)
   const mapRef       = useRef(null)
   const markerRef    = useRef(null)
+  const overlayRef   = useRef(null)
   const onMoveRef    = useRef(onMove)
+  const [mapReady, setMapReady] = useState(false)
+
   useEffect(() => { onMoveRef.current = onMove }, [onMove])
 
   // 지도 최초 초기화 (마운트 1회)
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
-
-    const map = L.map(containerRef.current, {
-      center: [position.lat, position.lng],
-      zoom: 14,
-      zoomControl: false,
-    })
+    const map = L.map(containerRef.current, { center: [position.lat, position.lng], zoom: 14, zoomControl: false })
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
-
-    const marker = L.marker([position.lat, position.lng], {
-      draggable: true,
-      icon: leafletIcon,
-    }).addTo(map)
-
+    const marker = L.marker([position.lat, position.lng], { draggable: true, icon: leafletIcon }).addTo(map)
     marker.on('dragend', () => {
       const { lat, lng } = marker.getLatLng()
       onMoveRef.current({ lat, lng })
     })
-
+    overlayRef.current = L.layerGroup().addTo(map)
     mapRef.current    = map
     markerRef.current = marker
-
-    return () => { map.remove(); mapRef.current = null; markerRef.current = null }
+    setMapReady(true)
+    return () => {
+      map.remove()
+      mapRef.current = null; markerRef.current = null; overlayRef.current = null
+      setMapReady(false)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 외부에서 position이 바뀌면 지도·마커 동기화
@@ -275,6 +301,42 @@ function LeafletMap({ position, onMove }) {
     markerRef.current?.setLatLng([position.lat, position.lng])
     mapRef.current?.setView([position.lat, position.lng], mapRef.current.getZoom(), { animate: true })
   }, [position.lat, position.lng])
+
+  // 시설 범위 원 + 실제 마커 그리기
+  useEffect(() => {
+    if (!mapReady || !overlayRef.current || !radii || !markers) return
+    overlayRef.current.clearLayers()
+
+    const cfgMap = Object.fromEntries(AMENITY_CONFIG.map(c => [c.key, c]))
+
+    // 반경 원 (카테고리별 색상)
+    AMENITY_CONFIG.forEach(({ key, color }) => {
+      L.circle([position.lat, position.lng], {
+        radius: radii[key],
+        color,
+        fillColor: color,
+        fillOpacity: 0.07,
+        weight: 1.5,
+        dashArray: '5 4',
+        opacity: 0.6,
+      }).addTo(overlayRef.current)
+    })
+
+    // 실제(또는 목업) 마커
+    markers.forEach(({ lat, lng, key, popup }) => {
+      const { color, char } = cfgMap[key] || {}
+      if (!color) return
+      const m = L.marker([lat, lng], {
+        icon: L.divIcon({
+          html: `<div style="width:16px;height:16px;background:${color};border:2px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:white;box-shadow:0 1px 4px rgba(0,0,0,.35);line-height:1">${char}</div>`,
+          className: '',
+          iconSize: [16, 16],
+          iconAnchor: [8, 8],
+        }),
+      }).addTo(overlayRef.current)
+      if (popup) m.bindPopup(popup)
+    })
+  }, [mapReady, position.lat, position.lng, radii, markers])
 
   return <div ref={containerRef} style={{ height: '100%', width: '100%' }} />
 }
@@ -288,21 +350,27 @@ function seededRand(seed, min, max) {
   return min + Math.floor((x - Math.floor(x)) * (max - min + 1))
 }
 
-function getMockAmenities(lat, lng) {
-  const s = Math.abs(Math.round(lat * 100) * 1000 + Math.round(lng * 100))
+const BASE_RADIUS = 500
+
+function getMockAmenities(lat, lng, radii) {
+  const s  = Math.abs(Math.round(lat * 100) * 1000 + Math.round(lng * 100))
+  const sc = (r) => Math.max(0.04, (r / BASE_RADIUS) ** 1.8)
   return {
-    schools:     seededRand(s,     1, 6),
-    restaurants: seededRand(s + 1, 10, 85),
-    academies:   seededRand(s + 2, 2, 28),
-    cafes:       seededRand(s + 3, 4, 38),
-    apartments:  seededRand(s + 4, 1, 18),
-    stations:    seededRand(s + 5, 0, 3),
+    schools:     Math.max(0, Math.round(seededRand(s,     1, 6)   * sc(radii.schools))),
+    restaurants: Math.max(0, Math.round(seededRand(s + 1, 10, 85) * sc(radii.restaurants))),
+    academies:   Math.max(0, Math.round(seededRand(s + 2, 2, 28)  * sc(radii.academies))),
+    cafes:       Math.max(0, Math.round(seededRand(s + 3, 4, 38)  * sc(radii.cafes))),
+    apartments:  Math.max(0, Math.round(seededRand(s + 4, 1, 18)  * sc(radii.apartments))),
+    stations:    Math.max(0, Math.min(8, Math.round(seededRand(s + 5, 0, 3) * sc(radii.stations)))),
   }
 }
 
-function getFootTrafficText(am) {
+function getFootTrafficText(am, stationPassengers) {
+  const stationScore = stationPassengers != null
+    ? stationPassengers * 0.15
+    : am.stations * 650
   const score = am.schools * 220 + am.restaurants * 55 + am.cafes * 90
-              + am.apartments * 160 + am.stations * 650
+              + am.apartments * 160 + stationScore
   if (score >= 8000) {
     return `일 평균 ${(score / 10000).toFixed(1)}만명 이상이 지나갈 것으로 예상해요! 역세권·학교·아파트가 많아 출퇴근 피크가 뚜렷해요`
   }
@@ -312,27 +380,125 @@ function getFootTrafficText(am) {
   return `일 평균 약 ${score.toLocaleString()}명 수준으로 예상해요. 조용한 주거 중심 상권으로 단골 손님 비중이 높아요`
 }
 
-const AMENITY_ITEMS = [
-  { key: 'schools',     label: '학교',       Icon: School    },
-  { key: 'restaurants', label: '음식점',     Icon: Utensils  },
-  { key: 'academies',   label: '학원',       Icon: BookOpen  },
-  { key: 'cafes',       label: '카페',       Icon: Coffee    },
-  { key: 'apartments',  label: '아파트 단지', Icon: Building2 },
-  { key: 'stations',    label: '역',         Icon: Train     },
+const AMENITY_CONFIG = [
+  { key: 'schools',     label: '학교',       Icon: School,    color: '#3B82F6', char: '학' },
+  { key: 'restaurants', label: '음식점',     Icon: Utensils,  color: '#F97316', char: '식' },
+  { key: 'academies',   label: '학원',       Icon: BookOpen,  color: '#8B5CF6', char: '원' },
+  { key: 'cafes',       label: '카페',       Icon: Coffee,    color: '#92400E', char: '카' },
+  { key: 'apartments',  label: '아파트 단지', Icon: Building2, color: '#10B981', char: '아' },
+  { key: 'stations',    label: '역',         Icon: Train,     color: '#1E3A5F', char: '역' },
 ]
 
+const DEFAULT_RADII = { schools: 500, restaurants: 500, academies: 500, cafes: 500, apartments: 500, stations: 500 }
+
+const CAT_KEY = { r: 'restaurants', c: 'cafes', a: 'academies' }
+const REAL_KEYS = new Set(['restaurants', 'cafes', 'academies'])
+
 function CommercialAnalysisView() {
-  const [position, setPosition] = useState(HWS_CENTER)
-  const [address, setAddress]   = useState('')
+  const [position, setPosition]   = useState(HWS_CENTER)
+  const [address, setAddress]     = useState('')
   const [searching, setSearching] = useState(false)
-  const [amenities, setAmenities] = useState(() => getMockAmenities(HWS_CENTER.lat, HWS_CENTER.lng))
+  const [radii, setRadii]         = useState(DEFAULT_RADII)
+  const [expanded, setExpanded]   = useState(false)
+  const [storeData, setStoreData]     = useState(null)
+  const [stationData, setStationData] = useState(null)
 
-  const footTraffic = useMemo(() => getFootTrafficText(amenities), [amenities])
-
-  const applyPosition = useCallback((pos) => {
-    setPosition(pos)
-    setAmenities(getMockAmenities(pos.lat, pos.lng))
+  // 소상공인 + 역 데이터 로드 (1회)
+  useEffect(() => {
+    fetch('./data/hwaseong_stores.json')
+      .then(r => r.json())
+      .then(setStoreData)
+      .catch(() => {})
+    fetch('./data/hwaseong_stations.json')
+      .then(r => r.json())
+      .then(setStationData)
+      .catch(() => {})
   }, [])
+
+  // 반경 내 실제 업소 필터링 + 목업 합산
+  const { amenities, displayMarkers, stationPassengersTotal } = useMemo(() => {
+    const mockBase = getMockAmenities(position.lat, position.lng, radii)
+
+    // 실제 역 데이터 반경 필터
+    const nearbyStations = stationData
+      ? stationData.filter(s => haversine(position.lat, position.lng, s.lat, s.lng) <= radii.stations)
+      : null
+
+    const stationPassengersTotal = nearbyStations
+      ? nearbyStations.reduce((sum, s) => sum + s.passengers, 0)
+      : null
+
+    // 역 마커 빌더 (팝업 포함)
+    const buildStationMarkers = (list) =>
+      (list ?? []).slice(0, 12).map(s => ({
+        lat: s.lat, lng: s.lng, key: 'stations',
+        popup: `<b>${s.name}역</b> (${s.line})${s.passengers > 0 ? `<br>일 평균 ${s.passengers.toLocaleString()}명 이용` : ''}`,
+      }))
+
+    // 데이터 미로드 시 전부 목업
+    if (!storeData) {
+      const amenitiesResult = { ...mockBase }
+      if (nearbyStations) amenitiesResult.stations = nearbyStations.length
+
+      const markers = []
+      AMENITY_CONFIG.forEach(({ key }) => {
+        if (key === 'stations' && nearbyStations) {
+          markers.push(...buildStationMarkers(nearbyStations))
+        } else {
+          mockMarkerPositions(position.lat, position.lng, radii[key], amenitiesResult[key])
+            .forEach(pos => markers.push({ lat: pos.lat, lng: pos.lng, key }))
+        }
+      })
+      return { amenities: amenitiesResult, displayMarkers: markers, stationPassengersTotal }
+    }
+
+    const amenities = { ...mockBase, restaurants: 0, cafes: 0, academies: 0 }
+    if (nearbyStations) amenities.stations = nearbyStations.length
+    const buckets   = { restaurants: [], cafes: [], academies: [] }
+
+    // 바운딩박스 사전필터 후 Haversine
+    const latDelta = Math.max(radii.restaurants, radii.cafes, radii.academies) / 111320 * 1.1
+    const lngDelta = latDelta / Math.cos(position.lat * Math.PI / 180)
+
+    for (const s of storeData) {
+      const key = CAT_KEY[s.cat]
+      if (!key) continue
+      if (Math.abs(s.lat - position.lat) > latDelta) continue
+      if (Math.abs(s.lng - position.lng) > lngDelta) continue
+      const dist = haversine(position.lat, position.lng, s.lat, s.lng)
+      if (dist <= radii[key]) { amenities[key]++; buckets[key].push(s) }
+    }
+
+    const displayMarkers = []
+
+    // 목업 마커: 학교·아파트
+    ;['schools', 'apartments'].forEach(key => {
+      mockMarkerPositions(position.lat, position.lng, radii[key], amenities[key])
+        .forEach(pos => displayMarkers.push({ lat: pos.lat, lng: pos.lng, key }))
+    })
+
+    // 실제 마커: 역 (팝업 포함)
+    if (nearbyStations) {
+      displayMarkers.push(...buildStationMarkers(nearbyStations))
+    } else {
+      mockMarkerPositions(position.lat, position.lng, radii.stations, amenities.stations)
+        .forEach(pos => displayMarkers.push({ lat: pos.lat, lng: pos.lng, key: 'stations' }))
+    }
+
+    // 실제 마커: 음식점·카페·학원 (최대 40개씩 균등 샘플)
+    for (const [key, stores] of Object.entries(buckets)) {
+      const step = stores.length <= 40 ? 1 : Math.ceil(stores.length / 40)
+      stores.forEach((s, i) => {
+        if (i % step === 0) displayMarkers.push({ lat: s.lat, lng: s.lng, key })
+      })
+    }
+
+    return { amenities, displayMarkers, stationPassengersTotal }
+  }, [storeData, stationData, position.lat, position.lng, radii])
+
+  const footTraffic = useMemo(() => getFootTrafficText(amenities, stationPassengersTotal), [amenities, stationPassengersTotal])
+
+  const applyPosition = useCallback((pos) => setPosition(pos), [])
 
   const handleMarkerMove = useCallback((pos) => {
     applyPosition(pos)
@@ -365,15 +531,20 @@ function CommercialAnalysisView() {
     setSearching(false)
   }, [address, applyPosition])
 
+  const adjustRadius = useCallback((key, delta) => {
+    setRadii(prev => ({ ...prev, [key]: Math.max(100, Math.min(3000, prev[key] + delta)) }))
+  }, [])
+
   return (
     <div className="max-w-4xl mx-auto px-4 space-y-4 pb-8">
 
       {/* 목업 안내 */}
       <div className="flex items-start gap-2 bg-star-yellow/20 border border-star-yellow/50 rounded-xl px-3.5 py-2.5">
         <Info size={12} className="text-navy/50 mt-0.5 flex-shrink-0" />
-        <p className="text-[13px] text-warm-text leading-relaxed">
-          시설 수·유동인구는 <strong className="text-navy">목업(샘플)</strong>이에요.
-          핀을 옮기거나 주소를 검색해 원하는 위치를 살펴보세요.
+        <p className="text-[11px] text-warm-text leading-relaxed">
+          음식점·카페·학원은 <strong className="text-navy">소상공인시장진흥공단 실제 데이터</strong>(2026.06),
+          역은 <strong className="text-navy">한국철도공사 실제 위치·승객 데이터</strong>예요.
+          학교·아파트는 목업이에요.
         </p>
       </div>
 
@@ -382,8 +553,21 @@ function CommercialAnalysisView() {
 
         {/* 좌측: 지도 + 주소 입력 */}
         <div className="flex flex-col gap-2" style={{ flex: '0 0 58%' }}>
-          <div className="rounded-2xl overflow-hidden border border-warm-gray/20 shadow-sm" style={{ height: 300 }}>
-            <LeafletMap position={position} onMove={handleMarkerMove} />
+
+          {/* 지도 (확대 버튼 포함) */}
+          <div className="relative rounded-2xl shadow-sm" style={{ height: 300 }}>
+            <div className="absolute inset-0 rounded-2xl overflow-hidden border border-warm-gray/20">
+              <LeafletMap position={position} onMove={handleMarkerMove} radii={radii} markers={displayMarkers} />
+            </div>
+            <button
+              onClick={() => setExpanded(true)}
+              title="지도 크게 보기"
+              className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-warm-gray/30
+                         rounded-lg p-1.5 shadow hover:bg-white transition-colors"
+              style={{ zIndex: 1000 }}
+            >
+              <Maximize2 size={13} className="text-navy" />
+            </button>
           </div>
 
           {/* 도로명주소 입력 */}
@@ -393,7 +577,7 @@ function CommercialAnalysisView() {
               value={address}
               onChange={e => setAddress(e.target.value)}
               placeholder="도로명주소 입력 후 검색"
-              className="flex-1 min-w-0 text-[13px] bg-white border border-warm-gray/30 rounded-xl
+              className="flex-1 min-w-0 text-[11px] bg-white border border-warm-gray/30 rounded-xl
                          px-3 py-2 text-navy placeholder:text-warm-gray/60
                          focus:outline-none focus:border-navy transition-colors"
             />
@@ -408,32 +592,97 @@ function CommercialAnalysisView() {
           </form>
         </div>
 
-        {/* 우측: 시설 정보 */}
-        <Card className="flex-1 p-4 flex flex-col justify-between">
-          <p className="text-[13px] font-bold text-navy mb-3 leading-snug">이 위치에는</p>
+        {/* 우측: 시설 정보 + 범위 조정 */}
+        <Card className="flex-1 p-3 flex flex-col">
+          <p className="text-[11px] font-bold text-navy mb-2">이 위치에는</p>
           <div className="space-y-2.5 flex-1">
-            {AMENITY_ITEMS.map(({ key, label, Icon }) => (
-              <div key={key} className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-primary-bg flex items-center justify-center flex-shrink-0">
-                  <Icon size={11} className="text-navy" />
+            {AMENITY_CONFIG.map(({ key, label, Icon, color }) => (
+              <div key={key}>
+                {/* 시설명 + 개수 */}
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: color + '22', border: `1.5px solid ${color}` }}>
+                    <Icon size={10} style={{ color }} />
+                  </div>
+                  <span className="text-[10px] text-warm-text flex-1 leading-tight">{label}</span>
+                  <span className="text-xs font-extrabold text-navy">{amenities[key]}</span>
+                  <span className="text-[9px] text-warm-text">개</span>
                 </div>
-                <span className="text-[12px] text-warm-text flex-1">{label}</span>
-                <span className="text-xs font-extrabold text-navy">{amenities[key]}</span>
-                <span className="text-[13px] text-warm-text">개</span>
+                {/* 반경 조정 */}
+                <div className="flex items-center gap-1 mt-1 pl-6">
+                  <button
+                    onClick={() => adjustRadius(key, -10)}
+                    className="w-4 h-4 rounded bg-warm-gray/20 flex items-center justify-center
+                               hover:bg-warm-gray/40 active:scale-90 transition-all"
+                  >
+                    <Minus size={8} className="text-warm-text" />
+                  </button>
+                  <span className="text-[9px] text-warm-text/80 w-11 text-center tabular-nums">
+                    {radii[key]}m
+                  </span>
+                  <button
+                    onClick={() => adjustRadius(key, +10)}
+                    className="w-4 h-4 rounded bg-warm-gray/20 flex items-center justify-center
+                               hover:bg-warm-gray/40 active:scale-90 transition-all"
+                  >
+                    <Plus size={8} className="text-warm-text" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
-          <p className="text-[12px] text-warm-text mt-3">가 있어요</p>
+          <p className="text-[10px] text-warm-text mt-2">가 있어요</p>
         </Card>
       </div>
 
-      {/* 하단: 유동인구 예측 */}
+      {/* 유동인구 예측 */}
       <div className="bg-navy rounded-2xl px-4 py-4">
-        <p className="text-[12px] font-semibold text-white/60 mb-1">유동인구 예측</p>
+        <p className="text-[10px] font-semibold text-white/60 mb-1">유동인구 예측</p>
         <p className="text-xs text-white leading-relaxed">
           이 위치에서는 {footTraffic}
         </p>
       </div>
+
+      {/* 확대 지도 모달 */}
+      {expanded && (
+        <div className="fixed inset-0 flex flex-col bg-white" style={{ zIndex: 9999 }}>
+          {/* 헤더 */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-warm-gray/20 flex-shrink-0">
+            <p className="text-sm font-bold text-navy">상권 지도</p>
+            <button onClick={() => setExpanded(false)} className="p-1 rounded-lg hover:bg-warm-gray/10">
+              <XIcon size={20} className="text-navy" />
+            </button>
+          </div>
+
+          {/* 지도 */}
+          <div className="flex-1 min-h-0">
+            <LeafletMap position={position} onMove={handleMarkerMove} />
+          </div>
+
+          {/* 하단 주소 검색 */}
+          <div className="px-4 py-3 border-t border-warm-gray/20 flex-shrink-0 bg-white">
+            <form onSubmit={handleSearch} className="flex gap-1.5">
+              <input
+                type="text"
+                value={address}
+                onChange={e => setAddress(e.target.value)}
+                placeholder="도로명주소 입력 후 검색"
+                className="flex-1 min-w-0 text-[11px] bg-white border border-warm-gray/30 rounded-xl
+                           px-3 py-2.5 text-navy placeholder:text-warm-gray/60
+                           focus:outline-none focus:border-navy transition-colors"
+              />
+              <button
+                type="submit"
+                disabled={searching}
+                className="flex-shrink-0 bg-navy text-white rounded-xl px-3 py-2.5
+                           disabled:opacity-50 transition-opacity"
+              >
+                <Search size={14} />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   )
@@ -515,13 +764,6 @@ export default function MyStore() {
 
       {!isOwner && <CommercialAnalysisView profile={profile} />}
 
-      {/* 카드 여섯 장을 한 줄로 쌓아두면 노트북에서 화면 세 개 분량으로
-          늘어난다. 왼쪽은 「세무」(나 → 다음 신고 → 올해 할 신고),
-          오른쪽은 「지원사업과 안내」로 가른다.
-
-          이 지점에서 가르면 **좁은 화면의 순서가 그대로 ①②③④⑤⑥ 이다.**
-          다른 데서 가르면 출처 카드가 신고 목록보다 위로 올라와 버린다.
-          그래서 order 로 순서를 되돌리는 손질이 필요 없다. */}
       {isOwner && <div className="max-w-4xl mx-auto px-5 space-y-5
                                   lg:max-w-6xl lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]
                                   lg:gap-5 lg:items-start">
@@ -555,7 +797,7 @@ export default function MyStore() {
               </div>
             </div>
 
-            <p className="text-[13px] text-gray-700 leading-relaxed mt-3 bg-primary-bg rounded-xl px-3 py-2.5">
+            <p className="text-[11px] text-gray-700 leading-relaxed mt-3 bg-primary-bg rounded-xl px-3 py-2.5">
               {next.easy}
             </p>
 
@@ -564,7 +806,7 @@ export default function MyStore() {
             {next.dueDate && !holidaysKnown(Number(next.dueDate.slice(0, 4))) && (
               <div className="mt-2 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
                 <AlertTriangle size={12} className="text-sunset-orange mt-0.5 flex-shrink-0" />
-                <p className="text-[12px] text-warm-text leading-relaxed">
+                <p className="text-[10px] text-warm-text leading-relaxed">
                   {next.dueDate.slice(0, 4)}년 공휴일이 아직 등록되지 않아 주말만 반영된
                   날짜예요. 연말에 확인해 주세요.
                 </p>
@@ -581,7 +823,7 @@ export default function MyStore() {
 
           {mustDo.length > 0 ? (
             <>
-              <p className="text-[12px] font-bold text-navy mb-1">
+              <p className="text-[10px] font-bold text-navy mb-1">
                 반드시 해야 하는 것 {mustDo.length}건
               </p>
               <div className="mb-1">
@@ -592,7 +834,7 @@ export default function MyStore() {
               </div>
             </>
           ) : (
-            <p className="text-[13px] text-warm-text py-2">해당되는 신고가 없어요.</p>
+            <p className="text-[11px] text-warm-text py-2">해당되는 신고가 없어요.</p>
           )}
 
           {/* 해당되면 이것도 — 반드시 따로 그린다.
@@ -601,7 +843,7 @@ export default function MyStore() {
             <div className="mt-3 pt-3 border-t border-warm-gray/15">
               <button onClick={() => setShowIf(v => !v)}
                 className="w-full flex items-center justify-between text-left">
-                <span className="text-[12px] font-bold text-warm-text">
+                <span className="text-[10px] font-bold text-warm-text">
                   해당되면 이것도 {ifApplicable.length}건
                 </span>
                 <ChevronDown size={14}
@@ -610,13 +852,13 @@ export default function MyStore() {
 
               {showIf && (
                 <div className="mt-1">
-                  <p className="text-[12px] text-warm-text leading-relaxed mb-2">
+                  <p className="text-[10px] text-warm-text leading-relaxed mb-2">
                     답해주신 것만으로는 해당되는지 알 수 없는 신고예요. 조건을 읽어보고
                     본인 얘기면 챙기세요.
                   </p>
                   {ifApplicable.map(e => (
                     <div key={e.id}>
-                      <p className="text-[12px] text-sunset-orange pt-2">{e.conditional}</p>
+                      <p className="text-[10px] text-sunset-orange pt-2">{e.conditional}</p>
                       <TaxRow item={e} open={openId === e.id}
                         onToggle={() => setOpenId(openId === e.id ? null : e.id)} />
                     </div>
@@ -629,7 +871,7 @@ export default function MyStore() {
           {!thisYearKnown && (
             <div className="mt-3 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
               <AlertTriangle size={12} className="text-sunset-orange mt-0.5 flex-shrink-0" />
-              <p className="text-[12px] text-warm-text leading-relaxed">
+              <p className="text-[10px] text-warm-text leading-relaxed">
                 {year}년 공휴일이 아직 등록되지 않아 주말만 반영된 날짜예요.
                 설·추석은 음력이라 자동 계산이 안 됩니다.
               </p>
@@ -649,7 +891,7 @@ export default function MyStore() {
           </SectionTitle>
 
           {failed ? (
-            <p className="text-[13px] text-warm-text py-2">
+            <p className="text-[11px] text-warm-text py-2">
               공고를 불러오지 못했어요. 잠시 뒤 다시 열어주세요.
             </p>
           ) : !counts ? (
@@ -666,7 +908,7 @@ export default function MyStore() {
                 ].map(d => (
                   <div key={d.label} className="bg-primary-bg rounded-xl py-3 text-center">
                     <p className={`text-xl font-extrabold leading-none ${d.color}`}>{d.value}</p>
-                    <p className="text-[12px] text-warm-text mt-1">{d.label}</p>
+                    <p className="text-[10px] text-warm-text mt-1">{d.label}</p>
                   </div>
                 ))}
               </div>
@@ -681,12 +923,12 @@ export default function MyStore() {
                              rounded-xl px-3 py-2.5 hover:bg-warm-gray/20 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] text-warm-text">가장 먼저 마감돼요</p>
+                    <p className="text-[10px] text-warm-text">가장 먼저 마감돼요</p>
                     <p className="text-xs font-semibold text-navy truncate mt-0.5">
                       {counts.nearest.notice_title}
                     </p>
                   </div>
-                  <span className="text-[13px] font-bold text-sunset-orange flex-shrink-0">
+                  <span className="text-[11px] font-bold text-sunset-orange flex-shrink-0">
                     {dDayLabel(dDay(counts.nearest.apply_period?.end))}
                   </span>
                   <ChevronRight size={14} className="text-warm-gray flex-shrink-0" />
@@ -694,7 +936,7 @@ export default function MyStore() {
               )}
 
               {counts.soon > 0 && (
-                <p className="text-[13px] text-sunset-orange font-semibold mt-2">
+                <p className="text-[11px] text-sunset-orange font-semibold mt-2">
                   2주 안에 마감되는 공고가 {counts.soon}건 있어요
                 </p>
               )}
@@ -733,8 +975,8 @@ export default function MyStore() {
               <div key={f.name} className="flex items-start gap-2.5">
                 <Lock size={11} className="text-warm-gray mt-1 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-warm-text">{f.name}</p>
-                  <p className="text-[12px] text-warm-text/70 leading-relaxed mt-0.5">{f.need}</p>
+                  <p className="text-[11px] font-semibold text-warm-text">{f.name}</p>
+                  <p className="text-[10px] text-warm-text/70 leading-relaxed mt-0.5">{f.need}</p>
                 </div>
               </div>
             ))}
@@ -745,10 +987,10 @@ export default function MyStore() {
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-2">
             <FileText size={12} className="text-warm-text" />
-            <h2 className="text-[13px] font-bold text-navy">이 화면의 숫자는 어디서 왔나</h2>
+            <h2 className="text-[11px] font-bold text-navy">이 화면의 숫자는 어디서 왔나</h2>
           </div>
 
-          <ul className="space-y-1.5 text-[12px] text-warm-text leading-relaxed">
+          <ul className="space-y-1.5 text-[10px] text-warm-text leading-relaxed">
             <li className="flex gap-1.5">
               <MapPin size={10} className="mt-0.5 flex-shrink-0" />
               <span>내 정보 — 온보딩에서 직접 답해주신 내용</span>
@@ -770,7 +1012,7 @@ export default function MyStore() {
           <a
             href="https://www.nts.go.kr/nts/ad/taxSchdul/selectList.do"
             target="_blank" rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1 text-[12px] text-navy font-semibold
+            className="mt-3 inline-flex items-center gap-1 text-[10px] text-navy font-semibold
                        underline underline-offset-2"
           >
             국세청 세무일정 원문 확인 <ExternalLink size={9} />
