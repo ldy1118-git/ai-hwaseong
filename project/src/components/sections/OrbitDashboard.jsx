@@ -64,18 +64,19 @@ const STATUS_STYLE = {
   '확인필요': 'text-warm-text bg-warm-gray/20',
 }
 
-// 매칭 점수 바
-function ScoreBar({ score, color }) {
+// 매칭 점수.
+//
+// 전에는 카드 폭을 다 쓰는 진행 막대였다. 막대는 「진행 중」이라는 뜻으로
+// 읽히는데 이건 진행이 아니라 **적합도**다. 게다가 어느 대시보드에나 있는
+// 모양이라 눈에 안 남는다. 숫자를 위로 올려 상태 배지 옆에 붙였다 —
+// 카드가 한 줄 짧아지고, 목록이 이미 점수순이라 비교도 순서로 된다.
+function ScoreTag({ score }) {
+  if (score === undefined || score === null) return null
   return (
-    <div className="flex items-center gap-2 mt-2">
-      <div className="flex-1 h-1.5 bg-warm-gray/20 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-700 ${color === 'orange' ? 'bg-sunset-orange' : 'bg-navy'}`}
-          style={{ width: `${score}%` }}
-        />
-      </div>
-      <span className="text-sm text-warm-text font-medium flex-shrink-0">매칭 {score}%</span>
-    </div>
+    <span className="text-sm font-bold text-warm-text tabular-nums">
+      매칭 {score}
+      <span className="text-xs font-semibold text-warm-gray">점</span>
+    </span>
   )
 }
 
@@ -91,14 +92,20 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
   const isUrgent = accent === 'orange'
   const conditions = (item.raw?.condition_results ?? []).filter(c => c.status !== '대상아님')
 
+  // 왼쪽에 색막대를 세운 둥근 카드는 어느 서비스에나 있는 모양이라
+  // 눈에 안 남는다. 급한 것은 D-day 색과 「긴급 마감」 묶음이 이미
+  // 말해주고 있어서 막대가 없어도 구분된다.
   return (
-    <Card padding="md" className={`border-l-4 ${isUrgent ? 'border-l-sunset-orange' : 'border-l-navy'}`}>
+    <Card padding="md">
 
-      {/* 상단: 상태 배지 + D-Day */}
-      <div className="flex items-center justify-between mb-1.5">
-        <span className={`text-sm font-medium rounded-full px-2.5 py-0.5 ${STATUS_STYLE[item.status] ?? 'text-warm-text bg-warm-gray/20'}`}>
-          {item.status}
-        </span>
+      {/* 상단: 상태 배지 + 매칭 점수 + D-Day */}
+      <div className="flex items-center justify-between gap-3 mb-1.5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className={`text-sm font-medium rounded-full px-2.5 py-0.5 flex-shrink-0 ${STATUS_STYLE[item.status] ?? 'text-warm-text bg-warm-gray/20'}`}>
+            {item.status}
+          </span>
+          <ScoreTag score={item.score} />
+        </div>
         {/* 공고 59건 중 30건은 마감일이 날짜가 아니라 「예산 소진시까지」
             같은 문구다. 예전에는 날짜가 없으면 이 자리를 통째로 비웠는데,
             그러면 절반이 넘는 공고가 언제까지인지 아무 말도 안 해준다.
@@ -124,16 +131,14 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
         </p>
       )}
 
-      {/* 주관기관 */}
+      {/* 주관기관 — 연한 색으로 채운 상자였는데, 값 하나 담자고 상자를
+          두면 카드 안에 상자가 또 생긴다. 괘선 한 줄로 편다. */}
       {item.organizer && (
-        <div className={`mt-2 rounded-xl px-3 py-2 ${isUrgent ? 'bg-sunset-orange/10' : 'bg-navy/5'}`}>
-          <p className="text-xs font-bold text-warm-text mb-0.5">주관기관</p>
-          <p className="text-sm text-navy">{item.organizer}</p>
+        <div className="mt-3 pt-2.5 border-t border-warm-gray/25 flex items-baseline gap-3">
+          <span className="text-xs font-bold text-warm-text flex-shrink-0">주관기관</span>
+          <span className="text-sm text-navy truncate">{item.organizer}</span>
         </div>
       )}
-
-      {/* 매칭 점수 바 */}
-      <ScoreBar score={item.score} color={isUrgent ? 'orange' : 'navy'} />
 
       {/* 매칭이유 패널 — 조건 결과 직접 표시 */}
       {showReason && conditions.length > 0 && (
