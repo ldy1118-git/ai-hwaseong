@@ -135,6 +135,16 @@ def merge_profile(user_id: int, patch: dict) -> dict:
     return upsert_profile(user_id, current)
 
 
+def delete_profile(user_id: int) -> None:
+    """저장된 온보딩 답변을 지운다. 없어도 오류가 아니다.
+
+    users 행은 남긴다. 카카오로 다시 들어오면 같은 사람으로 이어지고,
+    온보딩만 처음부터 다시 물어본다 — 「탈퇴」로 사용자가 기대하는 것은
+    자기가 답한 내용이 사라지는 것이지 로그인 이력이 아니다.
+    """
+    _call("DELETE", "user_profiles", params={"user_id": f"eq.{user_id}"})
+
+
 def onboarding_completed(user_id: int) -> bool:
     """길벗이 이동 프로필 존재 여부로 판단한 것과 같은 방식."""
     row = get_profile(user_id)

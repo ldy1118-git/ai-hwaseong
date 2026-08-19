@@ -5,9 +5,10 @@ import Button from '../components/ui/Button'
 import logoImg from '../../design/logo.png'
 import marsImg from '../../design/mars.png'
 import findImg from '../../design/find.png'
-import { getToken, clearToken, saveOnboarding, apiUrl, mockOcrResult } from '../utils/api'
+import { getToken, clearToken, saveOnboarding, apiUrl, mockOcrResult,
+         deleteOnboarding, clearLocalData } from '../utils/api'
 import { generateText } from '../utils/llm/llmProvider'
-import { RotateCcw, LogOut, ChevronRight, ArrowRight, AlertTriangle } from 'lucide-react'
+import { RotateCcw, LogOut, ChevronRight, ArrowRight, AlertTriangle, Trash2 } from 'lucide-react'
 import Header from '../components/layout/Header'
 
 /**
@@ -496,6 +497,9 @@ const GRID_KEYS = [
 function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
   const [profile, setProfile] = useState(initProfile)
   const [editing, setEditing] = useState(null)
+  const [confirming, setConfirming] = useState(false)
+  const [leaving, setLeaving]       = useState(false)
+  const [leaveError, setLeaveError] = useState('')
 
   function handleSave(field, value) {
     const next = { ...profile, [field]: value }
@@ -505,13 +509,36 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
   }
 
   function handleLogout() {
-    localStorage.removeItem('mars-fit-profile')
-    // 토큰 키를 여기서 문자열로 또 적으면 키 이름이 바뀔 때 어긋난다.
-    // 한 번 어긋나서 로그아웃이 안 되던 적이 있다.
+    // 전에는 지울 키를 세 개만 적어뒀다. 그 사이 신청목록과 체크리스트
+    // 진행상황이 늘었는데 거기 안 들어가서, 로그아웃하고 다른 사람으로
+    // 들어와도 앞사람 흔적이 남았다. 접두어로 훑어 통째로 지운다.
+    clearLocalData()
     clearToken()
-    // 안 지우면 로그아웃하고 다른 계정으로 들어와도 이전 사람이 보던
-    // 공고가 서류 준비 화면에 그대로 뜬다.
-    localStorage.removeItem('mars-fit-selected-match')
+    navigate('/')
+  }
+
+  /** 탈퇴 — 서버에 저장된 온보딩 답변까지 지운다.
+   *
+   *  로그아웃은 이 기기에서만 나가는 것이라, 다시 로그인하면 서버에 있던
+   *  답변이 그대로 돌아온다. 시연을 다시 찍거나 남에게 넘길 때는 그게
+   *  곤란하다. 여기서는 서버 기록까지 지워서 온보딩 첫 질문으로 돌린다.
+   *
+   *  users 행은 남긴다 — 사용자가 「탈퇴」로 기대하는 것은 자기가 답한
+   *  내용이 사라지는 것이지 로그인 이력이 아니다.
+   *
+   *  서버가 실패해도 기기의 것은 지운다. 반대로 하면 화면에는 남아 있는데
+   *  서버에는 없는 어긋난 상태가 된다. */
+  async function handleLeave() {
+    setLeaving(true)
+    setLeaveError('')
+    try {
+      await deleteOnboarding()
+    } catch (err) {
+      // 로그인이 풀렸거나 서버가 죽어도 이 기기는 비워주는 게 낫다.
+      setLeaveError(err.message)
+    }
+    clearLocalData()
+    clearToken()
     navigate('/')
   }
 
@@ -616,13 +643,59 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
                        hover:text-navy transition-colors">
             <RotateCcw size={13} /> 처음부터 다시 입력
           </button>
-          <button onClick={handleLogout}
-            className="flex items-center gap-1.5 text-xs font-semibold text-warm-text
-                       hover:text-sunset-orange transition-colors">
-            <LogOut size={13} /> 로그아웃
-          </button>
+          <div className="flex items-center gap-4">
+            <button onClick={handleLogout}
+              className="flex items-center gap-1.5 text-xs font-semibold text-warm-text
+                         hover:text-sunset-orange transition-colors">
+              <LogOut size={13} /> 로그아웃
+            </button>
+            <button onClick={() => setConfirming(true)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-warm-text
+                         hover:text-red-600 transition-colors">
+              <Trash2 size={13} /> 탈퇴
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* 탈퇴 확인 — 되돌릴 수 없는 일이라 한 번 더 묻는다.
+          window.confirm 은 브라우저마다 생김새가 달라서 시연 영상에 그대로
+          찍힌다. 편집창과 같은 모양으로 맞춘다. */}
+      {confirming && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-5"
+             role="dialog" aria-modal="true" aria-label="탈퇴 확인">
+          <div className="absolute inset-0 bg-navy/40" onClick={() => !leaving && setConfirming(false)} />
+          <div className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl">
+            <p className="text-base font-extrabold text-navy">정말 탈퇴할까요?</p>
+            <p className="mt-2 text-sm text-warm-text leading-relaxed">
+              온보딩에서 답해주신 내용 {GRID_KEYS.length}가지와 이 기기에 저장된
+              신청 목록·서류 진행상황이 모두 지워져요.
+              <span className="block mt-1.5 font-semibold text-navy">
+                되돌릴 수 없어요.
+              </span>
+            </p>
+
+            {leaveError && (
+              <p className="mt-3 text-xs text-sunset-orange leading-relaxed">
+                서버 기록을 지우지 못했어요 ({leaveError}). 이 기기에 있는 것만 지웁니다.
+              </p>
+            )}
+
+            <div className="mt-5 flex gap-2.5">
+              <button onClick={() => setConfirming(false)} disabled={leaving}
+                className="flex-1 py-3 rounded-2xl border border-warm-gray/40 text-sm
+                           font-bold text-warm-text hover:bg-primary-bg transition disabled:opacity-50">
+                취소
+              </button>
+              <button onClick={handleLeave} disabled={leaving}
+                className="flex-1 py-3 rounded-2xl bg-red-600 text-white text-sm font-bold
+                           hover:brightness-110 transition disabled:opacity-50">
+                {leaving ? '지우는 중…' : '탈퇴하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editing && (
         <InlineEditDrawer
