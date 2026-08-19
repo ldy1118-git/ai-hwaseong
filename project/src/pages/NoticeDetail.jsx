@@ -154,7 +154,7 @@ export default function NoticeDetail() {
     <div className="min-h-screen bg-primary-bg">
       <Header />
 
-      <main className="max-w-2xl mx-auto px-5 pb-48">
+      <main className="max-w-2xl mx-auto px-5 pb-36">
         <button
           onClick={() => navigate('/home')}
           className="mt-4 text-sm font-medium text-navy hover:underline"
@@ -257,7 +257,7 @@ export default function NoticeDetail() {
       </main>
 
       {/* 하단 고정 액션 */}
-      <div className="fixed bottom-16 left-0 right-0 bg-primary-bg/95 backdrop-blur border-t border-warm-gray/30 px-4 py-2">
+      <div className="fixed bottom-0 left-0 right-0 bg-primary-bg/95 backdrop-blur border-t border-warm-gray/30 px-4 py-2">
         <div className="max-w-2xl mx-auto flex flex-col gap-2">
           {item.source_url && (
             <a href={item.source_url} target="_blank" rel="noreferrer" className="w-full">

@@ -184,7 +184,7 @@ export default function MissionControl() {
 
       {/* ── 대화 목록 ── */}
       <main className="flex-1 overflow-y-auto max-w-4xl w-full mx-auto px-4 py-2 space-y-3"
-            style={{ paddingBottom: '13rem' }}>
+            style={{ paddingBottom: '9rem' }}>
         {messages.map(msg => (
           <div key={msg.id}>
             <ChatBubble message={msg} />
@@ -201,7 +201,7 @@ export default function MissionControl() {
       </main>
 
       {/* ── 하단 입력 영역 (고정) ── */}
-      <div className="fixed bottom-16 left-0 right-0 z-30
+      <div className="fixed bottom-0 left-0 right-0 z-30
                       bg-primary-bg/95 backdrop-blur-sm
                       border-t border-warm-gray/25">
         <div className="max-w-4xl mx-auto px-4 pt-3 pb-4 space-y-2.5">

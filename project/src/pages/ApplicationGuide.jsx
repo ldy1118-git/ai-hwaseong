@@ -417,7 +417,7 @@ export default function ApplicationGuide() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-52">
+      <div className="flex-1 overflow-y-auto pb-36">
         <div className="max-w-4xl mx-auto">
 
           {/* 프로그램명 */}
@@ -571,7 +571,7 @@ export default function ApplicationGuide() {
 
       {/* 고정 하단 버튼 */}
       {!loading && (
-        <div className="fixed bottom-16 inset-x-0 z-30 bg-primary-bg/95 backdrop-blur-sm border-t border-warm-gray/20 px-5 py-4">
+        <div className="fixed bottom-0 inset-x-0 z-30 bg-primary-bg/95 backdrop-blur-sm border-t border-warm-gray/20 px-5 py-4">
           <div className="max-w-4xl mx-auto flex flex-col gap-2.5">
 
             {/* 정책 신청 버튼 – 모든 서류 완료 시 노출 */}
