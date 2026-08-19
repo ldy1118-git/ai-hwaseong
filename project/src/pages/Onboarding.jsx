@@ -528,7 +528,8 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
           오는데, 정작 도착하면 헤더가 사라져서 다른 화면으로 갈 수가 없었다. */}
       <Header />
 
-      <div className="max-w-4xl mx-auto px-5 pt-4">
+      {/* 넓은 화면에서 줄이 1150px 까지 늘어나 허전했다. 폭을 잡는다. */}
+      <div className="max-w-3xl mx-auto px-5 pt-4 lg:pt-6">
 
         {/* ── 머리 ── */}
         <div className="flex items-end justify-between mb-1">
@@ -546,8 +547,11 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
             「예비창업자」 같은 건 칸에 안 들어간다. 게다가 이모지 20px · 라벨 13px ·
             값 12px 라 **값이 제일 작았다** — 값을 보러 온 화면인데.
             줄로 펴면 값에 폭을 다 줄 수 있고 위계도 바로 선다. */}
-        <ul className="rounded-2xl border border-warm-gray/25 bg-white overflow-hidden
-                       divide-y divide-warm-gray/20">
+        {/* 한 줄짜리 목록을 통으로 두면 넓은 화면에서 아홉 줄이 세로로
+            길게 늘어진다. 두 칸으로 접으면 화면을 채우면서도 값에 폭을
+            충분히 줄 수 있다. 줄마다 따로 떼어놓아 어디를 누르는지가
+            더 분명해진다. */}
+        <ul className="grid gap-2 sm:grid-cols-2">
           {GRID_KEYS.map(key => {
             const meta = FIELD_LABELS[key]
             const disp = displayValue(key, profile[key])
@@ -557,10 +561,15 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
               <li key={key}>
                 <button
                   onClick={() => setEditing(key)}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 text-left
-                             active:bg-primary-bg transition-colors">
+                  className={[
+                    'w-full flex items-center gap-3 px-4 py-3.5 text-left rounded-2xl border',
+                    'transition-colors',
+                    filled
+                      ? 'bg-white border-warm-gray/30 hover:border-navy/40'
+                      : 'bg-white border-dashed border-sunset-orange/40 hover:border-sunset-orange',
+                  ].join(' ')}>
                   <span className="w-6 text-center text-base leading-none flex-shrink-0">{meta.emoji}</span>
-                  <span className="text-sm text-warm-text flex-shrink-0 w-20">{meta.label}</span>
+                  <span className="text-sm text-warm-text flex-shrink-0">{meta.label}</span>
                   <span className={[
                     'flex-1 text-right text-sm truncate',
                     filled ? 'font-extrabold text-navy' : 'font-bold text-sunset-orange',
@@ -590,8 +599,8 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
             정보를 고치고 나면 결과를 다시 봐야 한다. 그 길이 없었다. */}
         <button
           onClick={() => navigate('/home')}
-          className="mt-5 w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl
-                     bg-navy text-white text-sm font-bold shadow-sm
+          className="mt-5 w-full sm:w-auto sm:px-8 sm:mx-auto flex items-center justify-center gap-2
+                     py-3.5 rounded-2xl bg-navy text-white text-sm font-bold shadow-sm
                      hover:brightness-110 active:scale-[.99] transition">
           내 지원사업 보러가기
           <ArrowRight size={16} />
