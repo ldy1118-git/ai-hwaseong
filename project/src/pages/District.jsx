@@ -502,7 +502,7 @@ export default function MyStore() {
     <div className="min-h-screen bg-primary-bg pb-24">
       <Header />
 
-      <div className="max-w-4xl mx-auto px-5 pt-4 pb-2">
+      <div className="max-w-4xl mx-auto px-5 pt-4 pb-2 lg:max-w-6xl lg:pt-6">
         <h1 className="text-lg font-extrabold text-navy">
           {isOwner ? '내 매장 현황' : '상권 분석'}
         </h1>
@@ -515,7 +515,19 @@ export default function MyStore() {
 
       {!isOwner && <CommercialAnalysisView profile={profile} />}
 
-      {isOwner && <div className="max-w-4xl mx-auto px-5 space-y-5">
+      {/* 카드 여섯 장을 한 줄로 쌓아두면 노트북에서 화면 세 개 분량으로
+          늘어난다. 왼쪽은 「세무」(나 → 다음 신고 → 올해 할 신고),
+          오른쪽은 「지원사업과 안내」로 가른다.
+
+          이 지점에서 가르면 **좁은 화면의 순서가 그대로 ①②③④⑤⑥ 이다.**
+          다른 데서 가르면 출처 카드가 신고 목록보다 위로 올라와 버린다.
+          그래서 order 로 순서를 되돌리는 손질이 필요 없다. */}
+      {isOwner && <div className="max-w-4xl mx-auto px-5 space-y-5
+                                  lg:max-w-6xl lg:space-y-0 lg:grid lg:grid-cols-2
+                                  lg:gap-5 lg:items-start">
+
+        {/* ── 왼쪽: 세무 ── */}
+        <div className="space-y-5">
 
         {/* ① 프로필 */}
         <ProfileCard profile={profile} onEdit={() => navigate('/onboarding')} />
@@ -624,6 +636,11 @@ export default function MyStore() {
             </div>
           )}
         </Card>
+
+        </div>
+
+        {/* ── 오른쪽: 지원사업과 안내 ── */}
+        <div className="space-y-5">
 
         {/* ④ 내 지원사업 */}
         <Card className="p-4">
@@ -759,6 +776,8 @@ export default function MyStore() {
             국세청 세무일정 원문 확인 <ExternalLink size={9} />
           </a>
         </Card>
+
+        </div>
 
       </div>}
 
