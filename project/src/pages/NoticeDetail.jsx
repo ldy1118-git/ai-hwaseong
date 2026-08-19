@@ -262,33 +262,44 @@ export default function NoticeDetail() {
       </main>
 
       {/* 하단 고정 액션 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-primary-bg/95 backdrop-blur border-t border-warm-gray/30 px-4 py-2">
-        <div className="max-w-2xl mx-auto flex flex-col gap-2">
-          {item.source_url && (
-            <a href={item.source_url} target="_blank" rel="noreferrer" className="w-full">
-              <Button variant="ghost" size="sm" fullWidth>공고문 원문 보기 →</Button>
+      <div className="fixed bottom-0 left-0 right-0 bg-primary-bg/95 backdrop-blur border-t border-warm-gray/30 px-4 py-3">
+        {/* 전에는 두 버튼이 fullWidth + flex-1 이라 바 절반씩을 통째로
+            차지했다. 넓은 화면에서 가로로만 길고 납작한 띠 두 개가 되어
+            버튼처럼 보이지 않았다. 글자 크기에 맞춰 폭을 줄이고 높이를
+            키워서 비율을 되돌린다. 좁은 화면에서는 손가락이 닿을 면적이
+            필요하니 예전처럼 반씩 나눠 채운다. */}
+        <div className="max-w-2xl mx-auto flex flex-col gap-2
+                        sm:flex-row sm:items-center sm:justify-between">
+          {item.source_url ? (
+            <a href={item.source_url} target="_blank" rel="noreferrer"
+               className="text-sm text-warm-text hover:text-navy underline underline-offset-4
+                          decoration-warm-gray/50 self-start sm:self-auto px-1">
+              공고문 원문 보기 →
             </a>
-          )}
-        <div className="flex gap-3">
-          <Button
-            variant="outline" size="sm" fullWidth className="flex-1"
-            onClick={() => {
-              localStorage.setItem('mars-fit-selected-match', JSON.stringify(item))
-              navigate('/apply')
-            }}
-          >
-            서류 준비하기
-          </Button>
-          {item.apply_url ? (
-            <a href={item.apply_url} target="_blank" rel="noreferrer" className="flex-1">
-              <Button variant="sunset-orange" size="sm" fullWidth>신청하러 가기</Button>
-            </a>
-          ) : (
-            <Button variant="sunset-orange" size="sm" fullWidth disabled className="flex-1">
-              {item.apply_method ? '문의처로 접수' : '접수처 확인 필요'}
+          ) : <span />}
+
+          <div className="flex gap-2.5 sm:flex-shrink-0">
+            <Button
+              variant="outline" size="md" className="flex-1 sm:flex-none sm:px-6"
+              onClick={() => {
+                localStorage.setItem('mars-fit-selected-match', JSON.stringify(item))
+                navigate('/apply')
+              }}
+            >
+              서류 준비하기
             </Button>
-          )}
-        </div>
+            {item.apply_url ? (
+              <a href={item.apply_url} target="_blank" rel="noreferrer" className="flex-1 sm:flex-none">
+                <Button variant="sunset-orange" size="md" fullWidth className="sm:w-auto sm:px-6">
+                  신청하러 가기
+                </Button>
+              </a>
+            ) : (
+              <Button variant="sunset-orange" size="md" disabled className="flex-1 sm:flex-none sm:px-6">
+                {item.apply_method ? '문의처로 접수' : '접수처 확인 필요'}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>
