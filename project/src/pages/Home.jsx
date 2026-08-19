@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
 import Header from '../components/layout/Header'
 import MarsGreeting from '../components/sections/MarsGreeting'
 import OrbitDashboard from '../components/sections/OrbitDashboard'
@@ -9,6 +10,15 @@ import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
 import { nextDeadline } from '../utils/taxSchedule'
 
 /* ── 유틸 ───────────────────────────────────────── */
+
+/* 공고 상세로 넘긴다. NoticeDetail 은 라우트 파라미터가 아니라
+   localStorage 의 이 열쇠를 읽는다 — OrbitDashboard 의 카드도 같은
+   방식이라 열쇠 이름을 반드시 맞춰야 한다. */
+function openNotice(navigate, item) {
+  if (!item?.raw) return
+  localStorage.setItem('mars-fit-selected-match', JSON.stringify(item.raw))
+  navigate('/notice')
+}
 
 function calcDDay(end) {
   if (!end) return null
@@ -290,7 +300,7 @@ function BusinessOwnerSection({ profile, matches = [] }) {
 
 const ORBIT_STEPS = ['업종 확정', '지원사업 선택', '서류 준비', '신청 완료']
 
-function StartupPlannerSection({ profile, matches = [] }) {
+function StartupPlannerSection({ profile, matches = [], navigate }) {
   const step = profile.category ? 1 : 0
 
   // 전에는 「초기 창업비 최대 500만원 지원」이라고 적혀 있었다. 어느
@@ -322,12 +332,29 @@ function StartupPlannerSection({ profile, matches = [] }) {
               <span className="text-sm font-bold text-star-yellow">건</span>
               <span className="text-sm text-white/85">지금 신청할 수 있어요</span>
             </p>
+            {/* 여기까지 읽고 나면 「그래서 그게 뭔데」가 다음 생각인데,
+                전에는 글자만 있고 누를 데가 없어서 목록을 다시 뒤져야 했다.
+                바로 공고로 보낸다.
+
+                글씨는 text-xs 에 white/60 이었다. 남색 위에 60% 흰색을
+                12px 로 얹으면 획이 반투명하게 얇아져서 초점이 안 맞은
+                것처럼 보인다. 불투명하게 올리고 크기를 키운다. */}
             {best && (
-              <p className="mt-1.5 text-xs text-white/60 leading-relaxed">
-                가장 잘 맞는 것 —{' '}
-                <span className="font-bold text-white">{best.title}</span>
-                <span> · 매칭 {best.score}점</span>
-              </p>
+              <button
+                onClick={() => openNotice(navigate, best)}
+                className="mt-3 w-full text-left rounded-xl bg-white/10 hover:bg-white/[0.16]
+                           border border-white/15 px-3.5 py-3 transition-colors">
+                <span className="block text-xs font-bold text-star-yellow">가장 잘 맞는 것</span>
+                <span className="mt-1 flex items-start gap-2">
+                  <span className="flex-1 text-sm font-bold text-white leading-snug line-clamp-2">
+                    {best.title}
+                  </span>
+                  <ChevronRight size={16} className="text-white/70 flex-shrink-0 mt-0.5" />
+                </span>
+                <span className="block mt-1 text-xs font-semibold text-white/80">
+                  매칭 {best.score}점
+                </span>
+              </button>
             )}
           </>
         ) : (
@@ -658,7 +685,7 @@ export default function Home() {
             }
 
             {role === 1 && <BusinessOwnerSection profile={profile} matches={allMatches} />}
-            {role === 2 && <StartupPlannerSection profile={profile} matches={allMatches} />}
+            {role === 2 && <StartupPlannerSection profile={profile} matches={allMatches} navigate={navigate} />}
             {role === 3 && <ExplorerSection profile={profile} navigate={navigate} />}
           </StickyLag>
         </div>

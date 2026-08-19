@@ -140,9 +140,37 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
         </div>
       )}
 
-      {/* 매칭이유 패널 — 조건 결과 직접 표시 */}
+      {/* 하단 액션 바 */}
+      <div className="mt-2 pt-2 border-t border-warm-gray/30 flex items-center justify-between">
+        {conditions.length > 0 ? (
+          <button
+            onClick={() => setShowReason(v => !v)}
+            className={`text-sm font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
+          >
+            매칭이유 {showReason ? '▲' : '▼'}
+          </button>
+        ) : <span />}
+        <button
+          onClick={onDetail}
+          className={`text-sm font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
+        >
+          자세히 →
+        </button>
+      </div>
+
+      {/* 매칭이유 — 버튼 **아래**에 편다.
+          전에는 이 패널이 액션 바 위에 있었다. 그래서 「매칭이유」를 누르면
+          내용이 버튼 위로 밀고 들어오면서 버튼 자신이 카드 맨 아래로
+          내려갔다. 방금 누른 자리에 손가락을 두고 다시 누르면 엉뚱한 게
+          눌린다. 접는 버튼은 편 자리에 그대로 있어야 한다. */}
       {showReason && conditions.length > 0 && (
-        <div className="mt-2 pt-2 border-t border-warm-gray/20 space-y-1.5">
+        <div className="mt-2.5 space-y-1.5 origin-top" style={{ animation: 'reasonOpen .18s ease-out' }}>
+          <style>{`
+            @keyframes reasonOpen {
+              from { opacity: 0; transform: translateY(-4px); }
+              to   { opacity: 1; transform: none; }
+            }
+          `}</style>
           {conditions.map((c, i) => {
             const s = COND_STYLE[c.status] ?? COND_STYLE['확인필요']
             return (
@@ -164,24 +192,6 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
           })}
         </div>
       )}
-
-      {/* 하단 액션 바 */}
-      <div className="mt-2 pt-2 border-t border-warm-gray/30 flex items-center justify-between">
-        {conditions.length > 0 ? (
-          <button
-            onClick={() => setShowReason(v => !v)}
-            className={`text-sm font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
-          >
-            매칭이유 {showReason ? '▲' : '▼'}
-          </button>
-        ) : <span />}
-        <button
-          onClick={onDetail}
-          className={`text-sm font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
-        >
-          자세히 →
-        </button>
-      </div>
     </Card>
   )
 }
@@ -384,7 +394,14 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             <span className="w-2 h-2 rounded-full bg-sunset-orange animate-pulse" />
             <h2 className="text-base font-bold text-sunset-orange tracking-wide uppercase">긴급 마감</h2>
           </div>
-          <div className="grid grid-cols-1 gap-3 mb-3">
+          {/* 목록이 길어지면 페이지가 통째로 아래로 늘어나서, 오른쪽을
+              끝까지 읽는 동안 왼쪽 캘린더는 한참 위로 사라진다. 일정
+              화면의 「상시 접수」처럼 칸 안에서만 스크롤시킨다. max-h 라
+              항목이 적으면 줄어들고, 빈자리가 생기지 않는다.
+              좁은 화면은 원래대로 — 작은 화면 안에 또 스크롤 칸을 만들면
+              바깥 스크롤과 엉킨다. */}
+          <div className="grid grid-cols-1 gap-3 mb-3
+                          lg:max-h-[42vh] lg:overflow-y-auto lg:pr-1.5">
             {loading
               ? [1, 2].map(i => <SkeletonCard key={i} />)
               : visibleUrgent.map(item => (
@@ -409,7 +426,8 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
         <span className="w-2 h-2 rounded-full bg-navy" />
         <h2 className="text-base font-bold text-navy tracking-wide uppercase">지원사업 탐색</h2>
       </div>
-      <div className="grid grid-cols-1 gap-3">
+      <div className="grid grid-cols-1 gap-3
+                      lg:max-h-[58vh] lg:overflow-y-auto lg:pr-1.5">
         {loading
           ? [1, 2, 3, 4].map(i => <SkeletonCard key={i} />)
           : visibleRegular.map(item => (
