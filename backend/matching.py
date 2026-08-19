@@ -32,6 +32,27 @@ STATUS_SCORE = {
     NOT_SATISFIED: 0.0,
 }
 
+# 조건 키를 화면에 그대로 쓸 이름으로 바꾼다. 안 바꾸면 대시보드
+# 매칭이유에 "business_status" 같은 영문 키가 그대로 노출된다.
+CONDITION_LABELS = {
+    "requirements": "지원 자격",
+    "age": "나이",
+    "region": "지역",
+    "business_status": "사업 상태",
+    "category": "업종",
+    "career": "창업 경험",
+    "income_asset": "소득·자산 구간",
+    "business_period_months": "사업 운영 기간",
+    "annual_revenue_krw": "연 매출",
+    "marital_status": "혼인 상태",
+    "living_with_parents": "부모 동거 여부",
+}
+
+# "소상공인이면 누구나" 는 자격은 되지만 **나에게 맞는 사업**은 아니다.
+# 1.0 을 주면 요건이 이것 하나뿐인 공고가 전부 100점으로 묶여서 순위가
+# 사라진다(59건 중 35건이 그랬다). 자격 충족은 인정하되 점수는 덜 준다.
+OPEN_VALUE = 0.7
+
 DOCUMENT_TYPE_ALIASES = {
     "common": "공통필수",
     "required": "공통필수",
@@ -321,20 +342,226 @@ def _judge_condition(condition: str, user_profile: dict[str, Any], rule: dict[st
         # 공고가 지원대상을 "소상공인"이라고만 적은 경우. 따로 걸린 조건이
         # 없는 게 맞으므로 통과시킨다. 조건을 아예 안 만들면 화면에서
         # 매칭 이유가 비어버리니, 근거를 남기고 충족으로 표시한다.
-        return {"condition": condition, "status": SATISFIED,
-                "detail": rule.get("detail", "소상공인이면 신청할 수 있습니다")}
-    if rule_type == "unknown":
+        # 다만 점수는 덜 준다 — 자격이 된다는 것과 나에게 맞는다는 것은 다르다.
+        result = {"condition": condition, "status": SATISFIED,
+                  "detail": rule.get("detail", "소상공인이면 신청할 수 있습니다"),
+                  "value": OPEN_VALUE}
+    elif rule_type == "unknown":
         # 공고문 첨부가 스캔 이미지라 자격 요건을 읽지 못한 경우.
         # 조건이 없는 것과는 다르다. 추측해서 통과시키지 않고 확인 필요로 남긴다.
-        return {"condition": condition, "status": NEEDS_CHECK,
-                "detail": rule.get("detail", "공고문에서 자격 요건을 확인하지 못했습니다")}
-    if rule_type == "age":
-        return _judge_age(user_value, rule)
-    if rule_type == "region":
-        return _judge_region(user_value, rule)
-    if rule_type == "number_range":
-        return _judge_number_range(condition, user_value, rule)
-    return _judge_allowed_value(condition, user_value, rule)
+        result = {"condition": condition, "status": NEEDS_CHECK,
+                  "detail": rule.get("detail", "공고문에서 자격 요건을 확인하지 못했습니다")}
+    elif rule_type == "age":
+        result = _judge_age(user_value, rule)
+    elif rule_type == "region":
+        result = _judge_region(user_value, rule)
+    elif rule_type == "number_range":
+        result = _judge_number_range(condition, user_value, rule)
+    else:
+        result = _judge_allowed_value(condition, user_value, rule)
+
+    # 화면은 이 이름을 그대로 찍는다. 없으면 "business_status" 가 노출된다.
+    result["label"] = rule.get("label") or CONDITION_LABELS.get(condition, condition)
+    result["basis"] = "자격"
+    return result
+
+
+# ── 적합도 판정 ─────────────────────────────────────────────────
+#
+# 자격 조건만으로는 순위가 안 나온다. 수집한 공고 59건 중 53건이 요건을
+# 하나만 갖고 있어서 35건이 전부 100점으로 묶였고, 그러면 정렬이 사실상
+# 파일 순서가 된다. 실제로 잘 운영 중인 카페 사장님에게 "폐업(예정)
+# 소상공인 취업지원" 이 1등으로 떴다.
+#
+# 그래서 두 가지를 나눠서 본다.
+#   자격  — 신청할 수 있는가          (eligibility 에서 뽑은 조건)
+#   적합  — 이 사장님에게 맞는 사업인가 (제목·지원대상 문장에서 뽑는다)
+#
+# 적합도는 **제목과 지원대상 문장에서만** 뽑는다. 본문 전체를 뒤지면
+# "지원 제외 대상: 휴·폐업" 같은 문장에 걸려서 폐업지원 사업으로 오인한다.
+
+def support_target(summary: Any) -> str:
+    """기업마당 요약에서 지원대상 문장만 잘라온다.
+
+    요약 형식이 `<사업 설명> ☞ <지원대상> ☞ <지원내용>` 으로 고정돼 있다.
+    """
+    parts = str(summary or "").split("☞")
+    return parts[1].strip() if len(parts) >= 2 else ""
+
+
+# 폐업·사업정리·전직을 돕는 사업. 운영 중인 사장님에게 권하면 실례다.
+# '재기' 는 넣지 않는다 — "재기사업화(경영개선)" 은 아직 영업 중인
+# 위기 소상공인이 대상이라 같이 묶으면 멀쩡한 공고가 빠진다.
+RE_CLOSING = re.compile(r"폐업|사업\s*정리|전직|임금근로자\s*전환|점포\s*철거|채무\s*조정|취업\s*지원")
+RE_STARTUP = re.compile(r"예비\s*창업|창업\s*교육|최초\s*창업|창업\s*준비|신규\s*창업")
+
+RE_FOOD   = re.compile(r"음식점|외식|식품\s*접객|카페|커피|제과|베이커리|위생\s*등급")
+RE_RETAIL = re.compile(r"소매|도소매|판매점|상점가|전통시장")
+# 도시형 소공인 = 제조업이다. 카페·음식점 사장님에게는 해당이 없다.
+RE_MAKER  = re.compile(r"소공인|제조업|제조\s*기업|제조ㆍ|공장|시제품|섬유|가구\s*제조|생활화학제품|생산\(제조\)")
+RE_FARM   = re.compile(r"농업인|농업경영체|영농|어업인|축산업|임업")
+
+# 나이대를 제목에 박아둔 공고가 있는데 자격조건으로는 안 뽑히는 경우가 있다.
+# 「경기도 중장년 최초 창업 지원」이 그랬다 — conditions 가 null 이라
+# 30세 예비창업자에게 1위로 떴다. 제목에서 읽어 보정한다.
+# 배제하지는 않는다. 제목만 보고 자르면 실제 요건과 어긋날 수 있다.
+RE_MIDDLE = re.compile(r"중장년|장년층|시니어|4050")
+RE_YOUTH  = re.compile(r"청년")
+
+RE_HWASEONG = re.compile(r"화성")
+RE_GYEONGGI = re.compile(r"경기")
+# 제목에 박힌 지역명. 소담스퀘어 광주·강원·전주처럼 그 지역 시설을 쓰는
+# 사업이라 화성시 사장님이 신청해도 갈 수가 없다.
+RE_OTHER_REGION = re.compile(
+    r"서울|부산|대구|인천|광주|대전|울산|세종|강원|충북|충남|전북|전남|경북|경남|제주|"
+    r"전주|청주|천안|창원|포항|김해|목포|여수|순천|춘천|원주|강릉"
+)
+
+# 업종별로 "이 공고가 내 업종인가" 를 보는 신호
+CATEGORY_SIGNALS = {
+    "카페": RE_FOOD,
+    "음식점": RE_FOOD,
+    "소매업": RE_RETAIL,
+}
+
+
+def _fit(condition: str, label: str, status: str, detail: str,
+         weight: float, value: float | None = None) -> dict[str, Any]:
+    result = {"condition": condition, "label": label, "status": status,
+              "detail": detail, "weight": weight, "basis": "적합도"}
+    if value is not None:
+        result["value"] = value
+    return result
+
+
+def _region_of(title: str) -> tuple[str, str]:
+    """공고가 어느 지역 사업인지. (구분, 화면에 쓸 지역명)"""
+    if RE_HWASEONG.search(title):
+        return "화성", "화성시"
+    other = RE_OTHER_REGION.search(title)
+    if other:
+        return "타지역", other.group(0)
+    if RE_GYEONGGI.search(title):
+        return "경기", "경기도"
+    return "전국", ""
+
+
+def fit_conditions(policy: dict[str, Any], user_profile: dict[str, Any]) -> list[dict[str, Any]]:
+    """공고와 사장님이 얼마나 맞는지를 조건 형태로 만든다.
+
+    자격 조건과 같은 모양으로 돌려주므로 화면의 '매칭이유' 에 그대로 나온다.
+
+    지역·업종은 **항상** 만든다. 맞을 때만 만들면 전국 공고가 조건 없이
+    전부 100점이 되어 다시 동점으로 뭉친다. 안 맞는 게 아니라 "특별히
+    나를 위한 건 아니다" 라는 뜻으로 낮은 점수를 준다.
+
+    불충족은 확실할 때만 쓴다 — 하나라도 있으면 대상아님이 되어 목록에서
+    통째로 빠지기 때문이다.
+    """
+    title = str(policy.get("title") or "")
+    target = support_target(policy.get("summary"))
+
+    # 아니라고 판정할 때 쓰는 글. 제목과 지원대상만 본다.
+    # 본문까지 넣으면 "지원 제외: 휴·폐업 중인 경우" 같은 문장에 걸려서
+    # 멀쩡한 공고를 폐업지원 사업으로 오인한다.
+    strict = f"{title} {target}"
+    # 맞다고 판정할 때 쓰는 글. 지원대상이 안 잡힌 공고는 요약 앞부분으로
+    # 대신한다. 놓쳐서 점수를 덜 주는 건 순위만 밀릴 뿐이라 안전하다.
+    wide = strict if target else f"{title} {str(policy.get('summary') or '')[:200]}"
+
+    fits: list[dict[str, Any]] = []
+
+    # ── 지역 ──
+    # 화성시 서비스이므로 사용자는 화성시민으로 본다.
+    scope, region_name = _region_of(title)
+    if scope == "화성":
+        fits.append(_fit("region_fit", "지역", SATISFIED,
+                         "화성시가 직접 하는 사업입니다", 3.0))
+    elif scope == "경기":
+        fits.append(_fit("region_fit", "지역", SATISFIED,
+                         "경기도 사업이라 화성시에서도 신청할 수 있습니다", 3.0, value=0.85))
+    elif scope == "타지역":
+        fits.append(_fit("region_fit", "지역", NOT_SATISFIED,
+                         f"{region_name}에서 진행하는 사업입니다", 3.0))
+    else:
+        fits.append(_fit("region_fit", "지역", SATISFIED,
+                         "전국 어디서나 신청할 수 있는 사업입니다", 3.0, value=0.6))
+
+    # ── 업종 ──
+    category = user_profile.get("category")
+    if category:
+        signal = CATEGORY_SIGNALS.get(str(category))
+        if signal and signal.search(wide):
+            fits.append(_fit("category_fit", "업종", SATISFIED,
+                             f"{category} 업종을 위한 사업입니다", 3.0))
+        elif RE_MAKER.search(title) and not RE_FOOD.search(strict) and not RE_RETAIL.search(strict):
+            # 제목이 스스로 제조업이라고 말하면 확실하다. 뺀다.
+            fits.append(_fit("category_fit", "업종", NOT_SATISFIED,
+                             f"제조업(소공인) 대상 사업이라 {category}는 해당하지 않습니다", 3.0))
+        elif RE_MAKER.search(strict) and not RE_FOOD.search(strict) and not RE_RETAIL.search(strict):
+            # 지원대상 문장에만 나오면 애매하다. 「중소벤처기업부 소상공인
+            # 지원사업 통합공고」가 여러 대상 중 하나로 소공인을 적어둔
+            # 것뿐인데 통째로 빠졌다. 빼지 말고 점수만 낮춘다 —
+            # 확실할 때만 배제한다는 원칙은 여기서도 같다.
+            fits.append(_fit("category_fit", "업종", NEEDS_CHECK,
+                             f"제조업 위주 사업으로 보입니다. {category}도 되는지 문의처에 확인해주세요",
+                             3.0, value=0.35))
+        else:
+            fits.append(_fit("category_fit", "업종", SATISFIED,
+                             "업종 제한 없이 신청할 수 있는 사업입니다", 3.0, value=0.7))
+
+    # ── 사업 목적 ──
+    status = user_profile.get("business_status")
+    if RE_CLOSING.search(title):
+        # 제목에 폐업·사업정리가 박혀 있으면 확실하다.
+        if status in ("운영중", "예비창업자"):
+            fits.append(_fit("purpose_fit", "사업 목적", NOT_SATISFIED,
+                             "폐업·사업정리를 준비하는 분을 위한 사업입니다", 3.0))
+    elif RE_CLOSING.search(strict):
+        # 지원대상 문장에만 있으면 애매하다. 「체납액 징수특례」처럼
+        # 폐업자도 대상에 넣어둔 제도일 수 있다. 빼지 말고 낮춰만 둔다.
+        if status in ("운영중", "예비창업자"):
+            fits.append(_fit("purpose_fit", "사업 목적", NEEDS_CHECK,
+                             "폐업·사업정리 중인 분이 주 대상으로 보입니다. 문의처에 확인해주세요",
+                             3.0, value=0.35))
+    elif RE_STARTUP.search(strict):
+        if status == "예비창업자":
+            fits.append(_fit("purpose_fit", "사업 목적", SATISFIED,
+                             "창업을 준비하는 분을 위한 사업입니다", 2.0))
+        elif status == "운영중":
+            fits.append(_fit("purpose_fit", "사업 목적", NEEDS_CHECK,
+                             "창업 준비 단계를 위한 사업입니다. 이미 운영 중이면 대상이 아닐 수 있어요", 2.0))
+
+    # ── 나이대 ──
+    age = user_profile.get("age")
+    if isinstance(age, (int, float)) and age > 0:
+        if RE_MIDDLE.search(title):
+            if age < 40:
+                fits.append(_fit("age_fit", "나이", NEEDS_CHECK,
+                                 "중장년 대상 사업입니다. 나이 요건을 확인해주세요", 2.5, value=0.3))
+            else:
+                fits.append(_fit("age_fit", "나이", SATISFIED,
+                                 "중장년을 위한 사업입니다", 2.5))
+        elif RE_YOUTH.search(title):
+            if age > 39:
+                fits.append(_fit("age_fit", "나이", NEEDS_CHECK,
+                                 "청년 대상 사업입니다. 나이 요건을 확인해주세요", 2.5, value=0.3))
+            else:
+                fits.append(_fit("age_fit", "나이", SATISFIED,
+                                 "청년을 위한 사업입니다", 2.5))
+
+    # ── 지원 대상 ──
+    if RE_FARM.search(strict) and "소상공인" not in strict:
+        fits.append(_fit("audience_fit", "지원 대상", NOT_SATISFIED,
+                         "농어업인 대상 사업입니다", 3.0))
+    elif "소상공인" in wide:
+        fits.append(_fit("audience_fit", "지원 대상", SATISFIED,
+                         "소상공인을 대상으로 하는 사업입니다", 1.5, value=0.85))
+    elif "중소기업" in wide:
+        fits.append(_fit("audience_fit", "지원 대상", NEEDS_CHECK,
+                         "중소기업 대상 사업입니다. 소상공인도 되는지 문의처에 확인해주세요", 2.0))
+
+    return fits
 
 
 def _overall_status(condition_results: list[dict[str, str]], documents: list[dict[str, Any]]) -> str:
@@ -349,12 +576,26 @@ def _overall_status(condition_results: list[dict[str, str]], documents: list[dic
     return AVAILABLE
 
 
-def _match_score(condition_results: list[dict[str, str]]) -> int:
+def _match_score(condition_results: list[dict[str, Any]]) -> int:
+    """조건별 가중 평균. 가중치가 없으면 1.0 이라 예전과 같이 계산된다.
+
+    단순 평균으로 두면 "소상공인이면 누구나" 하나만 걸린 공고가 100점이
+    되어 목록 위쪽을 다 차지한다. 지역·업종이 실제로 맞는 공고를 위로
+    올리려면 조건마다 무게가 달라야 한다.
+    """
     if not condition_results:
         return 0
 
-    score = sum(STATUS_SCORE.get(result["status"], 0.0) for result in condition_results)
-    return round(score / len(condition_results) * 100)
+    total = sum(float(result.get("weight", 1.0)) for result in condition_results)
+    if total <= 0:
+        return 0
+
+    earned = sum(
+        float(result.get("weight", 1.0))
+        * float(result.get("value", STATUS_SCORE.get(result["status"], 0.0)))
+        for result in condition_results
+    )
+    return max(0, min(100, round(earned / total * 100)))
 
 
 def _expected_documents(policy: dict[str, Any], user_profile: dict[str, Any]) -> list[dict[str, Any]]:
@@ -550,6 +791,8 @@ def match_policy(policy: dict[str, Any], user_profile: dict[str, Any]) -> dict[s
         _judge_condition(condition, user_profile, rule)
         for condition, rule in policy.get("conditions", {}).items()
     ]
+    # 자격 판정 뒤에 적합도를 붙인다. 같은 모양이라 화면은 구분 없이 그린다.
+    condition_results += fit_conditions(policy, user_profile)
     documents = _expected_documents(policy, user_profile)
 
     result = {"notice_id": policy["notice_id"]}
@@ -589,12 +832,6 @@ def match_policy(policy: dict[str, Any], user_profile: dict[str, Any]) -> dict[s
 def match_policies(policies: list[dict[str, Any]], user_profile: dict[str, Any]) -> list[dict[str, Any]]:
     """Match multiple policies and sort the most actionable results first."""
 
-    overall_priority = {
-        AVAILABLE: 0,
-        CONDITIONAL: 1,
-        NEEDS_CHECK: 2,
-        NOT_TARGET: 3,
-    }
     period_priority = {
         "접수중": 0,
         "기간미상": 1,
@@ -603,12 +840,17 @@ def match_policies(policies: list[dict[str, Any]], user_profile: dict[str, Any])
     }
 
     results = [match_policy(policy, user_profile) for policy in policies]
+    # 접수중인 것을 먼저, 그 안에서는 점수 순.
+    #
+    # 예전에는 점수보다 '신청가능/확인필요' 를 먼저 봤다. 그러면 화성시가
+    # 직접 하는 사업이 서류 한 줄 때문에 확인필요가 되는 순간, 전국 공고
+    # 수십 건 아래로 밀린다. 확인필요는 이미 점수에 반영돼 있으므로(0.5)
+    # 두 번 깎을 이유가 없다.
     return sorted(
         results,
         key=lambda item: (
             item["overall_status"] == NOT_TARGET,
             period_priority.get(item["application_status"], 99),
-            overall_priority.get(item["overall_status"], 99),
             -item["match_score"],
         ),
     )
