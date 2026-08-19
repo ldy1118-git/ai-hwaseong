@@ -115,7 +115,7 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
             D-{item.dDay}
           </span>
         ) : item.raw?.apply_period?.note ? (
-          <span className="text-sm font-bold text-warm-text whitespace-nowrap">
+          <span className="text-sm font-bold text-warm-text text-right min-w-0">
             {item.raw.apply_period.note}
           </span>
         ) : null}
@@ -280,7 +280,11 @@ function useIsWide() {
  * 생길 이유가 없다. 펼쳤을 때만 상한과 스크롤을 준다. */
 function capStyle(wide, cap) {
   if (!wide || !cap) return undefined
-  return { maxHeight: cap, overflowY: 'auto' }
+  // overflowX 를 반드시 같이 적는다. CSS 규칙상 overflow-y 가 visible 이
+  // 아니게 되면 overflow-x 도 visible 에서 auto 로 자동 승격된다. 그래서
+  // 세로 스크롤만 원했는데 카드가 1px 만 넘쳐도 **가로 스크롤바가 같이
+  // 생긴다.** 목록 안에 가로 막대가 걸려 있던 것이 이것이었다.
+  return { maxHeight: cap, overflowY: 'auto', overflowX: 'hidden' }
 }
 
 async function summarizeBatch(items, signal, setAiDescs) {

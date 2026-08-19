@@ -176,7 +176,7 @@ export default function NoticeDetail() {
         <h1 className="text-lg font-bold text-navy leading-snug">{annotate(item.notice_title, terms)}</h1>
 
         {item.summary && (
-          <p className="mt-2 text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+          <p className="mt-2 text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">
             {annotate(item.summary, terms)}
           </p>
         )}
@@ -243,7 +243,7 @@ export default function NoticeDetail() {
             ].filter(([, v]) => v).map(([label, value], i) => (
               <div key={label} className={`flex justify-between gap-4 py-2 ${i > 0 ? 'border-t border-warm-gray/20' : ''}`}>
                 <span className="text-sm text-warm-text flex-shrink-0">{label}</span>
-                <span className="text-sm font-medium text-navy text-right">{value}</span>
+                <span className="text-sm font-medium text-navy text-right min-w-0 break-words">{value}</span>
               </div>
             ))}
 
