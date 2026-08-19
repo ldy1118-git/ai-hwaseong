@@ -488,8 +488,17 @@ def fit_conditions(policy: dict[str, Any], user_profile: dict[str, Any]) -> list
                          "전국 어디서나 신청할 수 있는 사업입니다", 3.0, value=0.6))
 
     # ── 업종 ──
+    # eligibility 에 업종 조건이 이미 있으면 여기서 또 만들지 않는다.
+    # 둘 다 라벨이 「업종」이라 매칭이유에 같은 이름이 두 줄 나왔다.
+    # 음식점 프로필에서는 「업종 조건 충족」과 「음식점 업종을 위한
+    # 사업입니다」가 나란히 떴고, 카페처럼 안 맞는 업종에서는
+    # 「불충족」과 「충족」이 동시에 계산됐다.
+    #
+    # 공고가 스스로 업종을 명시했으면 그 판정이 이 추정보다 정확하다.
+    # 동점으로 뭉치는 것을 막으려고 항상 만들던 것인데, 명시된 조건이
+    # 있으면 그 조건이 이미 순위를 갈라준다.
     category = user_profile.get("category")
-    if category:
+    if category and "category" not in policy.get("conditions", {}):
         signal = CATEGORY_SIGNALS.get(str(category))
         if signal and signal.search(wide):
             fits.append(_fit("category_fit", "업종", SATISFIED,
@@ -856,6 +865,31 @@ def match_policies(policies: list[dict[str, Any]], user_profile: dict[str, Any])
     )
 
 
+def _load_eligibility_overrides(folder: Path) -> dict[str, dict[str, Any]]:
+    """손으로 적어둔 자격조건 보정을 읽는다.
+
+    eligibility 는 extract.py 가 공고문 텍스트를 정규식으로 훑어 만든다.
+    조건이 문장으로만 적혀 있으면 통째로 놓치는데, 놓친 조건은 매칭에서
+    **존재하지 않는 것과 같다.** 「음식점 미세먼지·악취 방지시설」이
+    그랬다 — 조리 중인 가게 배기구에 다는 설비인데 사업상태 조건이 없어
+    예비창업자에게 94점으로 떴다.
+
+    파일이 없으면 조용히 넘어간다. 보정은 있으면 좋은 것이지 없으면
+    안 도는 것이 아니다.
+    """
+
+    path = folder.parent / "eligibility_overrides.json"
+    if not path.exists():
+        return {}
+    try:
+        with path.open("r", encoding="utf-8-sig") as file:
+            raw = json.load(file)
+    except (OSError, json.JSONDecodeError):
+        # 보정 파일이 깨졌다고 매칭 전체를 멈추지는 않는다.
+        return {}
+    return {k: v for k, v in raw.items() if not k.startswith("_") and isinstance(v, dict)}
+
+
 def load_policies_from_folder(folder_path: str | Path) -> list[dict[str, Any]]:
     """Load every policy notice JSON file from a folder."""
 
@@ -863,11 +897,23 @@ def load_policies_from_folder(folder_path: str | Path) -> list[dict[str, Any]]:
     if not folder.exists():
         raise FileNotFoundError(f"공고문 폴더를 찾을 수 없습니다: {folder}")
 
+    overrides = _load_eligibility_overrides(folder)
+
     policies = []
     for json_path in sorted(folder.glob("*.json")):
         with json_path.open("r", encoding="utf-8-sig") as file:
             policy = json.load(file)
         policy["_source_file"] = json_path.name
+
+        # 키 단위로 덧씌운다. 적어둔 조건만 바뀌고 나머지는 그대로 둔다.
+        # notices/*.json 은 건드리지 않으므로 extract.py 를 다시 돌려도
+        # 이 보정은 살아남는다.
+        patch = overrides.get(policy.get("notice_id"), {}).get("eligibility")
+        if patch:
+            merged = dict(policy.get("eligibility") or {})
+            merged.update(patch)
+            policy["eligibility"] = merged
+
         policies.append(policy)
 
     if not policies:
