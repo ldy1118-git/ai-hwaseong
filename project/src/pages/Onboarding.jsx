@@ -4,7 +4,7 @@ import Button from '../components/ui/Button'
 import logoImg from '../../design/logo.png'
 import marsImg from '../../design/mars.png'
 import findImg from '../../design/find.png'
-import { getToken, clearToken, saveOnboarding, apiUrl } from '../utils/api'
+import { getToken, clearToken, saveOnboarding, apiUrl, mockOcrResult } from '../utils/api'
 import { generateText } from '../utils/llm/llmProvider'
 import { RotateCcw, LogOut } from 'lucide-react'
 
@@ -647,6 +647,17 @@ export default function Onboarding() {
   function uploadOcr(file) {
     setBizMode('loading')
     setOcrError('')
+
+    if (localStorage.getItem('mars-mock') === 'true') {
+      mockOcrResult().then(r => {
+        setOcrResult(r)
+        if (r.업종) set('category', r.업종)
+        if (r.개업일) { setOpenDate(r.개업일); set('business_period_months', monthsFromOpen(r.개업일)) }
+        setBizMode('review')
+      })
+      return
+    }
+
     const reader = new FileReader()
     reader.onload = async (e) => {
       try {

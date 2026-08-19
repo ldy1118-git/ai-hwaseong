@@ -1,5 +1,8 @@
 import { SchemaType } from '@google/generative-ai'
 import { generateText, GEMINI_MODEL } from './llmProvider.js'
+import { MOCK_CHECKLIST, delay } from '../../mocks/index.js'
+
+const MOCK = localStorage.getItem('mars-mock') === 'true'
 
 export const MODEL_NAME = GEMINI_MODEL
 
@@ -54,6 +57,7 @@ const RESPONSE_SCHEMA = {
  * @returns {{ matched: object[], unmatched: object[] }}
  */
 export function buildDocumentRAG(expectedDocuments, termsData) {
+  if (!Array.isArray(expectedDocuments)) return { matched: [], unmatched: [] }
   const docsData = termsData?.documents || []
   const matched = []
   const unmatched = []
@@ -110,7 +114,10 @@ function formatRAGContext(matched, unmatched) {
 }
 
 function formatMatchingContext(matchingOutput) {
-  const { condition_results, overall_status, expected_documents, notice_id } = matchingOutput
+  const condition_results  = matchingOutput.condition_results  ?? []
+  const overall_status     = matchingOutput.overall_status     ?? '확인필요'
+  const expected_documents = matchingOutput.expected_documents ?? []
+  const notice_id          = matchingOutput.notice_id          ?? '-'
   const pending = condition_results.filter(c => c.status === '확인필요')
   const failed  = condition_results.filter(c => c.status === '불충족')
   const passed  = condition_results.filter(c => c.status === '충족')
@@ -173,6 +180,9 @@ ${formatMatchingContext(matchingOutput)}
 
 // ── V1: terms.json RAG + 시스템 프롬프트 + JSON 강제 출력 ─────────
 export async function generateChecklistV1(matchingOutput, noticeJson, termsData) {
+  if (MOCK) { await delay(1200); return MOCK_CHECKLIST }
+  if (!matchingOutput) throw new Error('매칭 결과가 없어요. 지원사업 탭에서 공고를 선택해 주세요.')
+
   const systemPrompt = `당신은 화성시 소상공인 신청동행 어시스턴트입니다.
 아래 규칙을 반드시 지키세요.
 

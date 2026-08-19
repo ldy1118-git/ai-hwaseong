@@ -1,24 +1,31 @@
 /**
  * 백엔드 호출. 배포 환경에서는 같은 도메인의 /api/* 를 그대로 부른다.
  *
- * 호스트를 코드에 박으면 배포 주소가 바뀔 때마다 다시 빌드해야 한다.
- * 상대경로면 Vercel 에서도, 로컬 서버에서도, JupyterHub 프록시에서도
- * 같은 코드가 돈다.
+ * UI 개발 전용 mock 모드: .env 에 VITE_MOCK=true 를 추가하면
+ * 서버 없이 목업 데이터만으로 모든 화면을 테스트할 수 있다.
  */
+
+import {
+  MOCK_MATCHES,
+  MOCK_TERMS_LOOKUP,
+  MOCK_OCR_RESULT,
+  delay,
+} from '../mocks/index.js'
+
+const MOCK = localStorage.getItem('mars-mock') === 'true'
 
 /** 요청 경로를 환경에 맞게 바꿔준다. 배포에서는 그대로 상대경로. */
 export function apiUrl(path) {
-  // 로컬에서 프론트(5173)와 서버(8000)를 따로 띄울 때만 쓴다.
-  // .env.local 에 VITE_API_URL=http://127.0.0.1:8000 을 넣으면 된다.
   const override = import.meta.env.VITE_API_URL
   if (override) return override.replace(/\/$/, '') + path
 
-  // JupyterHub 프록시 환경: /user/<id>/proxy/3002/... 로 서빙된다.
-  // 이때만 포트를 8000 으로 바꿔 백엔드를 부른다.
-  const proxy = window.location.pathname.match(/^(\/user\/[^/]+\/proxy\/)(\d+)/)
-  if (proxy) return window.location.origin + proxy[1] + '8000' + path
+  // JupyterHub 프록시: pathname = /user/<id>/proxy/<port>/...
+  // fetch('/api/match') 는 origin 기준 절대경로라서 프록시 prefix가 날아간다.
+  // prefix 를 그대로 붙여줘야 /user/22016084/proxy/3002/api/match 로 간다.
+  const m = window.location.pathname.match(/^(\/user\/[^/]+\/proxy\/\d+)/)
+  if (m) return m[1] + path
 
-  return path
+  return path  // Vercel / 로컬 직접 접속
 }
 
 async function post(path, body) {
@@ -56,11 +63,13 @@ export const DEFAULT_PROFILE = {
  * 실제 공고 25건이므로 그냥 두면 된다.
  */
 export function fetchMatches(userProfile = DEFAULT_PROFILE, deviceId = 'guest') {
+  if (MOCK) return delay().then(() => MOCK_MATCHES)
   return post('/api/match', { user_profile: userProfile, device_id: deviceId })
 }
 
 /** 행정용어 사전 전체. 프론트에 복사본을 두지 말 것 — 원본이 바뀌면 낡는다. */
 export async function fetchTerms() {
+  if (MOCK) return delay().then(() => ({ terms: [], documents: [] }))
   const res = await fetch(apiUrl('/api/terms'))
   if (!res.ok) throw new Error(`용어 사전을 불러오지 못했습니다 (${res.status})`)
   return res.json()
@@ -68,7 +77,13 @@ export async function fetchTerms() {
 
 /** 공고문에 실제로 등장한 용어만. 사전 전체를 프롬프트에 넣으면 토큰 낭비다. */
 export function lookupTerms(text, documents = []) {
+  if (MOCK) return delay().then(() => MOCK_TERMS_LOOKUP)
   return post('/api/terms/lookup', { text, documents })
+}
+
+/** mock 모드에서 사업자등록증 OCR 결과를 흉내낸다. */
+export function mockOcrResult() {
+  return delay(800).then(() => MOCK_OCR_RESULT)
 }
 
 // ── 사용자 (카카오 로그인 후에만 동작) ─────────────────────────────

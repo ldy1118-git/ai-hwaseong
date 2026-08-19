@@ -1,5 +1,8 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
 import { generateText, GROQ_MODEL } from './llmProvider.js'
+import { nextMockChatbotResponse, delay } from '../../mocks/index.js'
+
+const MOCK = localStorage.getItem('mars-mock') === 'true'
 
 export const MODEL_NAME = GROQ_MODEL
 
@@ -135,6 +138,7 @@ export async function generateChatbotResponseBaseline(question, history) {
 // ════════════════════════════════════════════════════════════════
 
 export async function generateChatbotResponseV1(question, history, termsData) {
+  if (MOCK) { await delay(800); return nextMockChatbotResponse() }
   const { terms, docs } = retrieveContext(question, termsData)
 
   const termCtx = formatTermContext(terms)

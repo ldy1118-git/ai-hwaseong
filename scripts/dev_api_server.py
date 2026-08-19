@@ -10,13 +10,17 @@ Vercel 배포에서는 api/ 핸들러를 그대로 사용하므로 이 파일은
 from __future__ import annotations
 
 import json
+import mimetypes
 import os
 import sys
+import time
 import types
+import urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+STATIC_DIR = ROOT / "project" / "dist"
 
 # ── .env 로드 (VITE_ 접두사 → 서버 환경변수 이름으로 매핑) ─────────────
 _env_file = ROOT / "project" / ".env"
@@ -107,23 +111,38 @@ def _handle_llm(h: BaseHTTPRequestHandler, payload: dict) -> None:
     failures = []
     for name in ready:
         spec  = llm_handler.PROVIDERS[name]
-        key   = os.environ.get(spec["env"], "").strip()
+        key   = llm_handler.read_key(spec["env"])
         model = override or spec["model"]
-        try:
-            if name == "gemini":
-                text = llm_handler.call_gemini(
-                    key=key, model=model, system=system, prompt=prompt,
-                    want_json=want_json, history=history,
-                    schema=payload.get("schema"),
-                )
-            else:
-                text = llm_handler.call_openai_compatible(
-                    url=spec["url"], key=key, model=model, system=system,
-                    prompt=prompt, want_json=want_json, history=history,
-                )
-            return _send(h, {"text": text, "provider": name, "model": model})
-        except Exception as e:
-            failures.append(f"{spec['label']}: {e}")
+
+        last_err = None
+        for attempt in range(2):  # 429 rate-limit 시 한 번 재시도
+            try:
+                if name == "gemini":
+                    text = llm_handler.call_gemini(
+                        key=key, model=model, system=system, prompt=prompt,
+                        want_json=want_json, history=history,
+                        schema=payload.get("schema"),
+                    )
+                else:
+                    text = llm_handler.call_openai_compatible(
+                        url=spec["url"], key=key, model=model, system=system,
+                        prompt=prompt, want_json=want_json, history=history,
+                    )
+                return _send(h, {"text": text, "provider": name, "model": model})
+            except urllib.error.HTTPError as e:
+                body = e.read().decode("utf-8", "replace")[:300]
+                if e.code == 429 and attempt == 0:
+                    print(f"[dev-api] {spec['label']} 429 rate-limit — 5초 후 재시도", flush=True)
+                    time.sleep(5)
+                    continue
+                last_err = f"{spec['label']} ({e.code}): {body}"
+                break
+            except Exception as e:
+                last_err = f"{spec['label']}: {type(e).__name__}: {e}"
+                break
+
+        if last_err:
+            failures.append(last_err)
 
     _send(h, {"error": "LLM 호출 실패", "tried": failures}, 502)
 
@@ -137,10 +156,30 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self) -> None:  # noqa: N802
-        if self.path == "/api/health":
-            _send(self, {"ok": True, "notices": len(_policies), "llm": _llm_ready})
-        else:
-            _send(self, {"error": "not found"}, 404)
+        from urllib.parse import urlparse
+        path = urlparse(self.path).path
+
+        if path == "/api/health":
+            return _send(self, {"ok": True, "notices": len(_policies), "llm": _llm_ready})
+
+        # 정적 파일 서빙 (React SPA)
+        # /user/.../proxy/3002/ 같은 JupyterHub 프록시 prefix를 벗겨낸다
+        clean = path.lstrip("/")
+        # assets/... 같은 실제 파일 요청
+        candidate = STATIC_DIR / clean
+        if not candidate.exists() or candidate.is_dir():
+            candidate = STATIC_DIR / "index.html"   # SPA 폴백
+
+        if not candidate.exists():
+            return _send(self, {"error": "not found"}, 404)
+
+        mime, _ = mimetypes.guess_type(str(candidate))
+        body = candidate.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", mime or "application/octet-stream")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_POST(self) -> None:  # noqa: N802
         payload = _read(self)
