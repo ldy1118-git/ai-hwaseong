@@ -44,7 +44,7 @@ function TermHighlight({ term, definition }) {
             <button
               onClick={e => { e.stopPropagation(); setOpen(false) }}
               className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-warm-gray/20
-                         text-warm-gray/70 text-[10px] font-bold leading-none
+                         text-warm-gray/70 text-[12px] font-bold leading-none
                          flex items-center justify-center hover:bg-warm-gray/40 transition-colors"
             >
               ✕
@@ -124,7 +124,7 @@ export default function ChatBubble({ message }) {
         {message.confidence !== undefined && (
           <div className="mt-2 pt-2 border-t border-warm-gray/20 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-            <span className="text-[10px] text-warm-text">
+            <span className="text-[12px] text-warm-text">
               RAG 신뢰도 {Math.round(message.confidence * 100)}%
             </span>
           </div>

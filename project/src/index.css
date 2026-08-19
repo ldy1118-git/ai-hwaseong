@@ -5,6 +5,9 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    font-size: 18px;
+  }
   body {
     @apply bg-primary-bg text-gray-900;
     font-family: 'Nunito', 'Noto Sans KR', sans-serif;

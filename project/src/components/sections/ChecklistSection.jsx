@@ -28,7 +28,7 @@ export default function ChecklistSection({ items, onToggle, onDetail }) {
               ].join(' ')}
             >
               {item.checked && (
-                <span className="text-white font-bold leading-none" style={{ fontSize: 11 }}>✓</span>
+                <span className="text-white font-bold leading-none" style={{ fontSize: 13 }}>✓</span>
               )}
             </button>
 

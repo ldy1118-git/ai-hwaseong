@@ -423,7 +423,7 @@ export default function ApplicationGuide() {
           {/* 프로그램명 */}
           {(program?.title || programName) && (
             <div className="px-5 pt-4 pb-1">
-              <p className="text-[11px] text-warm-text font-medium tracking-wide uppercase">선택하신 지원사업</p>
+              <p className="text-[13px] text-warm-text font-medium tracking-wide uppercase">선택하신 지원사업</p>
               <h1 className="text-base font-bold text-navy mt-1 line-clamp-2 leading-snug">
                 {program?.title ?? programName}
               </h1>
@@ -464,7 +464,7 @@ export default function ApplicationGuide() {
                 </button>
               </div>
 
-              <p className="text-[10px] text-warm-text/70 leading-relaxed mt-6 max-w-xs">
+              <p className="text-[12px] text-warm-text/70 leading-relaxed mt-6 max-w-xs">
                 공고에 적힌 접수처와 문의처는 지원사업 상세 화면에서 그대로 확인할 수 있어요.
               </p>
             </div>

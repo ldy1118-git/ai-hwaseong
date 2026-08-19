@@ -51,7 +51,7 @@ export default function FloatingChatButton({ onClick }) {
           <img src={marsImg} alt="Mars" className="w-full h-full object-contain" />
         </button>
 
-        <span className="mt-1 text-[10px] text-warm-text font-medium whitespace-nowrap">
+        <span className="mt-1 text-[12px] text-warm-text font-medium whitespace-nowrap">
           Mars에게 물어보기
         </span>
       </div>

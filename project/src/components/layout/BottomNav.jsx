@@ -43,7 +43,7 @@ export default function BottomNav() {
                           ${active ? 'text-navy' : 'text-warm-gray hover:text-warm-text'}`}
             >
               <Icon size={22} strokeWidth={active ? 2.5 : 1.8} />
-              <span className={`text-[10px] leading-tight ${active ? 'font-bold' : 'font-medium'}`}>
+              <span className={`text-[12px] leading-tight ${active ? 'font-bold' : 'font-medium'}`}>
                 {label}
               </span>
             </button>

@@ -90,14 +90,14 @@ export default function OrbitProgressBar({ checked, total }) {
 
               {/* 완료: 체크 */}
               {isDone && (
-                <text x={x} y={y + 4.5} textAnchor="middle" fontSize="9" fill="white" fontWeight="bold">
+                <text x={x} y={y + 4.5} textAnchor="middle" fontSize="11" fill="white" fontWeight="bold">
                   ✓
                 </text>
               )}
 
               {/* 미래: 번호 */}
               {status === 'future' && (
-                <text x={x} y={y + 4.5} textAnchor="middle" fontSize="9" fill="#9CA3AF" fontWeight="600">
+                <text x={x} y={y + 4.5} textAnchor="middle" fontSize="11" fill="#9CA3AF" fontWeight="600">
                   {i + 1}
                 </text>
               )}
@@ -106,7 +106,7 @@ export default function OrbitProgressBar({ checked, total }) {
               <text
                 x={x} y={ly}
                 textAnchor="middle"
-                fontSize="9.5"
+                fontSize="11"
                 fontWeight={isCurrent ? '700' : '400'}
                 fill={isFilled ? ORANGE : '#9CA3AF'}
                 fontFamily="'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif"
