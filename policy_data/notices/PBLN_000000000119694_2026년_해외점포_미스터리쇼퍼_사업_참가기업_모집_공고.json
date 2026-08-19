@@ -1,0 +1,31 @@
+{
+ "notice_id": "PBLN_000000000119694",
+ "title": "2026년 해외점포 미스터리쇼퍼 사업 참가기업 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000119694",
+ "summary": "KOTRA에서는 우리 기업의 해외점포 관리 및 해외 경쟁사 조사를 위한「2026 해외점포 미스터리쇼퍼 사업」참가기업 모집을 다음과 같이 모집합니다. ☞ 해외점포를 운영하거나 경쟁브랜드 점포조사가 필요한 국내기업 ☞ 자사 점포 점검 : 기진출한 자사 해외점포 점검을 통해 현지 파트너사 운영실태 점검 및 해외점포 관리업무 효율성 제고 지원 - 경쟁사 점포 조사 : 경쟁사 점포분석을 통해 타깃시장 진출에 대한 타당성 검토 및 해외진출 전략수립 지원",
+ "apply_period": {
+  "note": "상시 접수"
+ },
+ "eligibility": {
+  "requirements_open": "해외점포를 운영하거나 경쟁브랜드 점포조사가 필요한 국내기업"
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_url": "https://kotra.or.kr/subList/20000020753/subhome/bizAply/selectBizMntInfoDetail.do?dtlBizMntNo=26RP001&cpbizYn=N",
+ "apply_method": "온라인 접수(무역투자24)",
+ "contact": "KOTRA 서비스산업팀 02-3460-7611, 7613 / franchise@kotra.or.kr",
+ "organizer": "산업통상부",
+ "operator": "대한무역투자진흥공사"
+}

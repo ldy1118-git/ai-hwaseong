@@ -1,0 +1,81 @@
+{
+ "notice_id": "PBLN_000000000120252",
+ "title": "[경기] 2026년 1차 중소기업육성자금 융자지원계획 변경 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000120252",
+ "summary": "1. (지역진출)\n현지법인(지점)·공장설립 등 통해 중동지역\n주1)\n에 진출한 기업\n2. (수출·판매)\n’25년 이후 중동지역\n주1)\n 수출·납품 기업(예정 포함)\n주2)\n으로 증빙자료 제출기업\n3. (수입·구매)\n’25년 이후 중동지역\n주1)\n 수입·구매 기업(예정 포함)\n주2)\n으로 증빙자료 제출기업\n 주1)\n레바논, 바레인, 사우디아라비아, 시리아, 아랍에미리트, 예멘, 오만, 요르단, 이라크, 이란, 이스라엘,\n 카타르, 쿠웨이트, 팔레스타인 ※ 향후 정세 변화에 따라 대상 국가 탄력적 조정·운영\n 주2) 수출·납품, 수입·구매 기업은 2025년도 또는 2026년도 중동지역 10만불 이상 거래기업 한정\n※ 경영애로(피해사실) 확인서 양식 및 관련 증빙자료를 통해 구체적 경영애로 사실 확인 후 지원\n:",
+ "apply_period": {
+  "note": "예산 소진시까지"
+ },
+ "eligibility": {
+  "requirements_unknown": "경기도 소재 중소기업 ※ 자세한 지원대상 공고문 참조"
+ },
+ "documents": [
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 경기도 중소기업육성자금 신청서"
+  },
+  {
+   "name": "사업계획서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "법인등기사항전부증명서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "지방세납세증명서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "경영애로(피해사실) 확인서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "피해유형 증빙자료",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "공장설립 관련 등록증",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "수출입실적증명서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "신용장(L/C) &amp; 수출/수입계약서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "경영애로 확인서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "매출 증빙자료",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 증빙자료"
+  }
+ ],
+ "apply_url": "https://g-money.gg.go.kr/main.htm",
+ "apply_method": "온라인 및 방문 접수\r\n- 온라인 : 경기도중소기업육성자금(G-money)\r\n- 방문 : 사업장 소재지 경기신용보증재단 지점",
+ "contact": "경기신용보증재단 고객센터 대표번호 1577-5900 및 지점별 문의처 공고문 참조",
+ "organizer": "경기도",
+ "operator": "경기신용보증재단"
+}

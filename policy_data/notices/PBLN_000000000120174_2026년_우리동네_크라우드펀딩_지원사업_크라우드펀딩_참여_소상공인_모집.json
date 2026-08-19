@@ -1,0 +1,58 @@
+{
+ "notice_id": "PBLN_000000000120174",
+ "title": "2026년 우리동네 크라우드펀딩 지원사업 크라우드펀딩 참여 소상공인 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000120174",
+ "summary": "및 신청제한 사항을 확인하였습니다.\n- 동일한 유형(리워드형)의 타 플랫폼 사업 중복 신청이 불가하며, 중복 수혜 시 불이익을 받을\n 수 있습니다.\n\n 필수 확인사항을 확인하였으며,\n 위와 같이 2026 우리동네 크라우드펀딩 사업에 지원합니다.\n\n 년 월 일\n\n 신청기업명 : (인감 인)\n\n\f 『2026년 우리동네 크라우드펀딩』\n 개인정보 수집·이용 및 제3자 제공 동의서\n재단법인 해피빈 貴中\n\n1, 개인정보 수집 및 이용\n\n 재단법인 해피빈은 중소벤처기업부와 소상공인시장진흥공단에서 지원하는 2026년\n우리동네 크라우드펀딩 지원사업의 운영을 위해 아래와 같은 개인정보를 수집하고\n있습니다.\n\nl 개인정보의 수집·이용 목적\n 신청자들의 기초 자료를 확보하여 신청 자격 검토, 평가, 약정 체결 및 지원 이후의 원",
+ "apply_period": {
+  "note": "예산 소진시까지"
+ },
+ "eligibility": {
+  "business_status": [
+   "운영중"
+  ]
+ },
+ "documents": [
+  {
+   "name": "주민등록등본",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "임대차계약서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: (임차)사업장 임대차계약서"
+  },
+  {
+   "name": "4대보험납부증명서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "재무제표증명원",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "지방세납세증명서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 지방세 완납증명서"
+  },
+  {
+   "name": "지방세 세목별 과세증명서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "사업자 2 (해피빈) 통신판매등록증",
+   "type": "common",
+   "confidence": "confirmed"
+  }
+ ],
+ "apply_url": "http://loan.bplus.so",
+ "apply_method": "온라인 또는 이메일 접수\r\n대출형\r\n- 비플러스 : http://loan.bplus.so / loan@benefitplus.kr\r\n- 윙크스톤파트너스 : http://loanone.winkstone.com / loan@winkstone.com\r\n- 펀다에이아이 : https://www.funda.kr / contact@funda.kr\r\n※ 및 유형별 플랫폼 문의처 공고문 p15 참조",
+ "contact": "(대출형) 비플러스 02-733-0703, loan@benefitplus.kr (챗봇 상담) https://pf.kakao.com/_dSDxhxj 및 유형별 플랫폼 문의처 공고문 p19 참조",
+ "organizer": "중소벤처기업부",
+ "operator": "소상공인시장진흥공단"
+}

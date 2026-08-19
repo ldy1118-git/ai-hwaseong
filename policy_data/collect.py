@@ -134,18 +134,38 @@ def haystack(entry: dict) -> str:
     ])
 
 
+# 기간 칸에 날짜 대신 들어오는 문구. 전부 "지금 신청할 수 있다"는 뜻이다.
+#
+# 이걸 몰라서 화성시민이 신청 가능한 소상공인 공고 62건 중 31건을 통째로
+# 흘리고 있었다. 그중에 희망리턴패키지(폐업·재기), 소상공인 고용보험료,
+# 영세개인사업자 체납액 징수특례가 들어 있다. 폐업하는 사장님에게 제일
+# 급한 것들인데 "예산 소진시까지" 라고 적혀 있다는 이유로 빠졌다.
+ALWAYS_OPEN = re.compile(
+    r"예산\s*소진|소진\s*시|상시\s*(?:접수|모집)?|연중|"
+    r"모집\s*(?:완료|마감)\s*시|재원\s*소진"
+)
+
+
 def is_open(entry: dict) -> bool | None:
-    """오늘 기준 신청 가능한지. 기간 표기가 없으면 None.
+    """오늘 기준 신청 가능한지. 판단할 근거가 없으면 None.
 
     문서에는 20260813 형식이라고 돼 있지만 실제 응답은 2026-08-13 이다.
-    둘 다 받는다.
+    2020.01.01 처럼 점으로 쓰인 것도 있다. 셋 다 받는다.
+
+    날짜가 아니라 문구로 적힌 것이 많다. "예산 소진시까지", "상시 접수"
+    같은 것은 **지금 열려 있다는 뜻**이므로 True 다. 반대로 "세부사업별
+    상이" 는 알 수 없으니 None 으로 둔다 — 여기서 False 를 주면 안 된다.
+    모른다는 이유로 잘라내면 사장님이 그 공고를 통째로 못 본다.
     """
     period = field(entry, "reqstBeginEndDe", "reqstDt")
-    found = [d.replace("-", "") for d in re.findall(r"\d{4}-?\d{2}-?\d{2}", period)]
-    if len(found) < 2:
-        return None
-    today = date.today().strftime("%Y%m%d")
-    return found[0] <= today <= found[1]
+    found = [re.sub(r"[-.]", "", d)
+             for d in re.findall(r"\d{4}[-.]?\d{2}[-.]?\d{2}", period)]
+    if len(found) >= 2:
+        today = date.today().strftime("%Y%m%d")
+        return found[0] <= today <= found[1]
+    if ALWAYS_OPEN.search(period):
+        return True
+    return None
 
 
 def run_peek() -> int:
@@ -197,6 +217,14 @@ NATIONWIDE_HINT = re.compile(
     r"지역\s*제한\s*없|거주지\s*무관")
 
 
+# 경기도 31개 시·군에서 화성만 뺀 것. 제목에 이 이름이 있으면 그 지역
+# 주민만 신청할 수 있다. 대괄호 표기가 없는 공고를 걸러내는 데 쓴다.
+GYEONGGI_OTHER = re.compile(
+    r"(수원시|성남시|고양시|용인시|부천시|안산시|안양시|남양주시|평택시|시흥시|"
+    r"파주시|의정부시|김포시|광주시|광명시|군포시|하남시|오산시|양주시|이천시|"
+    r"구리시|안성시|포천시|의왕시|여주시|양평군|동두천시|과천시|가평군|연천군)")
+
+
 def jurisdiction_region(entry: dict) -> str | None:
     """소관기관이 광역지자체면 그 지역 이름을, 아니면 None을 돌려준다.
 
@@ -228,6 +256,13 @@ def scope(entry: dict) -> str:
     if match is None:
         if "화성" in title:
             return "화성"
+        # 대괄호가 없어도 제목 안에 다른 시·군 이름이 있으면 그 지역
+        # 전용이다. 실제로 「2026년 과천시 중소기업 및 소상공인 육성자금」
+        # 이 대괄호도 없고 소관기관도 "경기도" 로만 적혀 있어서 전국으로
+        # 새어 들어왔다. 화성시민은 신청할 수 없는 공고다.
+        other = GYEONGGI_OTHER.search(title)
+        if other:
+            return f"경기-타지역({other.group(1)})"
         region = jurisdiction_region(entry)
         if region and not NATIONWIDE_HINT.search(haystack(entry)):
             return f"타시도({region})"

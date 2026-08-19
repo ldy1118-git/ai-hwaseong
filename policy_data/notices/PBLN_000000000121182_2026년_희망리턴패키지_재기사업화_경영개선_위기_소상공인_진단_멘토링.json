@@ -1,0 +1,54 @@
+{
+ "notice_id": "PBLN_000000000121182",
+ "title": "2026년 희망리턴패키지 재기사업화(경영개선) 위기 소상공인 진단ㆍ멘토링 지원 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000121182",
+ "summary": "(p.6) 참조\n\n\f□ 지원절차\n\n 대상선별 지원신청 전문가 진단 위기 소상공인 지원\n\n 온라인신청/\n위기징후 감지/ 자격요건 검토 현장 재기진단 밀착멘토링 주관기관\n ▶ ▶ ▶\n 알림톡 발송 (위기 알림톡 수신 (1,200건) (1,200건) 특화프로그램\n 여부 현장확인)\n\n모니터링 기관→ 소상공인→ 주관기관→ 진단\n 소상공인 전문가→ 소상공인 소상공인 ↔ 주관기관\n 주관기관",
+ "apply_period": {
+  "note": "예산 소진시까지"
+ },
+ "eligibility": {
+  "business_status": [
+   "운영중"
+  ]
+ },
+ "documents": [
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 기본 ▪ 사업신청서"
+  },
+  {
+   "name": "여부 ▪ 사업 참여 확약서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "개인정보 수집·이용 동의서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 확인 ▪ 개인정보 동의서 및"
+  },
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: (공통) 사업자등록증명 ①"
+  },
+  {
+   "name": "(일반) 부가가치세과세표준증명",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "법인) 표준재무제표증명",
+   "type": "common",
+   "confidence": "confirmed"
+  }
+ ],
+ "apply_url": "https://www.sbiz.or.kr/nhrp/main.do",
+ "apply_method": "온라인 접수 (희망리턴패키지)\r\n※ 신청 지역 : 사업장 소재지를 기준으로 지역 선택",
+ "contact": "(시스템 관련 오류 문의) 1644-5302 / (사업관련 문의) (사)한국스마트컨설팅협회 (서울ㆍ강원) 1833-7113 / 한국경영기술지도사회 (서울) 02-569-8122, 8123 (강원) 033-255-8125, 8126 및 각 지역별 주관기관 문의처 공고문 8p 참조",
+ "organizer": "중소벤처기업부",
+ "operator": "소상공인시장진흥공단"
+}
