@@ -19,6 +19,48 @@ function mapMatch(r) {
   }
 }
 
+/* 마감일이 없는 공고를 따로 모아 보여준다.
+ *
+ * 달력은 날짜가 있는 것만 그릴 수 있어서 apply_period.end 가 없으면
+ * 조용히 버린다. 그런데 지금 공고 59건 중 30건이 「예산 소진시까지」
+ * 처럼 문구로만 적혀 있다. 절반이 넘는 공고가 이 화면에서 통째로
+ * 사라지는데 화면에는 그런 티가 안 났다. 아래에 따로 세운다. */
+function AlwaysOpen({ matches }) {
+  const navigate = useNavigate()
+  const list = matches.filter(m => m.dDay === null && m.raw?.apply_period?.note)
+  if (list.length === 0) return null
+
+  return (
+    <section className="mt-6">
+      <div className="flex items-baseline gap-2 mb-1">
+        <h3 className="text-base font-bold text-navy">상시 접수</h3>
+        <span className="text-sm font-bold text-sunset-orange">{list.length}건</span>
+      </div>
+      <p className="text-sm text-warm-text mb-3 leading-snug">
+        마감일이 정해져 있지 않아 달력에는 없어요. 예산이 떨어지면 닫히니 서두르는 게 좋아요.
+      </p>
+      <div className="space-y-2">
+        {list.map(m => (
+          <button key={m.id}
+            onClick={() => {
+              localStorage.setItem('mars-fit-selected-match', JSON.stringify(m.raw))
+              navigate('/notice')
+            }}
+            className="w-full text-left bg-white border border-warm-gray/30 rounded-xl px-4 py-3
+                       hover:border-navy/40 transition flex items-start gap-3">
+            <span className="flex-1 text-sm font-medium text-navy leading-snug line-clamp-2">
+              {m.title}
+            </span>
+            <span className="text-xs font-bold text-warm-text whitespace-nowrap mt-0.5">
+              {m.raw.apply_period.note}
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function InProgressCard({ inProgress, onResume }) {
   const pct = inProgress.totalCount > 0
     ? Math.round((inProgress.checkedCount / inProgress.totalCount) * 100)
@@ -92,6 +134,7 @@ export default function Schedule() {
           <InProgressCard inProgress={inProgress} onResume={resumeApply} />
         )}
         <DeadlineCalendar matches={matches} loading={loading} inProgress={inProgress} />
+        <AlwaysOpen matches={matches} />
       </div>
     </div>
   )
