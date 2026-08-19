@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { cleanDocName } from '../utils/docName'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/layout/Header'
 import Button from '../components/ui/Button'
@@ -212,7 +213,7 @@ export default function NoticeDetail() {
             <div className={BOX}>
               {docs.map((d, i) => (
                 <div key={d.name} className={`py-2.5 ${i > 0 ? 'border-t border-warm-gray/20' : ''}`}>
-                  <p className="text-sm font-semibold text-navy">{d.name}</p>
+                  <p className="text-sm font-semibold text-navy">{cleanDocName(d.name).name}</p>
                   {d.easy && <p className="text-xs text-warm-text mt-0.5 leading-relaxed">{d.easy}</p>}
                   {d.issue && (
                     <p className="text-xs text-gray-700 mt-1 leading-relaxed">
