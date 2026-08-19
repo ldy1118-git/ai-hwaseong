@@ -1,12 +1,57 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Card from '../ui/Card'
-import { fetchMatches, DEFAULT_PROFILE } from '../../utils/api'
-import { generateText, GROQ_MODEL } from '../../utils/llm/llmProvider'
+import { fetchMatches, lookupTerms, DEFAULT_PROFILE } from '../../utils/api'
+import { generateText } from '../../utils/llm/llmProvider'
 import findImg from '../../../design/find.png'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
 // 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
+
+function briefDesc(summary) {
+  if (!summary) return null
+  // ☞ 이후는 자격요건 bullet이므로 제거, 개행도 제거
+  const clean = summary.split('☞')[0].split('\n')[0].trim()
+  // 첫 번째 완결 문장(다. 로 끝나는 지점)만 취한다
+  const m = clean.match(/^.+?다\./)
+  return m ? m[0] : clean
+}
+
+// 텍스트에서 어려운 단어를 찾아 마우스 오버 시 툴팁으로 뜻을 보여준다.
+function AnnotatedText({ text, termDefs }) {
+  if (!text || !termDefs?.length) return <>{text}</>
+
+  const matching = termDefs.filter(t => text.includes(t.term))
+  if (!matching.length) return <>{text}</>
+
+  const sorted = [...matching].sort((a, b) => b.term.length - a.term.length)
+  const escaped = sorted.map(t => t.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const regex = new RegExp(`(${escaped.join('|')})`, 'g')
+  const parts = text.split(regex)
+
+  return (
+    <>
+      {parts.map((part, i) => {
+        const def = sorted.find(t => t.term === part)
+        if (!def) return part
+        return (
+          <span key={i} className="relative group inline">
+            <span className="underline decoration-dotted decoration-navy/50 cursor-help font-medium text-navy">
+              {part}
+            </span>
+            <span className="absolute bottom-full left-0 mb-2 w-56 bg-navy text-white text-[10px] leading-relaxed rounded-xl px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg whitespace-normal">
+              <strong className="block text-[11px] mb-0.5">{def.term}</strong>
+              {def.easy}
+              {def.caution && (
+                <span className="block mt-1 text-sunset-orange">주의 · {def.caution}</span>
+              )}
+            </span>
+          </span>
+        )
+      })}
+    </>
+  )
+}
 
 function calcDDay(endDate) {
   if (!endDate) return null
@@ -17,22 +62,6 @@ const STATUS_STYLE = {
   '신청가능': 'text-emerald-600 bg-emerald-50',
   '조건부':   'text-sunset-orange bg-sunset-orange/10',
   '확인필요': 'text-warm-text bg-warm-gray/20',
-}
-
-async function generateCardDesc(title) {
-  const text = await generateText({
-    // 제공자는 서버가 고른다 (groq → xai → gemini, 실패하면 다음으로)
-    jsonMode: true,
-    userPrompt: `소상공인 지원사업 공고명: "${title}"
-
-아래 JSON 형식으로만 답해주세요. 다른 텍스트 없이 JSON만 출력하세요.
-{
-  "easy_desc": "사장님이 바로 이해할 수 있는 한 문장 쉬운 설명 (어떤 목적의 지원인지)",
-  "support": "지원받을 수 있는 내용 (교육, 컨설팅, 임차료 지원 등 종류 위주로 간결하게)"
-}`,
-  })
-  const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
-  return JSON.parse(cleaned)
 }
 
 // 매칭 점수 바
@@ -50,10 +79,6 @@ function ScoreBar({ score, color }) {
   )
 }
 
-// 스켈레톤 줄
-function SkeletonLine({ w = 'w-full', h = 'h-3' }) {
-  return <div className={`${w} ${h} bg-warm-gray/20 rounded animate-pulse`} />
-}
 
 const COND_STYLE = {
   '충족':    { dot: 'bg-emerald-400', text: 'text-emerald-600', icon: '✓' },
@@ -61,20 +86,9 @@ const COND_STYLE = {
   '확인필요':{ dot: 'bg-sunset-orange', text: 'text-sunset-orange', icon: '?' },
 }
 
-function ProgramCard({ item, accent, onDetail }) {
+function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
   const [showReason, setShowReason] = useState(false)
-  const [easyDesc, setEasyDesc]     = useState('')
-  const [support, setSupport]       = useState('')
-  const [descLoading, setDescLoading] = useState(true)
   const isUrgent = accent === 'orange'
-
-  useEffect(() => {
-    generateCardDesc(item.title)
-      .then(d => { setEasyDesc(d.easy_desc ?? ''); setSupport(d.support ?? '') })
-      .catch(err => console.error('[desc]', item.title, err))
-      .finally(() => setDescLoading(false))
-  }, [item.id])
-
   const conditions = (item.raw?.condition_results ?? []).filter(c => c.status !== '대상아님')
 
   return (
@@ -95,30 +109,20 @@ function ProgramCard({ item, accent, onDetail }) {
       {/* 정책명 */}
       <p className="text-sm font-bold text-navy leading-snug line-clamp-2">{item.title}</p>
 
-      {/* 정책 쉬운 설명 */}
-      <div className="mt-1.5">
-        {descLoading
-          ? <SkeletonLine w="w-full" h="h-3" />
-          : easyDesc
-            ? <p className="text-xs text-warm-text leading-relaxed line-clamp-2">{easyDesc}</p>
-            : null
-        }
-      </div>
+      {/* 공고 요약 — AI 요약 우선, 없으면 첫 문장 fallback. 어려운 단어는 툴팁 */}
+      {(aiDesc || briefDesc(item.summary)) && (
+        <p className="mt-1.5 text-xs text-warm-text leading-relaxed">
+          <AnnotatedText text={aiDesc || briefDesc(item.summary)} termDefs={termDefs} />
+        </p>
+      )}
 
-      {/* 지원 내용 */}
-      <div className="mt-2">
-        {descLoading ? (
-          <div className="bg-warm-gray/10 rounded-xl px-3 py-2 space-y-1.5">
-            <SkeletonLine w="w-2/3" h="h-2.5" />
-            <SkeletonLine w="w-full" h="h-2.5" />
-          </div>
-        ) : support ? (
-          <div className={`rounded-xl px-3 py-2 ${isUrgent ? 'bg-sunset-orange/10' : 'bg-navy/5'}`}>
-            <p className="text-[10px] font-bold text-warm-text mb-0.5">지원 내용</p>
-            <p className="text-xs text-navy leading-relaxed">{support}</p>
-          </div>
-        ) : null}
-      </div>
+      {/* 주관기관 */}
+      {item.organizer && (
+        <div className={`mt-2 rounded-xl px-3 py-2 ${isUrgent ? 'bg-sunset-orange/10' : 'bg-navy/5'}`}>
+          <p className="text-[10px] font-bold text-warm-text mb-0.5">주관기관</p>
+          <p className="text-xs text-navy">{item.organizer}</p>
+        </div>
+      )}
 
       {/* 매칭 점수 바 */}
       <ScoreBar score={item.score} color={isUrgent ? 'orange' : 'navy'} />
@@ -183,6 +187,34 @@ function SkeletonCard() {
 
 const INITIAL_COUNT = 3
 
+async function summarizeBatch(items, signal, setAiDescs) {
+  // 화면에 바로 보이는 카드만 (각 섹션 top 3 = 최대 6개)
+  const visible = items.slice(0, INITIAL_COUNT * 2)
+  const targets = visible
+    .map(item => ({ id: item.id, summary: item.summary }))
+    .filter(t => t.summary)
+  if (!targets.length) return
+  try {
+    const raw = await generateText({
+      jsonMode: true,
+      systemPrompt: '당신은 소상공인 지원사업 안내 도우미입니다. 지원사업 설명을 쉽고 간결하게 요약합니다.',
+      userPrompt: `아래 지원사업 목록의 summary를 각각 소상공인이 바로 이해할 수 있도록 15~35자의 한 줄로 요약해줘. 전문 용어 대신 쉬운 말을 써줘.
+JSON 형식으로만 응답해줘: {"results": [{"id": "공고id", "desc": "요약 한 줄"}]}
+
+${JSON.stringify(targets)}`,
+    })
+    if (signal.cancelled) return   // 컴포넌트 언마운트 또는 새 요청으로 덮어쓰기 방지
+    const parsed = JSON.parse(raw)
+    const map = {}
+    for (const r of (parsed.results ?? [])) {
+      if (r.id && r.desc) map[r.id] = r.desc
+    }
+    setAiDescs(map)
+  } catch (err) {
+    if (!signal.cancelled) console.warn('[OrbitDashboard] AI 요약 실패:', err.message)
+  }
+}
+
 export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetchedLoading }) {
   const navigate = useNavigate()
   const [urgent, setUrgent]               = useState([])
@@ -191,31 +223,47 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
   const [error, setError]                 = useState(null)
   const [showMoreUrgent, setShowMoreUrgent]   = useState(false)
   const [showMoreRegular, setShowMoreRegular] = useState(false)
+  const [aiDescs, setAiDescs]             = useState({})
+  const [termDefs, setTermDefs]           = useState([])
 
   useEffect(() => {
     setShowMoreUrgent(false)
     setShowMoreRegular(false)
 
+    const signal = { cancelled: false }
+
     // Home.jsx 가 미리 fetch 한 데이터가 있으면 자체 네트워크 호출 스킵
     if (Array.isArray(prefetchedMatches)) {
-      setLoading(prefetchedLoading ?? false)
+      const isLoading = prefetchedLoading ?? false
+      setLoading(isLoading)
       setError(null)
       const sorted = [...prefetchedMatches].sort((a, b) => b.score - a.score)
-      setUrgent(sorted.filter(r => r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14))
-      setRegular(sorted.filter(r => !(r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14)))
-      return
+      const u = sorted.filter(r => r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14)
+      const reg = sorted.filter(r => !(r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14))
+      setUrgent(u)
+      setRegular(reg)
+      // 아직 로딩 중이면 AI 요약 호출 보류 — 데이터 확정 후에 부른다
+      if (!isLoading && (u.length || reg.length)) {
+        setAiDescs({})
+        summarizeBatch([...u, ...reg], signal, setAiDescs)
+      }
+      return () => { signal.cancelled = true }
     }
 
     setLoading(true)
     setError(null)
+    setAiDescs({})
 
     fetchMatches(userProfile ?? DEFAULT_PROFILE)
       .then(({ results }) => {
+        if (signal.cancelled) return
         const mapped = results
           .filter(r => r.overall_status !== '대상아님')
           .map(r => ({
             id:        r.notice_id,
             title:     r.notice_title,
+            summary:   r.summary   ?? null,
+            organizer: r.organizer ?? null,
             status:    r.overall_status,
             score:     r.match_score,
             dDay:      calcDDay(r.apply_period?.end),
@@ -226,12 +274,37 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
           .filter(r => r.dDay === null || r.dDay >= 0)
           .sort((a, b) => b.score - a.score)
 
-        setUrgent(mapped.filter(r => r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14))
-        setRegular(mapped.filter(r => !(r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14)))
+        const u = mapped.filter(r => r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14)
+        const reg = mapped.filter(r => !(r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14))
+        setUrgent(u)
+        setRegular(reg)
+        summarizeBatch([...u, ...reg], signal, setAiDescs)
       })
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false))
+      .catch(err => { if (!signal.cancelled) setError(err.message) })
+      .finally(() => { if (!signal.cancelled) setLoading(false) })
+
+    return () => { signal.cancelled = true }
   }, [userProfile, prefetchedMatches, prefetchedLoading])
+
+  // 카드에 실제로 표시되는 텍스트가 바뀔 때마다 어려운 단어를 서버에서 찾아온다.
+  // aiDescs 가 없으면 briefDesc, 있으면 AI 요약 기준으로 조회한다.
+  useEffect(() => {
+    const visible = [
+      ...urgent.slice(0, INITIAL_COUNT),
+      ...regular.slice(0, INITIAL_COUNT),
+    ]
+    const text = visible
+      .map(item => aiDescs[item.id] || briefDesc(item.summary))
+      .filter(Boolean)
+      .join('\n')
+    if (!text) return
+
+    let cancelled = false
+    lookupTerms(text, [])
+      .then(result => { if (!cancelled) setTermDefs(result.terms ?? []) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [urgent, regular, aiDescs])
 
   function handleDetail(item) {
     localStorage.setItem('mars-fit-selected-match', JSON.stringify(item.raw))
@@ -299,7 +372,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             {loading
               ? [1, 2].map(i => <SkeletonCard key={i} />)
               : visibleUrgent.map(item => (
-                  <ProgramCard key={item.id} item={item} accent="orange" onDetail={() => handleDetail(item)} />
+                  <ProgramCard key={item.id} item={item} accent="orange" onDetail={() => handleDetail(item)} aiDesc={aiDescs[item.id]} termDefs={termDefs} />
                 ))
             }
           </div>
@@ -325,7 +398,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
           ? [1, 2, 3, 4].map(i => <SkeletonCard key={i} />)
           : visibleRegular.map(item => (
               <ProgramCard key={item.id} item={item} accent="navy"
-                onDetail={() => handleDetail(item)} />
+                onDetail={() => handleDetail(item)} aiDesc={aiDescs[item.id]} termDefs={termDefs} />
             ))
         }
       </div>

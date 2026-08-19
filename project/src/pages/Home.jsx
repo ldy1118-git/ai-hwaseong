@@ -18,6 +18,8 @@ function mapMatch(r) {
   return {
     id:        r.notice_id,
     title:     r.notice_title,
+    summary:   r.summary   ?? null,
+    organizer: r.organizer ?? null,
     status:    r.overall_status,
     score:     r.match_score,
     dDay:      calcDDay(r.apply_period?.end),
