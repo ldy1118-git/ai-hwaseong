@@ -113,6 +113,84 @@ function PrepSheet({ items, onClose }) {
   )
 }
 
+/* ── 정책 신청 바텀시트 ────────────────────────────── */
+function ApplySheet({ program, onClose }) {
+  const url     = program?.apply_url
+  const method  = program?.apply_method
+  const contact = program?.contact
+  const period  = program?.apply_period ?? {}
+
+  const periodText = (period.start || period.end)
+    ? `${period.start ?? '?'} ~ ${period.end ?? '?'}`
+    : null
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
+      <div
+        className="fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-3xl shadow-2xl max-w-4xl mx-auto"
+        style={{ animation: 'slideUp 0.22s ease' }}
+      >
+        <style>{`@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
+
+        {/* 핸들 + 타이틀 */}
+        <div className="px-5 pt-4 pb-3 border-b border-warm-gray/20">
+          <div className="w-10 h-1 bg-warm-gray/40 rounded-full mx-auto mb-4" />
+          <p className="text-base font-bold text-navy">접수 방법 안내</p>
+          {program?.notice_title && (
+            <p className="text-xs text-warm-text mt-0.5 line-clamp-1">{program.notice_title}</p>
+          )}
+        </div>
+
+        {/* 정보 */}
+        <div className="px-5 py-4 space-y-3">
+          {[
+            ['📬 접수 방법', method],
+            ['📅 접수 기간', periodText],
+            ['📞 문의처',   contact],
+          ].filter(([, v]) => v).map(([label, value]) => (
+            <div key={label} className="flex items-start gap-3">
+              <span className="text-xs text-warm-text w-20 shrink-0 pt-0.5">{label}</span>
+              <span className="text-sm text-navy font-medium leading-relaxed">{value}</span>
+            </div>
+          ))}
+
+          {!method && !contact && (
+            <p className="text-sm text-warm-text text-center py-2">접수 정보가 없어요. 공고문을 직접 확인해주세요.</p>
+          )}
+
+          {/* URL 없을 때 강조 안내 */}
+          {!url && contact && (
+            <div className="mt-1 bg-sunset-orange/10 border border-sunset-orange/30 rounded-xl px-4 py-3">
+              <p className="text-xs text-sunset-orange font-semibold">온라인 신청 링크가 없어요</p>
+              <p className="text-xs text-gray-700 mt-0.5 leading-relaxed">
+                위 문의처로 직접 연락해서 접수 방법을 확인하세요.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* CTA */}
+        <div className="px-5 pb-8 space-y-2">
+          {url && (
+            <a href={url} target="_blank" rel="noreferrer" onClick={onClose}>
+              <button className="w-full py-3.5 rounded-2xl bg-navy text-white text-sm font-bold hover:bg-navy/90 transition-colors">
+                신청 페이지 다시 열기 →
+              </button>
+            </a>
+          )}
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-2xl bg-warm-gray/20 text-navy text-sm font-semibold"
+          >
+            닫기
+          </button>
+        </div>
+      </div>
+    </>
+  )
+}
+
 /* ── 완료 배너 ─────────────────────────────────────── */
 function AllDoneBanner() {
   return (
@@ -123,7 +201,7 @@ function AllDoneBanner() {
       <span className="text-2xl">🎉</span>
       <div>
         <p className="text-white text-sm font-bold">서류 준비 완료!</p>
-        <p className="text-white/80 text-xs mt-0.5">신청서 작성 단계로 넘어갈 수 있어요</p>
+        <p className="text-white/80 text-xs mt-0.5">정책 신청 단계로 넘어갈 수 있어요</p>
       </div>
     </div>
   )
@@ -142,7 +220,9 @@ export default function ApplicationGuide() {
   const [statusMsg,   setStatusMsg]   = useState('')
   const [drawerItem,  setDrawerItem]  = useState(null)
   const [showPrep,    setShowPrep]    = useState(false)
-  const [error,       setError]      = useState('')
+  const [showApply,   setShowApply]   = useState(false)
+  const [error,       setError]       = useState('')
+  const [llmWarn,     setLlmWarn]     = useState('')   // LLM 실패 시 경고만 (에러 화면 아님)
 
   useEffect(() => {
     const raw = localStorage.getItem('mars-fit-selected-match')
@@ -158,26 +238,38 @@ export default function ApplicationGuide() {
     setStatusMsg('매칭 결과를 불러오는 중...')
 
     try {
-      let matched = null
-      const selected = localStorage.getItem('mars-fit-selected-match')
-      if (selected) {
-        matched = JSON.parse(selected)
-      }
+      // localStorage 는 "어떤 공고를 보고 있었는지" 힌트로만 쓴다.
+      // 문의처·신청방법 등 실제 데이터는 항상 API 에서 새로 가져온다.
+      // (Mock 모드에서 저장된 캐시가 남아 가짜 번호가 표시되는 문제 방지)
+      let preferredId = null
+      try {
+        const cached = JSON.parse(localStorage.getItem('mars-fit-selected-match') ?? 'null')
+        if (cached?.notice_id) preferredId = cached.notice_id
+      } catch {}
 
-      if (!matched) {
-        const saved   = localStorage.getItem('mars-fit-profile')
-        const profile = saved ? JSON.parse(saved) : DEFAULT_PROFILE
-        const { results } = await fetchMatches(profile)
-        matched = results.find(
-          r => r.overall_status !== '대상아님' && Array.isArray(r.expected_documents) && r.expected_documents.length > 0
-        )
-      }
+      let profile = DEFAULT_PROFILE
+      try {
+        const saved = localStorage.getItem('mars-fit-profile')
+        if (saved) profile = JSON.parse(saved)
+      } catch {}
+
+      const { results } = await fetchMatches(profile)
+      const eligible = results.filter(
+        r => r.overall_status !== '대상아님' && Array.isArray(r.expected_documents) && r.expected_documents.length > 0
+      )
+
+      // 이전에 보던 공고를 우선, 없으면 최상위 매칭
+      const matched = eligible.find(r => r.notice_id === preferredId) ?? eligible[0] ?? null
 
       if (!matched) {
         setError('조건에 맞는 지원사업을 찾지 못했어요. 내 조건을 먼저 입력해 주세요.')
         setLoading(false); setStatusMsg('')
         return
       }
+
+      // 항상 최신 API 데이터로 갱신
+      setProgram(matched)
+      localStorage.setItem('mars-fit-selected-match', JSON.stringify(matched))
 
       setStatusMsg('마이다가 필요한 서류 목록을 탐구 중...')
 
@@ -190,31 +282,38 @@ export default function ApplicationGuide() {
         summary:      matched.application_detail ?? matched.notice_title,
       }
 
-      // 제공자를 고르지 않는다. 서버가 키 꽂힌 것 중에서 고르고, 하나가
-      // 실패하면 다음 것으로 넘어간다. 여기서 못박으면 그 폴백이 죽는다.
-      const result = await generateChecklistV1(matched, noticeJson, termsData)
-
-      if (result.parsed?.checklist?.length) {
-        setItems(
-          result.parsed.checklist.map((it, i) => ({
-            id:       i + 1,
-            label:    it.document,
-            desc:     [
-              it.how_to_get,
-              it.fee            ? `수수료: ${it.fee}`              : null,
-              it.estimated_time ? `소요시간: ${it.estimated_time}` : null,
-            ].filter(Boolean).join(' · ') || it.required_type,
-            issueUrl: it.url ?? null,
-            checked:  false,
-          }))
-        )
-        setProgramName(result.parsed.program_name      ?? '')
-        setNotes(result.parsed.important_notes         ?? [])
-        setPending(result.parsed.pending_conditions    ?? [])
+      // LLM 실패는 치명적이지 않다 — 기본 서류 목록을 그냥 보여주면 된다.
+      // LLM 에러를 에러 화면으로 올리면 유저가 아무것도 못 한다.
+      try {
+        const result = await generateChecklistV1(matched, noticeJson, termsData)
+        if (result.parsed?.checklist?.length) {
+          setItems(
+            result.parsed.checklist.map((it, i) => ({
+              id:       i + 1,
+              label:    it.document,
+              desc:     [
+                it.how_to_get,
+                it.fee            ? `수수료: ${it.fee}`              : null,
+                it.estimated_time ? `소요시간: ${it.estimated_time}` : null,
+              ].filter(Boolean).join(' · ') || it.required_type,
+              issueUrl: it.url ?? null,
+              checked:  false,
+            }))
+          )
+          setProgramName(result.parsed.program_name      ?? '')
+          setNotes(result.parsed.important_notes         ?? [])
+          setPending(result.parsed.pending_conditions    ?? [])
+        } else {
+          // JSON 파싱 성공했지만 체크리스트가 비어있음 — 기본 목록 유지
+          setLlmWarn('AI 분석 결과가 비어있어요. 기본 서류 목록을 보여드려요.')
+        }
+      } catch (llmErr) {
+        // LLM 오류: 에러 화면 대신 기본 서류 목록 + 경고 배너
+        console.error('AI checklist LLM error:', llmErr)
+        setLlmWarn(`AI 서버에 연결하지 못했어요 (${llmErr?.message ?? '알 수 없는 오류'}). 기본 서류 목록을 보여드려요.`)
       }
     } catch (err) {
-      // 조용히 넘어가면 "서류 준비 현황 0 / 0" 만 남는다. 만들다 만 화면으로
-      // 보이고, 사용자는 자기가 뭘 잘못했는지 알 방법이 없다.
+      // 매칭 자체가 실패한 경우 — 이때만 에러 화면
       console.error('AI checklist error:', err)
       setError(err?.message || '서류 목록을 만들지 못했어요.')
     } finally {
@@ -241,7 +340,7 @@ export default function ApplicationGuide() {
     checkedCount === 0
       ? '사장님, 이 서류들만 챙기면 미션 성공이에요! 하나씩 체크해봐요 💪'
       : allDone
-      ? '완벽해요! 이제 신청서 작성 단계로 넘어갈 수 있어요 🎉'
+      ? '완벽해요! 이제 정책 신청 단계로 넘어갈 수 있어요 🎉'
       : `벌써 ${checkedCount}개나 챙기셨네요! 거의 다 왔어요 ✨`
 
   return (
@@ -261,15 +360,23 @@ export default function ApplicationGuide() {
             </div>
           )}
 
+          {/* LLM 실패 경고 배너 — 에러 화면 아님, 기본 서류 목록은 그대로 보임 */}
+          {llmWarn && !loading && !error && (
+            <div className="mx-5 mt-3 px-4 py-3 rounded-xl bg-star-yellow/20 border border-star-yellow/50 flex items-start gap-2">
+              <span className="text-base flex-shrink-0">⚠️</span>
+              <p className="text-xs text-warm-text leading-relaxed">{llmWarn}</p>
+            </div>
+          )}
+
           {error && !loading ? (
-            /* ── 실패 상태. 빈 화면 대신 무슨 일인지 말해준다 ── */
+            /* ── 매칭 자체 실패. 빈 화면 대신 무슨 일인지 말해준다 ── */
             <div className="px-5 py-16 flex flex-col items-center text-center">
               <span className="w-14 h-14 rounded-full bg-sunset-orange/10 flex items-center
                                justify-center text-2xl mb-4">📄</span>
               <p className="text-sm font-bold text-navy mb-1.5">
                 서류 목록을 준비하지 못했어요
               </p>
-              <p className="text-xs text-warm-text leading-relaxed max-w-xs">{error}</p>
+              <p className="text-xs text-warm-text leading-relaxed max-w-xs whitespace-pre-wrap break-all">{error}</p>
 
               <div className="flex flex-col items-center gap-2 mt-6 w-full max-w-xs">
                 <button
@@ -397,17 +504,18 @@ export default function ApplicationGuide() {
         <div className="fixed bottom-0 inset-x-0 z-30 bg-primary-bg/95 backdrop-blur-sm border-t border-warm-gray/20 px-5 py-4">
           <div className="max-w-4xl mx-auto flex flex-col gap-2.5">
 
-            {/* 신청서 작성 버튼 – 모든 서류 완료 시 노출 */}
+            {/* 정책 신청 버튼 – 모든 서류 완료 시 노출 */}
             {allDone && (
               <button
                 onClick={() => {
-                  const url = program?.applyUrl ?? program?.raw?.apply_url
+                  const url = program?.apply_url
                   if (url) window.open(url, '_blank')
+                  setShowApply(true)
                 }}
                 className="w-full py-3.5 rounded-2xl bg-navy text-white text-sm font-bold shadow-lg
                            hover:bg-navy/90 active:scale-[0.98] transition-all"
               >
-                신청서 작성하러 가기 →
+                정책 신청하러 가기 →
               </button>
             )}
 
@@ -434,6 +542,9 @@ export default function ApplicationGuide() {
 
       {/* 서류 발급 바텀시트 */}
       {showPrep && <PrepSheet items={items} onClose={() => setShowPrep(false)} />}
+
+      {/* 정책 신청 바텀시트 */}
+      {showApply && <ApplySheet program={program} onClose={() => setShowApply(false)} />}
     </div>
   )
 }

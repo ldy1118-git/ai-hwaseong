@@ -252,8 +252,17 @@ const TABS = ['페이지', '프로필', 'API', 'LLM']
 export default function DevTools() {
   const [open, setOpen]   = useState(false)
   const [tab, setTab]     = useState(0)
+  const [mock, setMock]   = useState(() => localStorage.getItem('mars-mock') === 'true')
   const navigate          = useNavigate()
   const location          = useLocation()
+
+  function toggleMock() {
+    const next = !mock
+    setMock(next)
+    if (next) localStorage.setItem('mars-mock', 'true')
+    else      localStorage.removeItem('mars-mock')
+    window.location.reload()
+  }
 
   return (
     <div className="fixed top-3 right-3 z-[9999] flex flex-col items-end gap-1">
@@ -275,6 +284,28 @@ export default function DevTools() {
           <div className="bg-navy px-4 py-2.5 flex items-center justify-between">
             <span className="text-white text-xs font-bold tracking-wide">🛠 DEV TOOLS</span>
             <span className="text-warm-gray text-xs font-mono">{location.pathname}</span>
+          </div>
+
+          {/* Mock 토글 — 탭 무관하게 항상 표시 */}
+          <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-warm-gray/20">
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-navy">Mock 모드</span>
+              <span className="text-[10px] text-warm-text">
+                {mock ? 'API 호출 없이 목업 데이터 사용 중' : '실제 API 호출 중'}
+              </span>
+            </div>
+            <button
+              onClick={toggleMock}
+              className={[
+                'relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0',
+                mock ? 'bg-green-500' : 'bg-warm-gray/40',
+              ].join(' ')}
+            >
+              <span className={[
+                'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200',
+                mock ? 'translate-x-5' : 'translate-x-0.5',
+              ].join(' ')} />
+            </button>
           </div>
 
           {/* 탭 */}
