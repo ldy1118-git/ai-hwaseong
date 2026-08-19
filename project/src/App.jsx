@@ -136,7 +136,15 @@ export default function App() {
   return (
     <>
       <KakaoReturn />
-      <DevTools />
+      {/* 개발자 도구는 화면 오른쪽 위에 🛠 버튼으로 **항상** 떠 있었다.
+          조건이 없어서 배포본에도 그대로 나갔다 — 시연 영상에도, 심사위원
+          화면에도 찍힌다. Mock 모드 토글까지 달려 있어서 눌리면 실제 API
+          대신 목업이 뜬다.
+
+          import.meta.env.DEV 는 빌드할 때 false 로 치환되고, 그러면 이
+          가지가 통째로 사라지면서 DevTools 모듈 자체가 번들에서 빠진다.
+          npm run dev 로 띄우면 예전처럼 그대로 쓸 수 있다. */}
+      {import.meta.env.DEV && <DevTools />}
       <AnimatedRoutes />
       <BottomNav />
     </>
