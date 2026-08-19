@@ -7,7 +7,8 @@ import marsImg from '../../design/mars.png'
 import findImg from '../../design/find.png'
 import { getToken, clearToken, saveOnboarding, apiUrl, mockOcrResult } from '../utils/api'
 import { generateText } from '../utils/llm/llmProvider'
-import { RotateCcw, LogOut } from 'lucide-react'
+import { RotateCcw, LogOut, ChevronRight, ArrowRight, AlertTriangle } from 'lucide-react'
+import Header from '../components/layout/Header'
 
 /**
  * 온보딩 — 성현 기획서(docs/온보딩_기획서.txt) 구조.
@@ -504,74 +505,99 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
     return v !== undefined && v !== null && v !== ''
   }).length
 
+  const missing = GRID_KEYS.length - filledCount
+
   return (
     <div className="min-h-screen bg-primary-bg pb-24">
+      {/* 상단바가 이 화면에만 없었다. 헤더 메뉴의 「내 정보」가 여기로
+          오는데, 정작 도착하면 헤더가 사라져서 다른 화면으로 갈 수가 없었다. */}
+      <Header />
 
-      {/* ── 헤더 ── */}
-      <div className="px-5 pt-5 pb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-extrabold text-navy">내 정보</h1>
-          <p className="text-xs text-warm-text mt-0.5">탭하면 바로 수정할 수 있어요</p>
-        </div>
-        <div className="relative w-10 h-10 flex-shrink-0">
-          <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
-            <circle cx="20" cy="20" r="16" fill="none" stroke="#e5e5e5" strokeWidth="3.5" />
-            <circle cx="20" cy="20" r="16" fill="none" stroke="#2a3c77" strokeWidth="3.5"
-              strokeDasharray={`${(filledCount / GRID_KEYS.length) * 100.5} 100.5`}
-              strokeLinecap="round" />
-          </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-[13px] font-extrabold text-navy">
-            {filledCount}/{GRID_KEYS.length}
+      <div className="max-w-4xl mx-auto px-5 pt-4">
+
+        {/* ── 머리 ── */}
+        <div className="flex items-end justify-between mb-1">
+          <h2 className="text-base font-bold text-navy">내 정보</h2>
+          <span className="text-xs font-bold text-warm-text tabular-nums">
+            {filledCount} / {GRID_KEYS.length} 항목
           </span>
         </div>
-      </div>
+        <p className="text-xs text-warm-text mb-4 leading-relaxed">
+          조건이 정확할수록 나에게 맞는 공고만 걸러져요. 탭하면 바로 고칠 수 있어요.
+        </p>
 
-      {/* ── 3×3 그리드 ── */}
-      <div className="px-5">
-        <div className="grid grid-cols-3 gap-2.5">
+        {/* ── 목록 ──
+            전에는 88px 정사각 타일 아홉 개였는데 값이 잘렸다. 「기초생활수급자」,
+            「예비창업자」 같은 건 칸에 안 들어간다. 게다가 이모지 20px · 라벨 13px ·
+            값 12px 라 **값이 제일 작았다** — 값을 보러 온 화면인데.
+            줄로 펴면 값에 폭을 다 줄 수 있고 위계도 바로 선다. */}
+        <ul className="rounded-2xl border border-warm-gray/25 bg-white overflow-hidden
+                       divide-y divide-warm-gray/20">
           {GRID_KEYS.map(key => {
             const meta = FIELD_LABELS[key]
             const disp = displayValue(key, profile[key])
             const filled = disp !== null
 
             return (
-              <button key={key}
-                onClick={() => setEditing(key)}
-                className={[
-                  'h-[88px] flex flex-col justify-between p-3 rounded-2xl border-2 text-left',
-                  'transition-all active:scale-95',
-                  filled
-                    ? 'bg-white border-warm-gray/20 shadow-sm'
-                    : 'bg-white/60 border-dashed border-warm-gray/30',
-                ].join(' ')}>
-                <span className="text-xl leading-none">{meta.emoji}</span>
-                <div className="w-full">
-                  <p className="text-[13px] text-warm-text font-medium leading-none mb-0.5">{meta.label}</p>
-                  {filled
-                    ? <p className="text-xs font-extrabold text-navy leading-tight truncate">{disp}</p>
-                    : <p className="text-[12px] text-warm-gray/40">미입력</p>
-                  }
-                </div>
-              </button>
+              <li key={key}>
+                <button
+                  onClick={() => setEditing(key)}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 text-left
+                             active:bg-primary-bg transition-colors">
+                  <span className="w-6 text-center text-base leading-none flex-shrink-0">{meta.emoji}</span>
+                  <span className="text-sm text-warm-text flex-shrink-0 w-20">{meta.label}</span>
+                  <span className={[
+                    'flex-1 text-right text-sm truncate',
+                    filled ? 'font-extrabold text-navy' : 'font-bold text-sunset-orange',
+                  ].join(' ')}>
+                    {filled ? disp : '입력하기'}
+                  </span>
+                  <ChevronRight size={16} className="text-warm-gray flex-shrink-0" />
+                </button>
+              </li>
             )
           })}
-        </div>
-      </div>
+        </ul>
 
-      {/* ── 액션 버튼 ── */}
-      <div className="px-5 mt-4 flex gap-2.5">
-        <button onClick={onReset}
-          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl
-                     border border-warm-gray/30 bg-white text-xs font-semibold text-navy
-                     hover:border-navy/40 transition-colors">
-          <RotateCcw size={13} /> 재설정
+        {/* 비어 있으면 **왜** 채워야 하는지 말해준다. 「미입력」 세 글자만
+            띄우면 안 채워도 되는 줄 안다. */}
+        {missing > 0 && (
+          <p className="mt-3 flex items-start gap-1.5 text-xs text-warm-text leading-relaxed">
+            <AlertTriangle size={14} className="text-sunset-orange flex-shrink-0 mt-px" />
+            <span>
+              <b className="text-navy">{missing}개</b>가 비어 있어요. 채우면 「확인필요」로 남는 공고가 줄고,
+              신청 가능한 것만 더 정확히 걸러집니다.
+            </span>
+          </p>
+        )}
+
+        {/* ── 다음에 할 것 ──
+            정보를 고치고 나면 결과를 다시 봐야 한다. 그 길이 없었다. */}
+        <button
+          onClick={() => navigate('/home')}
+          className="mt-5 w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl
+                     bg-navy text-white text-sm font-bold shadow-sm
+                     hover:brightness-110 active:scale-[.99] transition">
+          내 지원사업 보러가기
+          <ArrowRight size={16} />
         </button>
-        <button onClick={handleLogout}
-          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl
-                     border border-warm-gray/20 bg-white text-xs font-semibold text-warm-text
-                     hover:text-sunset-orange hover:border-sunset-orange/40 transition-colors">
-          <LogOut size={13} /> 로그아웃
-        </button>
+
+        {/* ── 되돌리는 것들 ──
+            전에는 재설정과 로그아웃이 같은 크기로 나란히 있었다. 둘 다
+            되돌릴 수 없는 일인데 눈에 제일 먼저 들어왔다. 밑으로 내리고
+            글자만 남긴다. */}
+        <div className="mt-7 pt-4 border-t border-warm-gray/25 flex items-center justify-between">
+          <button onClick={onReset}
+            className="flex items-center gap-1.5 text-xs font-semibold text-warm-text
+                       hover:text-navy transition-colors">
+            <RotateCcw size={13} /> 처음부터 다시 입력
+          </button>
+          <button onClick={handleLogout}
+            className="flex items-center gap-1.5 text-xs font-semibold text-warm-text
+                       hover:text-sunset-orange transition-colors">
+            <LogOut size={13} /> 로그아웃
+          </button>
+        </div>
       </div>
 
       {editing && (
