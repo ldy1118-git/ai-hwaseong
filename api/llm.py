@@ -99,8 +99,13 @@ ALIASES = {
 }
 
 
-def read_key(env: str) -> str:
-    """환경변수에서 키를 읽는다. 옮겨 담다 붙은 것을 벗겨낸다.
+# 한 제공자에 키를 몇 개까지 꽂을 수 있게 할지. 이 이상은 환경변수
+# 관리가 더 헷갈려서 얻는 것보다 잃는 게 크다.
+MAX_KEYS = 5
+
+
+def clean_key(raw: str) -> str:
+    """옮겨 담다 붙은 것을 벗겨낸다.
 
     앞뒤 공백은 물론이고 감싼 따옴표도 벗긴다. 대시보드에 값을 넣을 때
     "gsk_..." 처럼 따옴표째 붙여넣는 일이 잦은데, Vercel 은 그걸 값의
@@ -110,13 +115,37 @@ def read_key(env: str) -> str:
     안쪽에 낀 공백은 손대지 않는다. 그건 키가 잘려 들어온 것이라
     조용히 이어붙이면 엉뚱한 키가 만들어진다. 그냥 401 로 실패하게 둔다.
     """
-    return os.environ.get(env, "").strip().strip("\"'").strip()
+    return raw.strip().strip("\"'").strip()
+
+
+def read_keys(env: str) -> list[str]:
+    """한 제공자에 꽂힌 키를 전부, 적어둔 순서대로 돌려준다.
+
+        GROQ_API_KEY      첫 번째
+        GROQ_API_KEY_2    앞엣것이 한도에 걸리면 이걸로
+        GROQ_API_KEY_3    ...
+
+    Groq 무료 등급의 하루 토큰 한도는 **키가 아니라 계정 단위**다.
+    429 본문에 organization 이 찍혀 나온다. 그래서 같은 계정에서 키만
+    더 뽑는 것은 의미가 없다. **서로 다른 계정의 키**를 넣어야 한도가
+    실제로 늘어난다. 이걸 모르고 넣으면 두 개를 꽂고도 그대로 막힌다.
+
+    같은 값이 두 번 들어오면 한 번만 센다. 같은 키를 두 칸에 붙여넣는
+    실수는 잦은데, 그러면 429 를 두 번 맞고 시간만 버린다.
+    """
+    keys, seen = [], set()
+    for suffix in [""] + [f"_{n}" for n in range(2, MAX_KEYS + 1)]:
+        key = clean_key(os.environ.get(env + suffix, ""))
+        if key and key not in seen:
+            seen.add(key)
+            keys.append(key)
+    return keys
 
 
 def available() -> list[str]:
     """키가 실제로 꽂혀 있는 제공자를 우선순위대로."""
     return [name for name, spec in PROVIDERS.items()
-            if read_key(spec["env"])]
+            if read_keys(spec["env"])]
 
 
 def call_openai_compatible(url: str, key: str, model: str, system: str,
@@ -249,33 +278,47 @@ class handler(Base):  # noqa: N801
         # 그대로 넘기면 404 가 난다. 지정한 제공자가 하나일 때만 존중한다.
         override = str(payload.get("model") or "") if len(ready) == 1 else ""
 
+        # 제공자를 순서대로 돌고, 한 제공자 안에서는 꽂힌 키를 순서대로
+        # 돈다. 하루 한도(429)에 걸린 키는 그냥 다음 키로 넘어간다.
+        # 죽은 키(401)도 같은 길로 건너뛴다 — 시연 중에 한 개가 막혔다고
+        # 화면이 멈추는 것보다 조용히 넘어가는 편이 낫다. 다 실패하면
+        # 아래에서 무엇이 왜 실패했는지 전부 보여준다.
         failures = []
         for name in ready:
             spec = PROVIDERS[name]
-            key = read_key(spec["env"])
             model = override or spec["model"]
-            try:
-                if name == "gemini":
-                    text = call_gemini(
-                        key=key, model=model, system=system, prompt=prompt,
-                        want_json=want_json, history=history,
-                        schema=payload.get("schema"),
-                    )
-                else:
-                    text = call_openai_compatible(
-                        url=spec["url"], key=key, model=model, system=system,
-                        prompt=prompt, want_json=want_json, history=history,
-                    )
-            except urllib.error.HTTPError as error:
-                # 본문에 키가 실려 돌아오는 일은 없지만 그대로 흘리지 않는다.
-                detail = error.read().decode("utf-8", "replace")[:300]
-                failures.append(f"{spec['label']} ({error.code}): {detail}")
-                continue
-            except Exception as error:
-                failures.append(f"{spec['label']}: {type(error).__name__}: {error}")
-                continue
+            keys = read_keys(spec["env"])
+            for slot, key in enumerate(keys, 1):
+                # 키가 하나뿐이면 번호를 붙이지 않는다. 붙이면 로그가
+                # 괜히 복잡해 보인다.
+                who = spec["label"] if len(keys) == 1 else f"{spec['label']} 키{slot}"
+                try:
+                    if name == "gemini":
+                        text = call_gemini(
+                            key=key, model=model, system=system, prompt=prompt,
+                            want_json=want_json, history=history,
+                            schema=payload.get("schema"),
+                        )
+                    else:
+                        text = call_openai_compatible(
+                            url=spec["url"], key=key, model=model, system=system,
+                            prompt=prompt, want_json=want_json, history=history,
+                        )
+                except urllib.error.HTTPError as error:
+                    # 본문에 키가 실려 돌아오는 일은 없지만 그대로 흘리지 않는다.
+                    detail = error.read().decode("utf-8", "replace")[:300]
+                    failures.append(f"{who} ({error.code}): {detail}")
+                    continue
+                except Exception as error:
+                    failures.append(f"{who}: {type(error).__name__}: {error}")
+                    continue
 
-            return send_json(self, {"text": text, "provider": name, "model": model})
+                return send_json(self, {
+                    "text": text, "provider": name, "model": model,
+                    # 몇 번째 키로 나갔는지. 시연 전에 한도가 어디까지
+                    # 찼는지 밖에서 보려면 이게 있어야 한다. 키 값은 아니다.
+                    "key_slot": slot,
+                })
 
         # 여기까지 왔으면 꽂힌 키가 전부 실패한 것이다. 어느 것이 왜
         # 실패했는지 다 보여준다 — 하나만 보여주면 원인을 못 찾는다.
@@ -286,7 +329,8 @@ class handler(Base):  # noqa: N801
         send_json(self, {
             "error": "POST 로 호출하세요",
             "providers": {
-                name: {"configured": bool(read_key(spec["env"])),
+                name: {"configured": bool(read_keys(spec["env"])),
+                       "keys": len(read_keys(spec["env"])),
                        "env": spec["env"], "model": spec["model"]}
                 for name, spec in PROVIDERS.items()
             },

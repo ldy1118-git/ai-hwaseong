@@ -82,6 +82,17 @@ def database() -> dict:
     return {"connected": True}
 
 
+
+def count_keys(env: str) -> int:
+    """그 제공자에 꽂힌 키 개수. api/llm.py 의 read_keys 와 같은 규칙이다."""
+    seen = set()
+    for suffix in [""] + [f"_{n}" for n in range(2, 6)]:
+        key = os.environ.get(env + suffix, "").strip().strip("\"'").strip()
+        if key:
+            seen.add(key)
+    return len(seen)
+
+
 class handler(Base):  # noqa: N801
     def do_GET(self) -> None:  # noqa: N802
         deep = "deep=1" in (self.path or "")
@@ -101,9 +112,13 @@ class handler(Base):  # noqa: N801
             "configured": {
                 # LLM 은 셋 중 하나만 있으면 챗봇이 돈다. 셋 다 false 면
                 # 챗봇이 죽어 있다는 뜻이라 배포 후 여기부터 볼 것.
-                "GROQ_API_KEY": bool(os.environ.get("GROQ_API_KEY", "").strip()),
-                "XAI_API_KEY": bool(os.environ.get("XAI_API_KEY", "").strip()),
-                "GEMINI_API_KEY": bool(os.environ.get("GEMINI_API_KEY", "").strip()),
+                # 몇 개 꽂혔는지까지 센다. 한 제공자에 키를 여러 개 넣을 수
+                # 있어서(GROQ_API_KEY, GROQ_API_KEY_2, ...) 있다/없다만으로는
+                # 두 번째 키가 들어갔는지 밖에서 확인할 방법이 없다.
+                # 키 값은 내보내지 않는다. 개수만이다.
+                "GROQ_API_KEY": count_keys("GROQ_API_KEY"),
+                "XAI_API_KEY": count_keys("XAI_API_KEY"),
+                "GEMINI_API_KEY": count_keys("GEMINI_API_KEY"),
                 "JWT_SECRET": bool(os.environ.get("JWT_SECRET", "").strip()),
                 "KAKAO_CLIENT_ID": bool(os.environ.get("KAKAO_CLIENT_ID", "").strip()),
                 "KAKAO_REDIRECT_URI": os.environ.get("KAKAO_REDIRECT_URI", "") or None,
