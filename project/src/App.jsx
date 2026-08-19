@@ -21,7 +21,9 @@ const pageVariants = {
   exit:    { opacity: 0, y: -6 },
 }
 
-const pageTransition = { duration: 0.18, ease: 'easeOut' }
+// 탭 이동에 0.18초씩 두 번(나가고 들어오고)이면 0.36초다. 탭치고는 길어서
+// 화면이 한 번 사라졌다 생기는 것처럼 보인다. 0.12초로 줄인다.
+const pageTransition = { duration: 0.12, ease: 'easeOut' }
 
 function AnimatedRoutes() {
   const location = useLocation()
