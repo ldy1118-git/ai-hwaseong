@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { cleanDocName } from '../utils/docName'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/layout/Header'
@@ -30,19 +30,59 @@ function dDay(end) {
   return Math.ceil((new Date(end) - new Date()) / 86400000)
 }
 
+/* 마우스가 있는 기기인가.
+ *
+ * 전에는 onMouseEnter 로만 열었다. 데스크톱에서는 됐지만 **누를 수는
+ * 없었다.** 마우스를 얹고 있어야만 보이니 손을 떼면 사라지고, 터치
+ * 화면에서는 아예 안 열렸다. 발표에서 「탭 한 번으로 풀린다」고 말하는
+ * 기능이라 말과 화면이 어긋났다.
+ *
+ * 그렇다고 탭 처리를 그냥 얹으면 안 된다. 터치 브라우저는 탭 한 번에
+ * mouseenter 와 click 을 같이 쏘기 때문에, 열렸다가 곧바로 닫힌다.
+ * 그래서 마우스가 있는 기기에서만 hover 를 붙이고, 나머지는 탭만 쓴다.
+ * 어느 쪽이든 **눌러서 열고 눌러서 닫는 것**은 똑같이 된다. */
+const CAN_HOVER = typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(hover: hover)').matches
+
 function TermTooltip({ term }) {
   const [show, setShow] = useState(false)
+  const wrap = useRef(null)
+
+  // 탭으로 열었으면 탭으로 닫을 수 있어야 한다. 바깥을 누르거나 Esc.
+  useEffect(() => {
+    if (!show) return
+    const away = e => { if (wrap.current && !wrap.current.contains(e.target)) setShow(false) }
+    const esc = e => { if (e.key === 'Escape') setShow(false) }
+    document.addEventListener('pointerdown', away)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('pointerdown', away)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [show])
+
+  const hover = CAN_HOVER
+    ? { onMouseEnter: () => setShow(true), onMouseLeave: () => setShow(false) }
+    : {}
+
   return (
-    <span className="relative" style={{ display: 'inline-block' }}>
-      <span
-        className="border-b-2 border-dotted border-navy text-navy font-semibold cursor-help"
-        onMouseEnter={() => setShow(true)}
-        onMouseLeave={() => setShow(false)}
+    <span className="relative" style={{ display: 'inline-block' }} ref={wrap}>
+      <button
+        type="button"
+        aria-expanded={show}
+        aria-label={`${term.term} 뜻 보기`}
+        onClick={() => setShow(v => !v)}
+        {...hover}
+        className="border-b-2 border-dotted border-navy text-navy font-semibold cursor-help
+                   focus:outline-none focus-visible:ring-2 focus-visible:ring-navy/40 rounded-sm"
       >
         {term.term}
-      </span>
+      </button>
       {show && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-navy text-white text-xs rounded-xl p-3 shadow-xl z-50 pointer-events-none">
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2
+                        w-[min(14rem,72vw)] bg-navy text-white text-xs rounded-xl p-3
+                        shadow-xl z-50 pointer-events-none">
           <p className="font-bold mb-1">{term.term}</p>
           <p className="leading-relaxed">{term.easy}</p>
           {term.caution && (
