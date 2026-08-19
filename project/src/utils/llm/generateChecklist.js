@@ -1,5 +1,6 @@
 import { SchemaType } from '@google/generative-ai'
 import { generateText, GEMINI_MODEL } from './llmProvider.js'
+import { todayKR } from '../today.js'
 import { MOCK_CHECKLIST, delay } from '../../mocks/index.js'
 
 const MOCK = localStorage.getItem('mars-mock') === 'true'
@@ -190,7 +191,7 @@ export async function generateChecklistV1(matchingOutput, noticeJson, termsData)
 2. RAG 데이터에 없는 서류의 how_to_get은 null로 두고 verify_note에 "접수기관에 직접 문의 필요" 기재.
 3. confidence=estimated인 서류는 verify_note에 "공고 원문 확인 또는 접수기관 문의 권장" 기재.
 4. 확인필요 조건은 pending_conditions에 빠짐없이 담고 ask_user에 사용자에게 물어볼 문장을 작성.
-5. 오늘 날짜는 2026년 8월 15일. 접수 기간이 이미 종료됐으면 important_notes에 경고.
+5. 오늘 날짜는 ${todayKR()}. 접수 기간이 이미 종료됐으면 important_notes에 경고.
 6. 없는 서류를 추가하지 말 것. expected_documents에 있는 서류만 체크리스트에 포함.`
 
   const { matched, unmatched } = buildDocumentRAG(
