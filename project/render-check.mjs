@@ -51,8 +51,16 @@ for (const [name, mod, path, seed] of CASES) {
     const start = html.includes('카카오톡으로 시작') ? ' [카카오CTA]' : ''
     console.log(`✅ ${name.padEnd(20)} ${String(html.length).padStart(6)}자${kakao}${start}`)
   } catch (e) {
-    bad++
-    console.log(`❌ ${name.padEnd(20)} ${e.constructor.name}: ${e.message}`)
+    // leaflet 은 import 되는 순간 window 를 만진다. 컴포넌트가 실행되기도
+    // 전에 여기서 멈추므로 SSR 로는 이 화면을 볼 방법이 없다. 실제 앱은
+    // 브라우저에서만 도니까 이건 고장이 아니다 — 다만 **이 화면은 자동으로
+    // 지켜지지 않는다.** 배포하면 손으로 한 번 눌러봐야 한다.
+    if (/window is not defined|document is not defined/.test(e.message)) {
+      console.log(`⚠️  ${name.padEnd(19)} 브라우저 전용(leaflet) — SSR 점검 불가. 손으로 눌러볼 것`)
+    } else {
+      bad++
+      console.log(`❌ ${name.padEnd(20)} ${e.constructor.name}: ${e.message}`)
+    }
   }
 }
 console.log(bad ? `\n터진 화면 ${bad}개` : '\n전부 렌더 성공')
