@@ -108,7 +108,7 @@ def read_key(env: str) -> str:
     밖에서는 키가 폐기된 것과 구별이 안 된다.
 
     안쪽에 낀 공백은 손대지 않는다. 그건 키가 잘려 들어온 것이라
-    조용히 고쳐주면 안 되고 진단(key_shape)에 걸려야 한다.
+    조용히 이어붙이면 엉뚱한 키가 만들어진다. 그냥 401 로 실패하게 둔다.
     """
     return os.environ.get(env, "").strip().strip("\"'").strip()
 
@@ -210,31 +210,6 @@ def call_gemini(key: str, model: str, system: str, prompt: str,
 
 
 
-# ── 키 진단 (임시) ──────────────────────────────────────────────
-# Groq 이 401 invalid_api_key 를 돌려주는데, 키가 정말 폐기된 것인지
-# 옮겨 담다가 망가진 것인지 밖에서는 구별이 안 된다. Vercel 대시보드는
-# 값을 가려놓는 설정이면 눈으로도 못 본다.
-#
-# **키 값은 한 글자도 내보내지 않는다.** 길이와 모양만 본다. 앞 4글자는
-# 모든 Groq 키가 gsk_ 로 같아서 이것만으로는 아무것도 못 맞춘다.
-#
-# 원인이 잡히면 지운다. 남겨둘 코드가 아니다.
-def key_shape(raw: str) -> dict:
-    stripped = raw.strip()
-    return {
-        # 붙여넣을 때 따옴표가 같이 들어가는 일이 제일 잦다.
-        "quoted": len(stripped) >= 2 and stripped[0] in "\"'" and stripped[-1] == stripped[0],
-        # 카톡을 거치면 줄바꿈이나 공백이 가운데 끼기도 한다. strip 으로는 안 빠진다.
-        "inner_space": any(c.isspace() for c in stripped),
-        "len_raw": len(raw),
-        "len_stripped": len(stripped),
-        "prefix": stripped[:4],
-        # 정상 키는 영숫자와 _ - 뿐이다. 그 밖의 글자가 있으면 잘못 복사된 것이다.
-        "odd_chars": sorted({c for c in stripped
-                             if not (c.isalnum() or c in "_-")})[:5],
-    }
-
-
 class handler(Base):  # noqa: N801
     def do_POST(self) -> None:  # noqa: N802
         ready = available()
@@ -312,8 +287,7 @@ class handler(Base):  # noqa: N801
             "error": "POST 로 호출하세요",
             "providers": {
                 name: {"configured": bool(read_key(spec["env"])),
-                       "env": spec["env"], "model": spec["model"],
-                       "shape": key_shape(os.environ.get(spec["env"], ""))}
+                       "env": spec["env"], "model": spec["model"]}
                 for name, spec in PROVIDERS.items()
             },
             "will_use": (available() or [None])[0],
