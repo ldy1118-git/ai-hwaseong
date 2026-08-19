@@ -14,6 +14,23 @@ import marsImg from '../../design/mars.png'
 // 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
 
 const PROGRESS_KEY = 'mars-fit-checklist-progress'
+const APPLIED_KEY  = 'mars-fit-applied-programs'
+
+function markApplied(prog) {
+  if (!prog?.notice_id) return
+  try {
+    const saved = JSON.parse(localStorage.getItem(APPLIED_KEY) ?? '[]')
+    if (saved.some(p => p.notice_id === prog.notice_id)) return
+    saved.unshift({
+      notice_id:    prog.notice_id,
+      notice_title: prog.notice_title,
+      organizer:    prog.organizer ?? null,
+      apply_period: prog.apply_period ?? {},
+      applied_at:   new Date().toISOString().slice(0, 10),
+    })
+    localStorage.setItem(APPLIED_KEY, JSON.stringify(saved))
+  } catch {}
+}
 
 function saveProgress(prog, itms) {
   if (!prog?.notice_id) return
@@ -561,6 +578,7 @@ export default function ApplicationGuide() {
             {allDone && (
               <button
                 onClick={() => {
+                  markApplied(program)
                   const url = program?.apply_url
                   if (url) window.open(url, '_blank')
                   setShowApply(true)
