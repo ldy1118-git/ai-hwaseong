@@ -138,7 +138,10 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
                   {s.icon}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <span className={`text-sm font-bold ${s.text}`}>{c.condition}</span>
+                  {/* 매칭이 돌려주는 condition 은 business_status 같은 영문 키다.
+                      label 이 있으면 그걸 쓴다 — 없으면 화면에 영문이 그대로 나온다.
+                      글씨 크기는 서희가 키운 text-sm 을 그대로 쓴다. */}
+                  <span className={`text-sm font-bold ${s.text}`}>{c.label || c.condition}</span>
                   {c.detail && (
                     <p className="text-sm text-warm-text leading-snug mt-0.5">{c.detail}</p>
                   )}
