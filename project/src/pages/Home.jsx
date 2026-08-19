@@ -6,6 +6,7 @@ import OrbitDashboard from '../components/sections/OrbitDashboard'
 import FloatingChatButton from '../components/ui/FloatingChatButton'
 import DeadlineCalendar from '../components/ui/DeadlineCalendar'
 import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
+import { nextDeadline } from '../utils/taxSchedule'
 
 /* ── 유틸 ───────────────────────────────────────── */
 
@@ -227,7 +228,17 @@ function ProfileEditDrawer({ field, profile, onSave, onClose }) {
 
 /* ── 유형 1: 사업 소유주 ────────────────────────── */
 
-function BusinessOwnerSection({ profile }) {
+// 화면에 쓰는 짧은 날짜 — 「6월 1일」
+function korMD(iso) {
+  if (!iso) return '—'
+  const [, m, d] = iso.split('-')
+  return `${Number(m)}월 ${Number(d)}일`
+}
+
+function BusinessOwnerSection({ profile, matches = [] }) {
+  const canApply = matches.filter(m => m.status === '신청가능').length
+  const urgent   = matches.filter(m => m.dDay !== null && m.dDay <= 7).length
+  const taxNext  = nextDeadline(profile)
   const months   = profile.business_period_months || 0
   const category = profile.category || '업종'
   const region   = profile.region   || '화성시'
@@ -243,20 +254,31 @@ function BusinessOwnerSection({ profile }) {
         </div>
       )}
 
-      {/* 내 상권 현황 */}
-      <h3 className="text-sm font-bold text-navy mb-2">내 상권 현황</h3>
+      {/* 지금 내 상황 —
+          전에는 「내 상권 현황」이라며 동종업종 87개 · 주간 유동인구
+          1,200명 · 신청→수령 평균 3개월을 띄웠다. 셋 다 지어낸 값이다.
+          POS 도 유동인구 데이터도 연동한 적이 없다. 「내 상권 기준」,
+          「동탄2 평균」 같은 꼬리표까지 달려 있어서 더 나빴다.
+
+          District 에서 같은 것을 이미 걷어냈는데 홈에 남아 있었다.
+          지어낸 숫자 하나가 있으면 나머지 진짜 숫자까지 같이 의심받는다.
+          실제로 우리가 아는 값 셋으로 바꾼다 — 매칭 판정, 마감, 세무일정.
+          상권 수치는 데이터를 연동한 뒤에 넣을 것. */}
+      <h3 className="text-sm font-bold text-navy mb-2">지금 내 상황</h3>
       <div className="grid grid-cols-3 gap-2">
         {[
-          { icon: '🏪', top: `${region} 동종업종`, mid: `${category} 87개`,  sub: '내 상권 기준' },
-          { icon: '👥', top: '주간 유동인구',       mid: '1,200명',           sub: '동탄2 평균'  },
-          { icon: '🏆', top: '지원 수혜 사례',      mid: '평균 3개월',        sub: '신청→수령'   },
+          { icon: '🎯', top: '신청 가능',   mid: `${canApply}건`,
+            sub: matches.length ? `조건 맞는 것만` : '조건 입력 필요' },
+          { icon: '⏰', top: '마감 임박',   mid: `${urgent}건`,   sub: '7일 이내' },
+          { icon: '🧾', top: '다음 세무일정', mid: taxNext ? korMD(taxNext.dueDate) : '—',
+            sub: taxNext ? taxNext.title : '조건 입력 필요' },
         ].map((d, i) => (
           <div key={i}
             className="bg-white border border-warm-gray/20 rounded-2xl p-3 text-center shadow-sm">
             <span className="text-2xl">{d.icon}</span>
             <p className="text-[12px] text-warm-text mt-1 leading-tight">{d.top}</p>
-            <p className="text-xs font-bold text-navy mt-0.5">{d.mid}</p>
-            <p className="text-[13px] text-warm-text/70 mt-0.5">{d.sub}</p>
+            <p className="text-sm font-extrabold text-navy mt-0.5 tabular-nums">{d.mid}</p>
+            <p className="text-[12px] text-warm-text/70 mt-0.5 leading-tight truncate">{d.sub}</p>
           </div>
         ))}
       </div>
@@ -268,23 +290,49 @@ function BusinessOwnerSection({ profile }) {
 
 const ORBIT_STEPS = ['업종 확정', '지원사업 선택', '서류 준비', '신청 완료']
 
-function StartupPlannerSection({ profile }) {
+function StartupPlannerSection({ profile, matches = [] }) {
   const step = profile.category ? 1 : 0
+
+  // 전에는 「초기 창업비 최대 500만원 지원」이라고 적혀 있었다. 어느
+  // 공고에서 온 값이 아니라 그냥 박아둔 숫자였다. 데이터를 뒤져보면
+  // 「500만」이 나오는 공고는 소상공인 경영안정 바우처 하나뿐이고,
+  // 청년 초기창업비와는 다른 사업이다. 「화성시 전용 공모 우선 매칭」도
+  // 사실이 아니었다 — 화성시 전용은 세 건뿐이다.
+  //
+  // 지어낸 숫자 하나가 화면에 있으면 나머지 숫자까지 같이 의심받는다.
+  // 실제 매칭 결과로 바꾼다.
+  const canApply = matches.filter(m => m.status === '신청가능')
+  const best = matches[0] ?? null
 
   return (
     <section className="px-5 mb-6 space-y-4">
-      {/* 청년·초기창업자 전용 강조 카드 */}
-      <div className="bg-navy rounded-2xl p-4">
-        <span className="inline-block text-xs bg-white/20 text-white rounded-full
+      {/* 지금 신청할 수 있는 것 — 전부 실제 판정값이다 */}
+      <div className="bg-white border border-warm-gray/40 rounded-2xl p-4 shadow-sm">
+        <span className="inline-block text-xs bg-navy/8 text-navy rounded-full
                          px-2.5 py-0.5 font-semibold">
-          청년·초기창업자 전용
+          {profile.category ? `${profile.category} · 예비창업` : '예비창업'}
         </span>
-        <p className="text-lg font-bold text-white mt-2 leading-snug">
-          초기 창업비<br />최대 500만원 지원
-        </p>
-        <p className="text-xs text-white/60 mt-1.5">
-          {profile.category || '관심 업종'} · 화성시 전용 공모 우선 매칭
-        </p>
+
+        {matches.length > 0 ? (
+          <>
+            <p className="mt-2.5 flex items-baseline gap-1.5">
+              <span className="text-3xl font-extrabold text-navy tabular-nums">{canApply.length}</span>
+              <span className="text-sm font-bold text-navy">건</span>
+              <span className="text-sm text-warm-text">지금 신청할 수 있어요</span>
+            </p>
+            {best && (
+              <p className="mt-1.5 text-xs text-warm-text leading-relaxed">
+                가장 잘 맞는 것 —{' '}
+                <span className="font-bold text-navy">{best.title}</span>
+                <span className="text-warm-gray"> · 매칭 {best.score}점</span>
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="mt-2.5 text-sm text-warm-text">
+            조건을 채우면 신청할 수 있는 사업을 골라드려요.
+          </p>
+        )}
       </div>
 
       {/* 창업 궤도 스텝 진행 바 */}
@@ -512,9 +560,9 @@ export default function Home() {
           **좁은 화면의 순서는 그대로 둔다.** 지금은 공고 목록이 캘린더보다
           위에 있는데, 그냥 묶으면 캘린더가 위로 올라와 버린다. order 로
           모바일 순서를 고정하고, 넓은 화면에서만 격자로 배치한다. */}
-      <main className="mx-auto flex flex-col max-w-4xl
+      <main className="mx-auto flex flex-col max-w-4xl pt-2
                        lg:max-w-6xl lg:grid lg:grid-cols-[360px_minmax(0,1fr)]
-                       lg:gap-x-6 lg:items-start lg:px-4">
+                       lg:gap-x-6 lg:items-start lg:px-4 lg:pt-6">
 
         {/* ── 왼쪽 위: 나에 대한 것 ── */}
         <div className="order-1 lg:order-none lg:col-start-1 lg:row-start-1">
@@ -525,13 +573,15 @@ export default function Home() {
           <ProfileChips profile={profile} onEdit={setEditingField} />
 
           {/* 유형별 위젯 */}
-          {role === 1 && <BusinessOwnerSection profile={profile} />}
-          {role === 2 && <StartupPlannerSection profile={profile} />}
+          {role === 1 && <BusinessOwnerSection profile={profile} matches={allMatches} />}
+          {role === 2 && <StartupPlannerSection profile={profile} matches={allMatches} />}
           {role === 3 && <ExplorerSection profile={profile} navigate={navigate} />}
         </div>
 
         {/* ── 오른쪽: 공고 (주인공) ── */}
-        <div className="order-2 lg:order-none lg:col-start-2 lg:row-start-1 lg:row-span-2 min-w-0">
+        {/* 오른쪽 단은 왼쪽 인사 밴드와 높이가 다르다. 그냥 두면
+            「긴급 마감」이 상단바에 붙어버린다. 넓은 화면에서만 내린다. */}
+        <div className="order-2 lg:order-none lg:col-start-2 lg:row-start-1 lg:row-span-2 min-w-0 lg:pt-2">
         {matchError && (
           <div className="mx-5 mb-3 flex items-start gap-2.5 bg-sunset-orange/5
                           border border-sunset-orange/20 rounded-2xl px-3.5 py-3">
