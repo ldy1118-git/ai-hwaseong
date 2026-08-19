@@ -523,7 +523,7 @@ export default function MyStore() {
           다른 데서 가르면 출처 카드가 신고 목록보다 위로 올라와 버린다.
           그래서 order 로 순서를 되돌리는 손질이 필요 없다. */}
       {isOwner && <div className="max-w-4xl mx-auto px-5 space-y-5
-                                  lg:max-w-6xl lg:space-y-0 lg:grid lg:grid-cols-2
+                                  lg:max-w-6xl lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]
                                   lg:gap-5 lg:items-start">
 
         {/* ── 왼쪽: 세무 ── */}
