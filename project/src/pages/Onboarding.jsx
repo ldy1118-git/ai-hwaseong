@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
+import { DEMO_PROFILES } from '../utils/demoMode'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import logoImg from '../../design/logo.png'
@@ -210,6 +211,9 @@ function Shell({ current, total, onBack, marsMessage, stageKey, children }) {
           {marsMessage && <MarsBubble message={marsMessage} />}
           {children}
         </Slide>
+        {/* 단계마다 Shell 을 따로 그리기 때문에 여기가 모든 단계에
+            공통으로 걸리는 유일한 자리다. */}
+        <DemoSkip />
       </div>
     </div>
   )
@@ -597,6 +601,37 @@ const EMPTY = {
   business_period_months: '', career_experience: '', asset_group: '',
   marital_status: '', living_with_parents: undefined,
   entity_type: '', vat_type: '', has_employee: undefined,
+}
+
+/* 시연용 건너뛰기.
+ *
+ * 카메라 앞에서 질문 10개를 채우면 20~30초가 그냥 지나간다. 미리 채운
+ * 프로필로 바로 넘어가는 버튼을 둔다.
+ *
+ * 대회가 끝나면 지운다. 그때까지는 늘 보인다. */
+function DemoSkip() {
+  const navigate = useNavigate()
+
+  function fill(profile) {
+    localStorage.setItem('mars-fit-profile', JSON.stringify(profile))
+    navigate('/home')
+  }
+
+  return (
+    <div className="mt-10 pt-5 border-t border-warm-gray/30">
+      <p className="text-xs font-bold tracking-widest text-warm-gray mb-2.5">시연용 · 바로 채우기</p>
+      <div className="grid grid-cols-2 gap-2.5">
+        {DEMO_PROFILES.map(d => (
+          <button key={d.key} type="button" onClick={() => fill(d.profile)}
+            className="text-left bg-white border border-warm-gray/40 rounded-xl px-3.5 py-2.5
+                       hover:border-navy/50 transition">
+            <span className="block text-sm font-bold text-navy leading-snug">{d.label}</span>
+            <span className="block text-xs text-warm-text mt-0.5">{d.hint}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export default function Onboarding() {
