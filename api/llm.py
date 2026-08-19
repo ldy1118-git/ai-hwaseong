@@ -64,7 +64,11 @@ PROVIDERS = {
     "groq": {
         "env": "GROQ_API_KEY",
         "url": "https://api.groq.com/openai/v1/chat/completions",
-        "model": os.environ.get("GROQ_MODEL", "").strip() or "llama-3.3-70b-versatile",
+        # llama-3.3-70b-versatile 은 2026-06-17 폐기 공지가 나갔고 8월부터
+        # 응답이 끊겼다. 성현이 벤치마크(llm/report/)가 8월 초라 그 경계에
+        # 딱 걸렸다 — 보고서의 수치는 지금 이 모델의 것이 아니다.
+        # Groq 이 지정한 대체가 openai/gpt-oss-120b 다.
+        "model": os.environ.get("GROQ_MODEL", "").strip() or "openai/gpt-oss-120b",
         "label": "Groq",
     },
     "xai": {
