@@ -1,0 +1,55 @@
+name: 빌드 검사
+
+# 이 저장소에는 배포 전에 사람이 거치는 단계가 없다. main 에 푸시하면
+# Vercel 이 그대로 실서비스에 올린다. 그래서 안 돌아가는 코드를 올리면
+# 아무도 모르는 사이에 서비스가 빈 화면이 된다. 실제로 한 번 그랬다
+# (e64fd5b — 지우다 만 setShowMoreUrgent 하나에 홈이 통째로 죽었다).
+#
+# 여기서 먼저 걸러낸다. 빨간불이 뜨면 그 커밋은 화면을 못 띄운다는 뜻이다.
+#
+# 주의 — 이건 빌드가 되는지만 본다. 화면이 제대로 나오는지는 안 본다.
+# 문법이 맞고 import 가 다 있으면 통과한다. 눈으로 보는 걸 대신하지 않는다.
+
+on:
+  push:
+    branches: ['**']
+    # 코드가 아닌 것만 바뀐 커밋에는 돌리지 않는다. 매일 아침 공고 갱신이
+    # policy_data/ 만 고치는데, 거기까지 빌드를 돌리면 낭비다.
+    paths:
+      - 'project/**'
+      - 'vercel.json'
+      - '.github/workflows/build-check.yml'
+  pull_request:
+    paths:
+      - 'project/**'
+      - 'vercel.json'
+  workflow_dispatch:
+
+# 같은 브랜치에 연달아 푸시하면 앞의 것은 취소한다. 마지막 상태만 알면 된다.
+concurrency:
+  group: build-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: project/package-lock.json
+
+      # npm install 이 아니라 ci 다. lockfile 에 적힌 버전 그대로 깔아서
+      # 러너와 각자 노트북이 다른 버전을 쓰는 일을 막는다.
+      - name: 의존성 설치
+        working-directory: project
+        run: npm ci
+
+      - name: 빌드
+        working-directory: project
+        run: npm run build
