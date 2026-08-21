@@ -260,10 +260,14 @@ def _infer_region(address: str | None, text: str) -> str | None:
 
 
 def _infer_category(text: str) -> str | None:
+    # 좁은 것부터 본다. 등록증에는 업태와 종목이 같이 적혀 있어서, 카페도
+    # 업태는 「음식점업」이다. 넓은 것을 먼저 보면 카페가 전부 음식점이 된다.
+    # 실제로 업태 음식점업 · 종목 카페 인 등록증이 음식점으로 나왔다.
+    # 업종은 공고 매칭 조건에 그대로 쓰이므로 틀리면 결과가 달라진다.
     category_keywords = [
-        ("소매업", ["소매", "판매", "도소매", "잡화", "편의점", "마트"]),
-        ("음식점", ["음식", "일반음식점", "휴게음식점", "한식", "중식", "분식", "요식"]),
         ("카페", ["카페", "커피", "제과", "디저트"]),
+        ("음식점", ["음식", "일반음식점", "휴게음식점", "한식", "중식", "분식", "요식"]),
+        ("소매업", ["소매", "판매", "도소매", "잡화", "편의점", "마트"]),
     ]
     for category, keywords in category_keywords:
         if any(keyword in text for keyword in keywords):
@@ -325,7 +329,30 @@ def _ocr_with_pytesseract(image_path: Path) -> dict[str, Any]:
     }
 
 
-def _ocr_with_easyocr(image_path: Path) -> dict[str, Any]:
+def warm_up() -> bool:
+    """easyocr 모델을 미리 올려둔다.
+
+    첫 호출에 78초가 걸린다 — Reader 를 만들면서 모델을 내려받아 메모리에
+    올리기 때문이다. 서버가 뜰 때 미리 해두지 않으면, 사업자등록증을 처음
+    올린 사장님 한 명이 그 78초를 혼자 뒤집어쓴다. 중간에 있는 함수가
+    60초에서 끊기므로 아예 실패한다.
+    """
+    global _EASYOCR_READER
+    if _EASYOCR_READER is not None:
+        return True
+    if not _is_module_available("easyocr"):
+        return False
+    import easyocr
+    _EASYOCR_READER = easyocr.Reader(["ko", "en"], gpu=False)
+    return True
+
+
+def _ocr_with_easyocr(image_path: Path | None = None, *, data: bytes | None = None) -> dict[str, Any]:
+    """image_path 또는 data 중 하나를 준다.
+
+    data 로 넘기면 파일을 만들지 않는다. 사업자등록증에는 사업자번호와
+    대표자 이름이 적혀 있어서, 디스크에 남기면 지울 사람이 필요해진다.
+    """
     global _EASYOCR_READER
 
     import cv2
@@ -335,10 +362,15 @@ def _ocr_with_easyocr(image_path: Path) -> dict[str, Any]:
     if _EASYOCR_READER is None:
         _EASYOCR_READER = easyocr.Reader(["ko", "en"], gpu=False)
 
-    image_bytes = np.fromfile(str(image_path), dtype=np.uint8)
+    if data is not None:
+        image_bytes = np.frombuffer(data, dtype=np.uint8)
+        source = "업로드한 이미지"
+    else:
+        image_bytes = np.fromfile(str(image_path), dtype=np.uint8)
+        source = str(image_path)
     image = cv2.imdecode(image_bytes, cv2.IMREAD_COLOR)
     if image is None:
-        raise ValueError(f"이미지 파일을 읽을 수 없습니다: {image_path}")
+        raise ValueError(f"이미지 파일을 읽을 수 없습니다: {source}")
 
     result = _EASYOCR_READER.readtext(image, detail=0)
     text = "\n".join(result)
@@ -408,6 +440,63 @@ def extract_business_registration(image_path: str | Path) -> dict[str, Any]:
         "extracted_fields": {},
         "extracted_profile": {},
     }
+
+
+# ── 화면이 쓰는 형태 ─────────────────────────────────────────────
+#
+# 온보딩은 한글 키를 읽는다(Onboarding.jsx 의 applyOcr). 영문 키로 주면
+# 조용히 아무것도 안 채워진다 — 실제로 그렇게 한동안 비어 있었다.
+# 개업일은 YYYYMMDD 여야 한다. monthsFromOpen 이 그 형식만 받는다.
+
+_FIELD_TO_KOREAN = {
+    "company_name": "상호명",
+    "business_registration_number": "사업자등록번호",
+    "representative_name": "대표자",
+    "business_type": "업태",
+    "business_address": "주소",
+    "tax_type": "과세유형",
+}
+
+
+def _yyyymmdd(value: Any) -> str | None:
+    parsed = _parse_date(value)
+    return parsed.strftime("%Y%m%d") if parsed else None
+
+
+def extract_from_bytes(data: bytes) -> dict[str, Any]:
+    """업로드한 이미지를 메모리에서만 읽는다.
+
+    파일로 떨어뜨리지 않는다. 사업자등록증에는 사업자번호와 대표자 이름이
+    적혀 있어서, 디스크에 남기는 순간 지울 사람이 필요해진다.
+
+    돌려주는 것 —
+        result   화면이 그대로 쓰는 한글 키
+        profile  온보딩 프로필에 합칠 값 (business_status, region, ...)
+
+    raw_text 는 돌려주지 않는다. 등록증 전문이 그대로 담기기 때문이다.
+    """
+    if not _is_module_available("easyocr"):
+        raise RuntimeError("OCR 엔진이 설치되어 있지 않습니다")
+
+    parsed = _ocr_with_easyocr(data=data)
+    fields = parsed.get("extracted_fields", {})
+
+    result: dict[str, Any] = {}
+    for key, korean in _FIELD_TO_KOREAN.items():
+        value = fields.get(key)
+        if value:
+            result[korean] = value
+
+    opened = _yyyymmdd(fields.get("opening_date"))
+    if opened:
+        result["개업일"] = opened
+
+    # 업종은 온보딩의 선택지와 같은 말이어야 프로필에 들어간다.
+    category = parsed.get("extracted_profile", {}).get("category")
+    if category:
+        result["업종"] = category
+
+    return {"result": result, "profile": parsed.get("extracted_profile", {})}
 
 
 if __name__ == "__main__":
