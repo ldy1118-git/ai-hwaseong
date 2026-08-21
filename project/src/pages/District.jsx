@@ -8,6 +8,7 @@ import CommercialAnalysisView from '../components/sections/CommercialAnalysisVie
 import { useNavigate } from 'react-router-dom'
 import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
 import { taxSchedule, nextDeadline, holidaysKnown } from '../utils/taxSchedule'
+import { todayISO } from '../utils/today'
 import calendar from '../data/tax_calendar.json'
 
 /**
@@ -233,7 +234,8 @@ export default function MyStore() {
   const [matches, setMatches] = useState(null)   // null = 아직 안 옴
   const [failed, setFailed]   = useState(false)
   const [openId, setOpenId]   = useState(null)
-  const [showIf, setShowIf]   = useState(false)
+  const [showIf, setShowIf]     = useState(false)
+  const [showPast, setShowPast] = useState(false)
 
   useEffect(() => {
     const saved = (() => {
@@ -246,13 +248,34 @@ export default function MyStore() {
       .catch(() => setFailed(true))
   }, [])
 
-  const year = new Date().getFullYear()
+  // 브라우저 시간대가 아니라 한국 날짜로 자른다. 자정 근처에 하루가
+  // 어긋나면 지난 신고가 남은 신고로 보인다.
+  const today = todayISO()
+  const year  = Number(today.slice(0, 4))
+
   // holidaysKnown 은 import 한 함수와 이름이 겹친다. 그대로 구조분해하면
   // 함수가 불리언으로 덮여서 아래 호출이 터진다. 이름을 갈라둔다.
   const { mustDo, ifApplicable, holidaysKnown: thisYearKnown } = useMemo(
     () => taxSchedule(profile, year), [profile, year],
   )
   const next = useMemo(() => nextDeadline(profile), [profile])
+
+  // 지난 신고와 남은 신고를 나눈다. 섞어 놓으면 건수가 사장님에게 거짓말을
+  // 한다. 8월에 열면 「반드시 해야 하는 것 5건」인데 그 중 4건이 이미
+  // 지난 것이고 실제로 챙길 건 하나뿐이었다.
+  const past  = useMemo(() => mustDo.filter(e => e.dueDate <  today), [mustDo, today])
+  const left  = useMemo(() => mustDo.filter(e => e.dueDate >= today), [mustDo, today])
+
+  // 올해 남은 게 없으면 내년으로 넘긴다. 11월부터는 남은 게 0건인데 지난
+  // 5건만 떠 있고, 정작 다음에 할 신고는 목록 어디에도 없었다.
+  const rolled = left.length === 0
+  const nextYr = useMemo(
+    () => (rolled ? taxSchedule(profile, year + 1) : null), [rolled, profile, year],
+  )
+  const upcoming  = rolled ? nextYr.mustDo        : left
+  const optional  = rolled ? nextYr.ifApplicable  : ifApplicable
+  const listYear  = rolled ? year + 1 : year
+  const listKnown = rolled ? nextYr.holidaysKnown : thisYearKnown
 
   // 공고 판정 집계. 대상아님은 애초에 세지 않는다.
   const counts = useMemo(() => {
@@ -351,21 +374,24 @@ export default function MyStore() {
           </Card>
         )}
 
-        {/* ③ 올해 해야 할 신고 */}
+        {/* ③ 앞으로 챙길 신고 */}
         <Card className="p-4">
-          <SectionTitle sub={`${year}년 · 사장님께 해당되는 것만 골랐어요`}>
-            올해 해야 할 신고
+          <SectionTitle sub={`${listYear}년 · 사장님께 해당되는 것만 골랐어요`}>
+            앞으로 챙길 신고
           </SectionTitle>
 
-          {mustDo.length > 0 ? (
+          {upcoming.length > 0 ? (
             <>
               <p className="text-[10px] font-bold text-navy mb-1">
-                반드시 해야 하는 것 {mustDo.length}건
+                반드시 해야 하는 것 {upcoming.length}건
+                {rolled && (
+                  <span className="font-normal text-warm-text"> · {year}년 것은 다 지났어요</span>
+                )}
               </p>
               <div className="mb-1">
-                {mustDo.map(e => (
-                  <TaxRow key={e.id} item={e} open={openId === e.id}
-                    onToggle={() => setOpenId(openId === e.id ? null : e.id)} />
+                {upcoming.map(e => (
+                  <TaxRow key={`u${e.id}`} item={e} open={openId === `u${e.id}`}
+                    onToggle={() => setOpenId(openId === `u${e.id}` ? null : `u${e.id}`)} />
                 ))}
               </div>
             </>
@@ -373,14 +399,39 @@ export default function MyStore() {
             <p className="text-[11px] text-warm-text py-2">해당되는 신고가 없어요.</p>
           )}
 
+          {/* 올해 지난 것 — 접어서 남긴다. 아예 지우면 「내가 저걸 했던가」를
+              확인할 데가 없어진다. 다만 남은 신고와 같은 목록에 두지는 않는다.
+              섞어 놓으면 위의 건수가 사장님에게 거짓말을 한다. */}
+          {past.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-warm-gray/15">
+              <button onClick={() => setShowPast(v => !v)}
+                className="w-full flex items-center justify-between text-left">
+                <span className="text-[10px] font-bold text-warm-text">
+                  {year}년에 지난 것 {past.length}건
+                </span>
+                <ChevronDown size={14}
+                  className={`text-warm-gray transition-transform ${showPast ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showPast && (
+                <div className="mt-1 opacity-70">
+                  {past.map(e => (
+                    <TaxRow key={`p${e.id}`} item={e} open={openId === `p${e.id}`}
+                      onToggle={() => setOpenId(openId === `p${e.id}` ? null : `p${e.id}`)} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 해당되면 이것도 — 반드시 따로 그린다.
               섞으면 종합소득세가 5월·6월 두 번 뜨고 원천세가 매월·반기 둘 다 뜬다. */}
-          {ifApplicable.length > 0 && (
+          {optional.length > 0 && (
             <div className="mt-3 pt-3 border-t border-warm-gray/15">
               <button onClick={() => setShowIf(v => !v)}
                 className="w-full flex items-center justify-between text-left">
                 <span className="text-[10px] font-bold text-warm-text">
-                  해당되면 이것도 {ifApplicable.length}건
+                  해당되면 이것도 {optional.length}건
                 </span>
                 <ChevronDown size={14}
                   className={`text-warm-gray transition-transform ${showIf ? 'rotate-180' : ''}`} />
@@ -392,11 +443,11 @@ export default function MyStore() {
                     답해주신 것만으로는 해당되는지 알 수 없는 신고예요. 조건을 읽어보고
                     본인 얘기면 챙기세요.
                   </p>
-                  {ifApplicable.map(e => (
-                    <div key={e.id}>
+                  {optional.map(e => (
+                    <div key={`o${e.id}`}>
                       <p className="text-[10px] text-sunset-orange pt-2">{e.conditional}</p>
-                      <TaxRow item={e} open={openId === e.id}
-                        onToggle={() => setOpenId(openId === e.id ? null : e.id)} />
+                      <TaxRow item={e} open={openId === `o${e.id}`}
+                        onToggle={() => setOpenId(openId === `o${e.id}` ? null : `o${e.id}`)} />
                     </div>
                   ))}
                 </div>
@@ -404,11 +455,11 @@ export default function MyStore() {
             </div>
           )}
 
-          {!thisYearKnown && (
+          {!listKnown && (
             <div className="mt-3 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
               <AlertTriangle size={12} className="text-sunset-orange mt-0.5 flex-shrink-0" />
               <p className="text-[10px] text-warm-text leading-relaxed">
-                {year}년 공휴일이 아직 등록되지 않아 주말만 반영된 날짜예요.
+                {listYear}년 공휴일이 아직 등록되지 않아 주말만 반영된 날짜예요.
                 설·추석은 음력이라 자동 계산이 안 됩니다.
               </p>
             </div>
