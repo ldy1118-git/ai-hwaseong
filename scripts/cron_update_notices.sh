@@ -59,11 +59,13 @@ if ! ./scripts/update_notices.sh; then
 fi
 
 # ── 바뀐 게 없으면 조용히 끝낸다 ─────────────────────────────────
-if git diff --quiet -- policy_data/notices; then
+# git diff 가 아니라 git status 로 본다. diff 는 새로 생긴 파일을 못 봐서,
+# 새 공고만 뜨고 기존 공고는 그대로인 날에 「바뀐 것 없음」으로 판단하고
+# 새 공고를 통째로 놓친다. 공고가 새로 뜨는 게 이 작업의 본체다.
+changed=$(git status --porcelain -- policy_data/notices | wc -l)
+if [ "$changed" -eq 0 ]; then
     finish "성공" "바뀐 공고 없음"
 fi
-
-changed=$(git diff --numstat -- policy_data/notices | wc -l)
 log "파일 ${changed}개 변경"
 git diff --stat -- policy_data/notices | tail -5
 

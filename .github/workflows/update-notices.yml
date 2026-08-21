@@ -1,16 +1,21 @@
 name: 공고 자동 갱신
 
 # 공고에는 마감일이 있다. 며칠만 지나도 이미 끝난 사업이 화면에 남고,
-# 새로 뜬 사업은 빠진다. 매일 아침 받아와서 바뀐 게 있을 때만 커밋한다.
+# 새로 뜬 사업은 빠진다. 받아와서 바뀐 게 있을 때만 커밋한다.
 #
-# 커밋이 생기면 Vercel 이 알아서 재배포한다. 사람이 손댈 일이 없다.
+# 커밋이 생기면 Vercel 이 알아서 재배포한다.
 
+# 매일 돌리는 일정은 껐다. 기업마당 API 가 GitHub 러너의 IP 에 응답하지
+# 않는다. 2026-08-20, 08-21 이틀 연속 「공고 수집」 에서 죽었고, 같은
+# 스크립트를 국내 서버에서 돌리면 1,607건이 정상으로 들어온다.
+#
+# 이제 수집은 연구실 서버의 cron 이 맡는다 (scripts/cron_update_notices.sh).
+# 여기는 손으로 돌릴 때만 쓴다. 국내 IP 문제가 풀리면 아래 schedule 을
+# 다시 살리면 된다.
 on:
-  schedule:
-    # 매일 21:00 UTC = 한국시간 06:00.
-    # GitHub 은 정시에 몰리면 밀리므로 애매한 분(11분)을 쓴다.
-    - cron: '11 21 * * *'
-  workflow_dispatch:      # Actions 탭에서 손으로도 돌릴 수 있게
+  # schedule:
+  #   - cron: '11 21 * * *'      # 매일 06:11 KST
+  workflow_dispatch:      # Actions 탭에서 손으로 돌린다
 
 permissions:
   contents: write
@@ -51,20 +56,22 @@ jobs:
 
       - name: 바뀐 게 있으면 커밋
         run: |
-          if git diff --quiet -- policy_data/notices; then
+          # git diff 가 아니라 git status 로 본다. diff 는 새로 생긴 파일을
+          # 못 봐서, 새 공고만 뜨고 기존 공고는 그대로인 날에 「바뀐 것 없음」
+          # 으로 판단하고 새 공고를 통째로 놓친다.
+          changed=$(git status --porcelain -- policy_data/notices | wc -l)
+          if [ "$changed" -eq 0 ]; then
             echo "바뀐 공고 없음. 커밋하지 않는다."
             exit 0
           fi
 
           echo "── 바뀐 내용"
-          git diff --stat -- policy_data/notices
+          git status --short -- policy_data/notices
 
           # 커밋 이메일이 GitHub 계정과 안 맞으면 Vercel 이 배포를 거부한다.
           # github-actions[bot] 은 GitHub 이 인정하는 계정이라 통과한다.
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          changed=$(git diff --numstat -- policy_data/notices | wc -l)
 
           # 기준선도 같이 갱신한다. 공고가 늘면 서류·조건 총량도 늘어서,
           # 안 하면 다음 실행 때 기준이 낡은 채로 남는다.
