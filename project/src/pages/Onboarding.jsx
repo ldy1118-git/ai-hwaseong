@@ -801,18 +801,33 @@ export default function Onboarding() {
     return path === 'A' && stage === 'sub' ? 3 : 2
   }, [stage, common, path])
 
+  // 읽어낸 값을 프로필에 옮긴다. mock 과 실제가 같은 것을 쓰게 한 곳이다.
+  // 예전에는 두 벌로 적혀 있었고, mock 쪽만 키가 영문이라 조용히 아무것도
+  // 안 채워졌다.
+  //
+  // 사장님이 다음 화면에서 고칠 수 있으므로, 읽은 값은 정답이 아니라
+  // 기본값으로만 넣는다.
+  function applyOcr(r) {
+    setOcrResult(r)
+    if (r.업종) set('category', r.업종)
+    if (r.개업일) {
+      setOpenDate(r.개업일)
+      set('business_period_months', monthsFromOpen(r.개업일))
+    }
+    // 사업자등록증에 찍혀 있는 것. 세무일정이 이 값으로 갈린다 —
+    // 간이과세자는 부가세 신고가 1년에 한 번뿐이다.
+    const vat = { 일반과세자: '일반과세', 간이과세자: '간이과세' }[r.과세유형]
+    if (vat) set('vat_type', vat)
+    setBizMode('review')
+  }
+
   // Path C OCR 업로드
   function uploadOcr(file) {
     setBizMode('loading')
     setOcrError('')
 
     if (localStorage.getItem('mars-mock') === 'true') {
-      mockOcrResult().then(r => {
-        setOcrResult(r)
-        if (r.업종) set('category', r.업종)
-        if (r.개업일) { setOpenDate(r.개업일); set('business_period_months', monthsFromOpen(r.개업일)) }
-        setBizMode('review')
-      })
+      mockOcrResult().then(applyOcr)
       return
     }
 
@@ -826,13 +841,7 @@ export default function Onboarding() {
         })
         const json = await res.json()
         if (!res.ok || json.error) throw new Error(json.error || 'OCR 실패')
-        const r = json.result
-        const date8 = r.개업일 || ''
-        setOcrResult(r)
-        setOpenDate(date8)
-        if (r.업종) set('category', r.업종)
-        if (date8) set('business_period_months', monthsFromOpen(date8))
-        setBizMode('review')
+        applyOcr(json.result)
       } catch (err) {
         setOcrError(err.message || 'OCR에 실패했어요. 다시 시도하거나 직접 입력해주세요.')
         setBizMode('upload')

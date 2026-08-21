@@ -278,14 +278,18 @@ export const MOCK_TERMS_LOOKUP = {
 }
 
 // ── OCR 목업 (Onboarding 사업자등록증 스캔 대체) ─────────────────────────
+// 키 이름은 /api/ocr 가 돌려주는 것과 같아야 한다. 영문 키로 두었더니
+// Onboarding 이 r.업종 · r.개업일 을 읽는데 값이 undefined 라, mock 모드에서
+// 사업자등록증을 올려도 아무것도 안 채워졌다. 에러가 안 나서 몰랐다.
 export const MOCK_OCR_RESULT = {
-  business_name: '마이카페',
-  business_number: '123-45-67890',
-  owner_name: '홍길동',
-  business_type: '음식점업',
-  business_item: '카페 및 음료',
-  address: '경기도 화성시 동탄대로 123',
-  open_date: '2025-08-01',
+  상호명:        '마이카페',
+  사업자등록번호: '123-45-67890',
+  대표자:        '홍길동',
+  업태:          '음식점업',
+  업종:          '카페',
+  주소:          '경기도 화성시 동탄대로 123',
+  개업일:        '20250801',   // YYYYMMDD — monthsFromOpen 이 이 형식만 받는다
+  과세유형:      '일반과세자',
 }
 
 // 네트워크 딜레이를 흉내내는 헬퍼

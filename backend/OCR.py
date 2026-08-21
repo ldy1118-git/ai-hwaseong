@@ -279,12 +279,20 @@ def parse_business_registration_text(text: str) -> dict[str, Any]:
     address = extracted.get("business_address")
     business_type = extracted.get("business_type")
 
+    # 사업자등록증에 「일반과세자 / 간이과세자」가 찍혀 있다. 온보딩에서
+    # 따로 여쭤보던 항목이라, 읽었으면 프로필로 넘긴다. 세무일정이 이 값으로
+    # 갈린다 — 간이과세자는 부가세 신고가 1년에 한 번뿐이다.
+    vat_type = {"일반과세자": "일반과세", "간이과세자": "간이과세"}.get(
+        extracted.get("tax_type")
+    )
+
     profile = {
         "business_status": "운영중",
         "age": _age_from_birth_date(birth_date),
         "region": _infer_region(address, normalized),
         "category": _infer_category(" ".join([business_type or "", normalized])),
         "business_period_months": _months_since(opening_date),
+        "vat_type": vat_type,
     }
 
     return {
