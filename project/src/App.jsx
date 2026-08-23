@@ -15,6 +15,7 @@ import { consumeKakaoRedirect, isKakaoNotifyReturn, finishKakaoNotify } from './
 import { loadOnboarding, saveOnboarding } from './utils/api'
 import DevTools from './components/dev/DevTools'
 import { pullState, startStateSync } from './utils/userState'
+import { rememberScroll, restoreScroll } from './utils/scrollMemory'
 
 const pageVariants = {
   initial: { opacity: 0, y: 10 },
@@ -25,6 +26,40 @@ const pageVariants = {
 // 탭 이동에 0.18초씩 두 번(나가고 들어오고)이면 0.36초다. 탭치고는 길어서
 // 화면이 한 번 사라졌다 생기는 것처럼 보인다. 0.12초로 줄인다.
 const pageTransition = { duration: 0.12, ease: 'easeOut' }
+
+/**
+ * 보던 자리를 기억했다 돌아올 때 되돌려준다.
+ *
+ * 스크롤을 **계속** 적어둔다. 떠날 때 한 번 읽으면 늦다 — 그 시점에는 새
+ * 화면이 이미 그려져서, 문서가 짧아졌으면 브라우저가 스크롤을 맨 위로
+ * 당겨놓은 뒤다.
+ *
+ * 프레임마다 적지 않고 rAF 로 한 번씩 모은다. 스크롤은 초당 수십 번 뛴다.
+ */
+function ScrollMemory() {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    let queued = false
+    const onScroll = () => {
+      if (queued) return
+      queued = true
+      requestAnimationFrame(() => {
+        queued = false
+        rememberScroll(pathname, window.scrollY)
+      })
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+
+    const cancel = restoreScroll(pathname)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      cancel?.()
+    }
+  }, [pathname])
+
+  return null
+}
 
 function AnimatedRoutes() {
   const location = useLocation()
@@ -162,6 +197,7 @@ export default function App() {
   return (
     <>
       <KakaoReturn />
+      <ScrollMemory />
       {/* 개발자 도구는 화면 오른쪽 위에 🛠 버튼으로 **항상** 떠 있었다.
           조건이 없어서 배포본에도 그대로 나갔다 — 시연 영상에도, 심사위원
           화면에도 찍힌다. Mock 모드 토글까지 달려 있어서 눌리면 실제 API
