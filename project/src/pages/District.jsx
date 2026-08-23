@@ -10,6 +10,7 @@ import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
 import { taxSchedule, nextDeadline, holidaysKnown } from '../utils/taxSchedule'
 import { todayISO } from '../utils/today'
 import calendar from '../data/tax_calendar.json'
+import TaxProfileHint from '../components/ui/TaxProfileHint'
 
 /**
  * 내 매장 현황.
@@ -332,6 +333,10 @@ export default function MyStore() {
 
         {/* ① 프로필 */}
         <ProfileCard profile={profile} onEdit={() => navigate('/onboarding')} />
+
+        {/* 사업자 형태·과세유형을 안 정하면 아래 목록에 해당될 수 있는 게
+            전부 뜬다. 법인세와 종합소득세가 같이 뜨는 식이다. */}
+        <TaxProfileHint profile={profile} />
 
         {/* ② 다음 세무일정 — 이 화면에서 제일 급한 것 */}
         {next && (

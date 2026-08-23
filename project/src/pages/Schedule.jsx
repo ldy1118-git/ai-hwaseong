@@ -7,6 +7,7 @@ import { listFavorites, subscribeFavorites } from '../utils/favorites'
 import { taxCalendarEventsAround } from '../utils/taxCalendar'
 import { listUnfinished, subscribeProgress } from '../utils/checklistProgress'
 import { todayISO } from '../utils/today'
+import TaxProfileHint from '../components/ui/TaxProfileHint'
 
 function calcDDay(end) {
   if (!end) return null
@@ -100,7 +101,7 @@ function LayerChip({ on, onClick, dot, label, count }) {
  *
  * 지난 것은 뺀다. 이미 지난 신고기한은 알려줘도 할 수 있는 게 없고,
  * 남은 것 사이에 섞이면 뭐가 남았는지가 흐려진다. */
-function TaxSchedule({ events }) {
+function TaxSchedule({ events, profile }) {
   const today = todayISO()
   const upcoming = events.filter(e => e.dueDate >= today)
   if (upcoming.length === 0) return null
@@ -118,6 +119,10 @@ function TaxSchedule({ events }) {
       <p className="text-sm text-warm-text mb-3 leading-snug">
         기한을 넘기면 가산세가 붙어요. 공휴일·주말이면 다음 날로 밀린 날짜예요.
       </p>
+
+      {/* 사업자 형태·과세유형을 안 정하면 해당될 수 있는 게 전부 뜬다.
+          왜 많은지 말해주고 고칠 길을 준다. */}
+      <TaxProfileHint profile={profile} className="mb-3" />
       <div className="space-y-2 lg:max-h-[62vh] lg:overflow-y-auto lg:pr-1">
         {upcoming.map((e, i) => {
           const left = dday(e.dueDate)
@@ -205,6 +210,7 @@ export default function Schedule() {
   const [inProgress, setInProgress] = useState([])
   const [favIds,     setFavIds]     = useState(() => listFavorites().map(f => f.notice_id))
   const [taxEvents,  setTaxEvents]  = useState([])
+  const [profile,    setProfile]    = useState(null)
 
   // 무엇을 그릴지. 셋 다 켠 채로 시작한다 — 처음 온 사람에게 뭐가 있는지
   // 다 보여주고, 많다 싶으면 끄게 한다. 반대로 하면 끈 줄 모르고 「공고가
@@ -217,14 +223,15 @@ export default function Schedule() {
   ), [])
 
   useEffect(() => {
-    const profile = (() => {
+    const saved = (() => {
       try { return JSON.parse(localStorage.getItem('mars-fit-profile')) } catch { return null }
     })() ?? DEFAULT_PROFILE
 
+    setProfile(saved)
     // 사업자가 아니면 빈 배열이 나온다. 그러면 칩도 안 그린다.
-    setTaxEvents(taxCalendarEventsAround(profile))
+    setTaxEvents(taxCalendarEventsAround(saved))
 
-    fetchMatches(profile)
+    fetchMatches(saved)
       .then(r => setMatches((r?.results ?? []).map(mapMatch)))
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -321,7 +328,7 @@ export default function Schedule() {
           {/* 여백을 여기서 한 번에 준다. 두 섹션이 각자 mt-6 lg:mt-0 을
               들고 있었더니, 넓은 화면에서 둘 다 mt-0 이 되어 붙어버렸다. */}
           <div className="min-w-0 mt-6 lg:mt-0 space-y-6">
-            <TaxSchedule events={shownTax} />
+            <TaxSchedule events={shownTax} profile={profile} />
             <AlwaysOpen matches={shown} />
           </div>
         </div>
