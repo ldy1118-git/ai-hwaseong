@@ -8,6 +8,7 @@ import { taxCalendarEventsAround } from '../utils/taxCalendar'
 import { listUnfinished, subscribeProgress } from '../utils/checklistProgress'
 import { todayISO } from '../utils/today'
 import TaxProfileHint from '../components/ui/TaxProfileHint'
+import DayPanel from '../components/ui/DayPanel'
 
 const LAYERS_KEY = 'mars-fit-schedule-layers'
 const LAYERS_DEFAULT = { all: true, fav: true, tax: true }
@@ -253,6 +254,10 @@ export default function Schedule() {
   const [focus, setFocus] = useState(null)
   const pickDate = date => setFocus(f => ({ date, seq: (f?.seq ?? 0) + 1 }))
 
+  // 달력에서 고른 날. 오른쪽 단 맨 위에 그 날 내용을 편다. 창으로 띄웠더니
+  // 다른 날을 보려면 매번 닫아야 했다.
+  const [selectedDay, setSelectedDay] = useState(null)
+
   // 무엇을 그릴지. 셋 다 켠 채로 시작한다 — 처음 온 사람에게 뭐가 있는지
   // 다 보여주고, 많다 싶으면 끄게 한다. 반대로 하면 끈 줄 모르고 「공고가
   // 없네」 한다.
@@ -369,7 +374,7 @@ export default function Schedule() {
           <div className="min-w-0">
             <DeadlineCalendar
               matches={shown} loading={loading} inProgressItems={inProgress}
-              taxEvents={shownTax} focus={focus}
+              taxEvents={shownTax} focus={focus} onSelectDay={setSelectedDay}
             />
           </div>
           {/* 세무일정을 상시 접수보다 위에 둔다. 신청은 안 해도 그만이지만
@@ -377,6 +382,10 @@ export default function Schedule() {
           {/* 여백을 여기서 한 번에 준다. 두 섹션이 각자 mt-6 lg:mt-0 을
               들고 있었더니, 넓은 화면에서 둘 다 mt-0 이 되어 붙어버렸다. */}
           <div className="min-w-0 mt-6 lg:mt-0 space-y-6">
+            {/* 고른 날이 맨 위. 달력에서 같은 칸을 다시 누르면 사라진다. */}
+            {selectedDay && (
+              <DayPanel dateKey={selectedDay} matches={shown} taxEvents={shownTax} />
+            )}
             <TaxSchedule events={shownTax} profile={profile} onPick={pickDate} />
             <AlwaysOpen matches={shown} />
           </div>

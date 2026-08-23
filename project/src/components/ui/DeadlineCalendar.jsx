@@ -127,7 +127,7 @@ function DayDialog({
 
 export default function DeadlineCalendar({
   matches = [], loading, inProgress = null, inProgressItems = [], taxEvents = [],
-  focus = null,
+  focus = null, onSelectDay = null,
 }) {
   const navigate = useNavigate()
   const today    = new Date()
@@ -183,6 +183,8 @@ export default function DeadlineCalendar({
     setMonth(m - 1)
     setSelKey(`${y}-${m - 1}-${d}`)
     setOpenDay(false)
+    // 오른쪽 판도 그 날로 맞춰준다. 달력만 넘어가고 판은 딴 날이면 어긋난다.
+    if (onSelectDay) onSelectDay(focus.date)
     // 좁은 화면에서는 달력이 목록보다 위에 있다. 안 옮겨주면 눌러도
     // 화면에 아무 변화가 없어 보인다.
     //
@@ -326,7 +328,14 @@ export default function DeadlineCalendar({
 
             return (
               <button key={day}
-                onClick={() => { setSelKey(key); setOpenDay(true) }}
+                onClick={() => {
+                  // 같은 칸을 다시 누르면 선택이 풀린다. 밖에 그린 판을
+                  // 닫는 유일한 길이라 토글을 유지한다.
+                  const next = selKey === key ? null : key
+                  setSelKey(next)
+                  if (onSelectDay) onSelectDay(next && noteKey(year, month, day))
+                  else setOpenDay(Boolean(next))
+                }}
                 className={[
                   'relative aspect-square flex flex-col items-center justify-center gap-1',
                   'rounded-xl transition-colors',
@@ -387,7 +396,7 @@ export default function DeadlineCalendar({
         </div>
       </div>
 
-      {openDay && selNoteKey && (
+      {!onSelectDay && openDay && selNoteKey && (
         <DayDialog
           dateKey={selNoteKey}
           taxList={selTax}
