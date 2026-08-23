@@ -20,8 +20,11 @@
     KAKAO_NOTIFY_LINK    메시지에서 눌렀을 때 열 주소 (배포된 사이트)
 
 손으로 돌려볼 때:
-    python3 scripts/notify_kakao.py --dry-run    보내지 않고 누구에게 뭐가
-                                                 갈지만 찍는다
+    scripts/notify_kakao.py --dry-run          보내지 않고 누구에게 뭐가 갈지만
+    scripts/notify_kakao.py --demo --user 3    시연용. 제일 잘 맞는 1건을 지금
+
+시연 모드는 보낸 기록을 안 남긴다. 리허설에서 한 번 써버리면 정작 심사
+때 안 오는 일이 없게. `--user` 로 좁히지 않으면 켜둔 사람 전부에게 간다.
 """
 
 from __future__ import annotations
@@ -132,10 +135,58 @@ def message_for(rows: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _send_to(target: dict, user_id: int, text: str, link: str) -> bool:
+    """토큰을 새로 받아 보낸다. 보냈으면 True.
+
+    시연 모드와 평소 발송이 같은 길을 쓰게 하려고 뺐다. 두 벌로 두면
+    한쪽만 고쳐서 시연 때만 다르게 도는 일이 생긴다.
+    """
+    try:
+        tokens = refresh_access_token(target["refresh_token"])
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode("utf-8", "replace")[:200]
+        print(f"  토큰 실패 user={user_id} ({error.code}) {detail}", file=sys.stderr)
+
+        # 지울지 말지는 **오류 종류**로 가른다. 상태 코드로 가르면 안 된다.
+        #
+        #   invalid_grant   사장님이 카카오에서 연결을 끊었거나 토큰이
+        #                   만료됐다. 이 토큰은 영영 안 산다 → 정리한다.
+        #   invalid_client  우리 KAKAO_CLIENT_ID/SECRET 이 틀렸다.
+        #                   서버 설정 문제인데 사장님 동의를 지우면 안 된다.
+        #
+        # 처음에는 400·401 이면 무조건 지웠다. 그랬더니 연구실 서버에
+        # KAKAO_CLIENT_SECRET 을 안 넣은 상태에서 한 번 돌린 것만으로
+        # 켜둔 사람의 동의가 날아갔다. 다시 켜달라고 할 수도 없다 —
+        # 연락 수단이 그 동의였기 때문이다.
+        if '"invalid_grant"' in detail:
+            _store.clear_kakao_notify(user_id)
+            print(f"  알림 끔 user={user_id} — 카카오 연결이 끊겼다")
+        return False
+    except Exception as error:
+        print(f"  토큰 실패 user={user_id} — {error}", file=sys.stderr)
+        return False
+
+    # 새 refresh_token 이 딸려 오면 갈아끼운다. 안 하면 두 달 뒤 멈춘다.
+    if tokens.get("refresh_token"):
+        _store.set_kakao_notify(user_id, tokens["refresh_token"])
+
+    try:
+        send_memo(tokens["access_token"], text, link)
+    except Exception as error:
+        print(f"  발송 실패 user={user_id} — {error}", file=sys.stderr)
+        return False
+    return True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true",
                         help="보내지 않고 누구에게 뭐가 갈지만 찍는다")
+    parser.add_argument("--demo", action="store_true",
+                        help="시연용. 제일 잘 맞는 공고 1건을 지금 보낸다. "
+                             "보낸 기록을 안 남겨서 몇 번이든 다시 된다")
+    parser.add_argument("--user", type=int, default=None,
+                        help="이 사람에게만. 시연 때 남의 카톡까지 울리지 않게")
     args = parser.parse_args()
 
     load_env()
@@ -163,9 +214,20 @@ def main() -> int:
         print(f"실패 — {error}", file=sys.stderr)
         return 1
 
+    if args.user is not None:
+        targets = [t for t in targets if t["user_id"] == args.user]
+        if not targets:
+            print(f"user={args.user} 는 알림을 안 켰다", file=sys.stderr)
+            return 1
+
     if not targets:
         print("알림을 켠 사람이 없다")
         return 0
+
+    if args.demo:
+        # 시연용이라 여럿에게 가면 안 된다. 누구에게 가는지 먼저 밝힌다.
+        who = ", ".join(str(t["user_id"]) for t in targets)
+        print(f"시연 모드 — user={who} 에게 1건씩 보낸다 (기록 안 남김)")
 
     policies = matching.load_policies_from_folder(matching.default_notices_folder())
     sent_total = 0
@@ -187,6 +249,23 @@ def main() -> int:
             and int(r.get("match_score", 0)) >= SCORE_MIN
         ]
         picked.sort(key=lambda r: -int(r.get("match_score", 0)))
+
+        # 시연 모드는 보낸 기록을 무시하고 제일 잘 맞는 것 하나를 보낸다.
+        # 기록을 안 남기므로 몇 번이든 다시 된다 — 리허설에서 한 번 써버리면
+        # 정작 심사 때 안 오는 일이 없게.
+        if args.demo:
+            if not picked:
+                print(f"  없음 user={user_id} — 조건에 맞는 공고가 없다")
+                continue
+            text = message_for(picked[:1])
+            if args.dry_run:
+                print(f"  [보냄안함] user={user_id}")
+                print("    " + text.replace("\n", "\n    "))
+                continue
+            if _send_to(target, user_id, text, link):
+                sent_total += 1
+                print(f"  보냄 user={user_id} — 1건 (기록 안 남김)")
+            continue
 
         sent = _store.sent_notice_ids(user_id, "new")
 
@@ -217,38 +296,7 @@ def main() -> int:
             print("    " + text.replace("\n", "\n    "))
             continue
 
-        try:
-            tokens = refresh_access_token(target["refresh_token"])
-        except urllib.error.HTTPError as error:
-            detail = error.read().decode("utf-8", "replace")[:200]
-            print(f"  토큰 실패 user={user_id} ({error.code}) {detail}", file=sys.stderr)
-
-            # 지울지 말지는 **오류 종류**로 가른다. 상태 코드로 가르면 안 된다.
-            #
-            #   invalid_grant   사장님이 카카오에서 연결을 끊었거나 토큰이
-            #                   만료됐다. 이 토큰은 영영 안 산다 → 정리한다.
-            #   invalid_client  우리 KAKAO_CLIENT_ID/SECRET 이 틀렸다.
-            #                   서버 설정 문제인데 사장님 동의를 지우면 안 된다.
-            #
-            # 처음에는 400·401 이면 무조건 지웠다. 그랬더니 연구실 서버에
-            # KAKAO_CLIENT_SECRET 을 안 넣은 상태에서 한 번 돌린 것만으로
-            # 켜둔 사람의 동의가 날아갔다. 다시 켜달라고 할 수도 없다.
-            if '"invalid_grant"' in detail:
-                _store.clear_kakao_notify(user_id)
-                print(f"  알림 끔 user={user_id} — 카카오 연결이 끊겼다")
-            continue
-        except Exception as error:
-            print(f"  토큰 실패 user={user_id} — {error}", file=sys.stderr)
-            continue
-
-        # 새 refresh_token 이 딸려 오면 갈아끼운다. 안 하면 두 달 뒤 멈춘다.
-        if tokens.get("refresh_token"):
-            _store.set_kakao_notify(user_id, tokens["refresh_token"])
-
-        try:
-            send_memo(tokens["access_token"], text, link)
-        except Exception as error:
-            print(f"  발송 실패 user={user_id} — {error}", file=sys.stderr)
+        if not _send_to(target, user_id, text, link):
             continue
 
         # 보낸 뒤에 적는다. 반대로 하면 실패한 것이 보낸 것으로 남는다.
