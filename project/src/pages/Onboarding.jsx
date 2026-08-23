@@ -10,6 +10,7 @@ import { getToken, clearToken, saveOnboarding, apiUrl, mockOcrResult,
 import { generateText } from '../utils/llm/llmProvider'
 import { RotateCcw, LogOut, ChevronRight, ArrowRight, AlertTriangle, Trash2 } from 'lucide-react'
 import Header from '../components/layout/Header'
+import FavoriteNotices from '../components/sections/FavoriteNotices'
 
 /**
  * 온보딩 — 성현 기획서(docs/온보딩_기획서.txt) 구조.
@@ -663,6 +664,10 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
           내 지원사업 보러가기
           <ArrowRight size={16} />
         </button>
+
+        {/* ── 관심공고 ──
+            담아둔 공고. 없으면 스스로 안 그린다(`sections/FavoriteNotices.jsx`). */}
+        <FavoriteNotices className="mt-6" />
 
         {/* ── 되돌리는 것들 ──
             전에는 재설정과 로그아웃이 같은 크기로 나란히 있었다. 둘 다

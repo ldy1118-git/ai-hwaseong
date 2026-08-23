@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Star, ChevronRight, FileText } from 'lucide-react'
+import { Star, ChevronRight, ChevronDown, FileText } from 'lucide-react'
 import Card from '../ui/Card'
 import { listFavorites, removeFavorite, subscribeFavorites } from '../../utils/favorites'
 import { daysLeft } from '../../utils/notifications'
@@ -16,14 +16,22 @@ import { openNoticeById } from '../../utils/openNotice'
  * 담긴 게 없으면 아무것도 그리지 않는다. 빈 카드가 화면을 차지하면
  * 사장님이 뭘 해야 하는지가 아니라 뭐가 없는지를 먼저 읽게 된다.
  */
+// 처음에 보여줄 개수. 담은 게 열 몇 건이 되면 목록이 화면을 다 먹어서
+// 그 아래(창업 궤도, 유형별 안내)가 스크롤 밖으로 밀린다.
+const PREVIEW = 5
+
 export default function FavoriteNotices({ className = '' }) {
   const navigate = useNavigate()
   const [items, setItems] = useState(() => listFavorites())
   const [gone, setGone] = useState('')
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => subscribeFavorites(() => setItems(listFavorites())), [])
 
   if (items.length === 0) return null
+
+  const hidden = Math.max(0, items.length - PREVIEW)
+  const shown = expanded ? items : items.slice(0, PREVIEW)
 
   return (
     <Card padding="sm" className={className}>
@@ -34,7 +42,7 @@ export default function FavoriteNotices({ className = '' }) {
       </div>
 
       <ul className="divide-y divide-warm-gray/20">
-        {items.map((f) => {
+        {shown.map((f) => {
           const left = daysLeft(f.apply_period?.end)
           // 마감일이 없는 공고가 절반이다(58건 중 30건). 「세부사업별 상이」
           // 같은 문장에서 날짜를 뽑아내지 않는다. 모르면 모른다고 적는다.
@@ -99,6 +107,25 @@ export default function FavoriteNotices({ className = '' }) {
           )
         })}
       </ul>
+
+      {/* 접었을 때만 몇 건이 숨었는지 적는다. 「더보기」만 있으면 눌러볼
+          만한지 알 수가 없다. */}
+      {hidden > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(v => !v)}
+          aria-expanded={expanded}
+          className="w-full flex items-center justify-center gap-1 pt-2 mt-1
+                     border-t border-warm-gray/20
+                     text-[12px] font-semibold text-navy hover:underline"
+        >
+          {expanded ? '접기' : `${hidden}건 더보기`}
+          <ChevronDown
+            size={13}
+            className={`transition-transform duration-150 ${expanded ? 'rotate-180' : ''}`}
+          />
+        </button>
+      )}
     </Card>
   )
 }
