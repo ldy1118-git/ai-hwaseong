@@ -786,8 +786,15 @@ const EMPTY = {
 function DemoSkip() {
   const navigate = useNavigate()
 
-  function fill(profile) {
+  async function fill(profile) {
     localStorage.setItem('mars-fit-profile', JSON.stringify(profile))
+
+    // 로그인했으면 서버에도 올린다. 시연용이라고 기기에만 두면, 카톡
+    // 알림이 새벽에 서버 프로필로 매칭하기 때문에 「프로필 없음」으로
+    // 건너뛴다. 시연 중에 카톡이 안 오는 게 제일 곤란하다.
+    if (getToken()) {
+      try { await saveOnboarding(profile) } catch { /* 기기 저장으로 충분하다 */ }
+    }
     navigate('/home')
   }
 
