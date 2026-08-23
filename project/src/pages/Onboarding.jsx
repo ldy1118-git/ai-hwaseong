@@ -719,8 +719,9 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
           <div className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl">
             <p className="text-base font-extrabold text-navy">정말 탈퇴할까요?</p>
             <p className="mt-2 text-sm text-warm-text leading-relaxed">
-              온보딩에서 답해주신 내용 {GRID_KEYS.length}가지와 이 기기에 저장된
-              신청 목록·서류 진행상황이 모두 지워져요.
+              온보딩에서 답해주신 내용 {GRID_KEYS.length}가지와 관심공고·달력 메모·
+              서류 진행상황·신청 목록이 모두 지워져요. 이 기기뿐 아니라
+              다른 기기에서 보던 것도 함께 지워지고, 카카오톡 알림도 꺼져요.
               <span className="block mt-1.5 font-semibold text-navy">
                 되돌릴 수 없어요.
               </span>

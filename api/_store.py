@@ -136,13 +136,22 @@ def merge_profile(user_id: int, patch: dict) -> dict:
 
 
 def delete_profile(user_id: int) -> None:
-    """저장된 온보딩 답변을 지운다. 없어도 오류가 아니다.
+    """저장한 것을 전부 지운다. 없어도 오류가 아니다.
 
     users 행은 남긴다. 카카오로 다시 들어오면 같은 사람으로 이어지고,
     온보딩만 처음부터 다시 물어본다 — 「탈퇴」로 사용자가 기대하는 것은
     자기가 답한 내용이 사라지는 것이지 로그인 이력이 아니다.
+
+    **테이블을 새로 만들면 여기에도 넣을 것.** 예전에는 user_profiles 만
+    지웠는데 그 뒤로 셋이 늘었다. 그중 kakao_notify 는 그 사람 카톡으로
+    메시지를 보낼 수 있는 자격증명이라, 탈퇴한 사람에게 계속 보낼 수 있는
+    상태로 남아 있었다.
+
+    카톡 알림을 먼저 끈다. 중간에 실패하더라도 보낼 수 있는 상태로는
+    남지 않게 — 순서를 뒤집으면 프로필만 지워지고 토큰이 남는다.
     """
-    _call("DELETE", "user_profiles", params={"user_id": f"eq.{user_id}"})
+    for table in ("kakao_notify", "kakao_sent", "user_state", "user_profiles"):
+        _call("DELETE", table, params={"user_id": f"eq.{user_id}"})
 
 
 def onboarding_completed(user_id: int) -> bool:

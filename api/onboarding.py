@@ -112,7 +112,11 @@ class handler(Base):  # noqa: N801
         send_json(self, {"profile": row.get("profile"), "ignored_keys": ignored})
 
     def do_DELETE(self) -> None:  # noqa: N802
-        """온보딩 답변 전체 삭제. 다시 들어오면 처음부터 묻는다."""
+        """탈퇴 — 저장한 것을 전부 지운다. 다시 들어오면 처음부터 묻는다.
+
+        온보딩 답변만이 아니라 관심공고·메모·서류진행·카톡 알림 토큰까지
+        같이 지운다(`_store.delete_profile`).
+        """
         try:
             _store.delete_profile(self._user())
         except _auth.AuthError as error:
