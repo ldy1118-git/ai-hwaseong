@@ -144,6 +144,8 @@ def main() -> int:
     # export 해둔다. 손으로 돌릴 때는 위 load_env() 가 읽는다. 둘 다 아니면
     # 여기서 멈춘다 — 없는 채로 가면 Supabase 오류 메시지가 「Vercel 에
     # 넣으세요」라고 나와서 엉뚱한 데를 보게 된다.
+    # KAKAO_CLIENT_SECRET 은 콘솔에서 Client Secret 을 켠 경우에만 필요하다.
+    # 켰는데 안 넣으면 토큰 갱신이 KOE010(invalid_client)으로 전부 실패한다.
     missing = [k for k in ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY",
                            "KAKAO_CLIENT_ID") if not os.environ.get(k, "").strip()]
     if missing:
@@ -207,10 +209,19 @@ def main() -> int:
             tokens = refresh_access_token(target["refresh_token"])
         except urllib.error.HTTPError as error:
             detail = error.read().decode("utf-8", "replace")[:200]
-            # 사장님이 카카오 쪽에서 연결을 끊었을 수 있다. 그러면 이 토큰은
-            # 영영 안 산다 — 매일 실패 로그를 남기지 말고 정리한다.
             print(f"  토큰 실패 user={user_id} ({error.code}) {detail}", file=sys.stderr)
-            if error.code in (400, 401):
+
+            # 지울지 말지는 **오류 종류**로 가른다. 상태 코드로 가르면 안 된다.
+            #
+            #   invalid_grant   사장님이 카카오에서 연결을 끊었거나 토큰이
+            #                   만료됐다. 이 토큰은 영영 안 산다 → 정리한다.
+            #   invalid_client  우리 KAKAO_CLIENT_ID/SECRET 이 틀렸다.
+            #                   서버 설정 문제인데 사장님 동의를 지우면 안 된다.
+            #
+            # 처음에는 400·401 이면 무조건 지웠다. 그랬더니 연구실 서버에
+            # KAKAO_CLIENT_SECRET 을 안 넣은 상태에서 한 번 돌린 것만으로
+            # 켜둔 사람의 동의가 날아갔다. 다시 켜달라고 할 수도 없다.
+            if '"invalid_grant"' in detail:
                 _store.clear_kakao_notify(user_id)
                 print(f"  알림 끔 user={user_id} — 카카오 연결이 끊겼다")
             continue
