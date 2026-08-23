@@ -107,6 +107,7 @@ const EDIT_CONFIG = {
       { value: '카페',   label: '카페·음료·디저트', emoji: '☕' },
       { value: '음식점', label: '식당·밥집·분식',   emoji: '🍜' },
       { value: '소매업', label: '소매·판매',        emoji: '🛍' },
+      { value: '제조업', label: '제조·공방',        emoji: '🔧' },
       { value: '기타',   label: '기타',            emoji: '🎨' },
     ],
   },

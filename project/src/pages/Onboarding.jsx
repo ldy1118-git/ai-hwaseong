@@ -29,7 +29,7 @@ const FIELDS = [
   { key: '교육',   emoji: '📚', label: '교육·가르치기', category: '기타' },
   { key: '미용',   emoji: '✂️', label: '미용·서비스',   category: '기타' },
   { key: '소매',   emoji: '🛍', label: '소매·판매',    category: '소매업' },
-  { key: '제조',   emoji: '🔧', label: '제조·공방',    category: '기타' },
+  { key: '제조',   emoji: '🔧', label: '제조·공방',    category: '제조업' },
   { key: '예술',   emoji: '🎨', label: '예술·창작',    category: '기타' },
 ]
 
@@ -55,11 +55,11 @@ const MARS_MESSAGES = {
 async function classifyCategory(text) {
   const raw = await generateText({
     jsonMode: true,
-    userPrompt: `창업 희망 내용: "${text}"\n\n아래 넷 중 하나로만 분류해서 JSON 으로 답하세요.\n카페 / 음식점 / 소매업 / 기타\n\n{"category": "카페", "reason": "한 문장"}`,
+    userPrompt: `창업 희망 내용: "${text}"\n\n아래 다섯 중 하나로만 분류해서 JSON 으로 답하세요.\n카페 / 음식점 / 소매업 / 제조업 / 기타\n\n제조업은 공방·수제품·가공식품 제조처럼 물건을 만들어 파는 경우예요.\n\n{"category": "카페", "reason": "한 문장"}`,
   })
   const cleaned = raw.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
   const parsed = JSON.parse(cleaned)
-  const known = ['카페', '음식점', '소매업', '기타']
+  const known = ['카페', '음식점', '소매업', '제조업', '기타']
   return known.includes(parsed.category) ? parsed.category : '기타'
 }
 
@@ -363,6 +363,7 @@ const EDIT_CFG = {
       { value: '카페',   label: '카페·음료·디저트', emoji: '☕' },
       { value: '음식점', label: '식당·밥집·분식',   emoji: '🍜' },
       { value: '소매업', label: '소매·판매',        emoji: '🛍' },
+      { value: '제조업', label: '제조·공방',        emoji: '🔧' },
       { value: '기타',   label: '기타',            emoji: '🎨' },
     ],
   },
@@ -1142,7 +1143,7 @@ export default function Onboarding() {
             <div className="mb-4">
               <p className="text-sm font-semibold text-navy mb-2">업종</p>
               <div className="grid grid-cols-2 gap-2">
-                {['카페', '음식점', '소매업', '기타'].map(v => (
+                {['카페', '음식점', '소매업', '제조업', '기타'].map(v => (
                   <button key={v}
                     onClick={() => set('category', v)}
                     className={[
@@ -1208,7 +1209,7 @@ export default function Onboarding() {
           <Ask title="어떤 업종을 하고 계세요?"
                why="업종과 운영 기간에 따라 신청할 수 있는 사업이 달라져요.">
             <div className="grid grid-cols-2 gap-3 mb-5">
-              {['카페', '음식점', '소매업', '기타'].map(v => (
+              {['카페', '음식점', '소매업', '제조업', '기타'].map(v => (
                 <Choice key={v} label={v} selected={data.category === v}
                   onClick={() => set('category', v)} />
               ))}
