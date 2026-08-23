@@ -81,6 +81,37 @@ export function ageFromBirth(digits) {
   return age >= 0 && age <= 120 ? age : null
 }
 
+// 보내기 전에 사진을 줄인다.
+//
+// Vercel 함수는 요청 본문을 4.5MB 까지만 받는다. 사진을 base64 로 바꾸면
+// 1.33배가 되므로 원본이 3.4MB 만 넘어도 413 으로 튕긴다. 요즘 폰 사진은
+// 대부분 그보다 크다 — 줄이지 않으면 실제 사장님 사진은 거의 다 실패한다.
+//
+// 긴 변 1600px 이면 등록증 글자는 충분히 읽히고 보통 300~600KB 로 떨어진다.
+// 캔버스를 거치면 EXIF 도 같이 떨어져 나간다. 촬영 위치가 안 실린다.
+const MAX_EDGE = 1600
+
+function shrinkImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(1, MAX_EDGE / Math.max(img.width, img.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+      resolve(canvas.toDataURL('image/jpeg', 0.8))
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('사진을 열 수 없어요. 다른 파일로 시도해주세요.'))
+    }
+    img.src = url
+  })
+}
+
 /* ───────────── 공용 UI 조각 ───────────── */
 
 function Progress({ current, total }) {
@@ -831,24 +862,22 @@ export default function Onboarding() {
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = async (e) => {
-      try {
+    // 원본을 그대로 보내지 않는다. shrinkImage 의 주석을 볼 것.
+    shrinkImage(file)
+      .then(async (image) => {
         const res = await fetch(apiUrl('/api/ocr'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: e.target.result, mimeType: file.type || 'image/jpeg' }),
+          body: JSON.stringify({ image, mimeType: 'image/jpeg' }),
         })
         const json = await res.json()
         if (!res.ok || json.error) throw new Error(json.error || 'OCR 실패')
         applyOcr(json.result)
-      } catch (err) {
+      })
+      .catch((err) => {
         setOcrError(err.message || 'OCR에 실패했어요. 다시 시도하거나 직접 입력해주세요.')
         setBizMode('upload')
-      }
-    }
-    reader.onerror = () => { setOcrError('파일을 읽을 수 없어요.'); setBizMode('upload') }
-    reader.readAsDataURL(file)
+      })
   }
 
   // 현재 단계의 마이다 말풍선

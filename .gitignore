@@ -403,3 +403,9 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 .streamlit/secrets.toml
+
+# 대본 PDF 생성용 한글 글꼴 캐시 (TTC 에서 뽑은 것, 33MB)
+.fontcache/
+
+# OCR 서버 실행 중 생기는 것 (pid, 로그, 터널 주소)
+.ocr-run/
