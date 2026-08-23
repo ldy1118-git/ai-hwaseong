@@ -8,6 +8,9 @@
   "end": "2026-08-31"
  },
  "eligibility": {
+  "entity_types": [
+   "법인"
+  ],
   "min_annual_revenue_krw": 1000000000
  },
  "documents": [

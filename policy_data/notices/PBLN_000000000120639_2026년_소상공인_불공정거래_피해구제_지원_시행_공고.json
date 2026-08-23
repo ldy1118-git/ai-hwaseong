@@ -7,7 +7,9 @@
   "note": "예산 소진시까지"
  },
  "eligibility": {
-  "requirements_open": "「소상공인기본법」제2조에 따른 불공정거래 피해 소상공인"
+  "entity_types": [
+   "개인"
+  ]
  },
  "documents": [
   {

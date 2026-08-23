@@ -7,6 +7,9 @@
   "note": "모집 완료시"
  },
  "eligibility": {
+  "entity_types": [
+   "개인"
+  ],
   "business_status": [
    "예비창업자",
    "운영중"
