@@ -161,6 +161,11 @@ Supabase 에만 둔다. 저장소·로그·API 응답에 절대 싣지 않는다
 **같은 계산이 화면과 서버 두 곳에 있다.** 한쪽만 고치면 카톡은 왔는데
 종에는 없거나 그 반대가 된다.
 
+세무 프로필은 네 가지다 — `entity_type` · `vat_type` · `has_employee` ·
+`withholding_half`. **`api/onboarding.py` 의 `PROFILE_KEYS` 에 없는 키는
+조용히 버려진다.** 화면에만 저장되고 서버에는 안 올라가면, 새벽에 카톡이
+서버 프로필로 매칭해서 화면과 다른 일정을 말한다.
+
     문턱(신청가능·점수)   utils/notifications.js  ←→  scripts/notify_kakao.py
     알림 설정             utils/notifySettings.js ←→  scripts/notify_kakao.py
     세무 기한 계산        utils/taxCalendar.js    ←→  scripts/notify_kakao.py 의

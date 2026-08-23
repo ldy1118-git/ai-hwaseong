@@ -1,8 +1,8 @@
 {
-  "version": "2026-08-24",
+  "version": "2026-08-24b",
   "note": "소상공인이 1년에 치르는 신고·납부 일정. 사람마다 해당되는 게 달라서 항목마다 applies_to 로 대상을 적어둔다. 화면은 프로필과 대조해서 해당되는 것만 보여주면 된다.",
   "verified_note": "2026-08-18 국세청 원문으로 대조했다. verified=true 는 아래 출처에서 직접 확인한 것이다. 세무 일정은 틀리면 사장님이 가산세를 문다. 확인 못 한 건 넣지 않는다.",
-  "applies_to_note": "값이 null 이면 '따지지 않는다'는 뜻이다. 예를 들어 has_employee 가 null 이면 직원이 있든 없든 해당된다.",
+  "applies_to_note": "값이 null 이면 '따지지 않는다'는 뜻이다. 예를 들어 has_employee 가 null 이면 직원이 있든 없든 해당된다. has_employee 와 withholding_half 는 참/거짓이라 목록이 아니라 값으로 견준다.",
   "enums": {
     "entity_type": [
       "개인",
@@ -14,6 +14,10 @@
       "면세"
     ],
     "has_employee": [
+      true,
+      false
+    ],
+    "withholding_half": [
       true,
       false
     ]
@@ -75,7 +79,8 @@
       "applies_to": {
         "entity_type": null,
         "vat_type": null,
-        "has_employee": true
+        "has_employee": true,
+        "withholding_half": true
       },
       "easy": "직원 월급에서 떼어둔 소득세를 냅니다. 반기납부 승인을 받은 경우에만 이 날짜입니다.",
       "where": "홈택스",
@@ -87,7 +92,8 @@
       "verified": true,
       "caution": "반기납부는 신청해서 승인받아야 합니다. 승인이 없으면 매월 10일입니다.",
       "conditional": "원천세 반기납부 승인을 받은 경우만",
-      "exclusive_group": "withholding"
+      "exclusive_group": "withholding",
+      "conditional_resolved_by": "withholding_half"
     },
     {
       "id": "business-status-report",
@@ -240,7 +246,8 @@
       "applies_to": {
         "entity_type": null,
         "vat_type": null,
-        "has_employee": true
+        "has_employee": true,
+        "withholding_half": true
       },
       "easy": "직원 월급에서 떼어둔 소득세를 냅니다. 반기납부 승인을 받은 경우입니다.",
       "where": "홈택스",
@@ -251,7 +258,8 @@
       "source": "소득세법 제128조",
       "verified": true,
       "conditional": "원천세 반기납부 승인을 받은 경우만",
-      "exclusive_group": "withholding"
+      "exclusive_group": "withholding",
+      "conditional_resolved_by": "withholding_half"
     },
     {
       "id": "vat-1st-final",
@@ -333,7 +341,8 @@
       "applies_to": {
         "entity_type": null,
         "vat_type": null,
-        "has_employee": true
+        "has_employee": true,
+        "withholding_half": false
       },
       "easy": "직원에게 월급을 줬다면, 떼어둔 소득세를 다음 달 10일까지 냅니다.",
       "where": "홈택스",
@@ -344,10 +353,11 @@
       "source": "소득세법 제128조",
       "verified": true,
       "caution": "직원이 상시 20명 이하면 반기납부를 신청할 수 있습니다. 승인받으면 1월·7월 두 번만 내면 됩니다.",
-      "exclusive_group": "withholding"
+      "exclusive_group": "withholding",
+      "conditional_resolved_by": "withholding_half"
     }
   ],
-  "conditional_note": "conditional 이 붙은 항목은 '해당되는 사람만' 하는 것이다. 프로필만으로는 해당 여부를 알 수 없다. 기본 목록에 섞어서 보여주면 안 된다 — 종합소득세가 5월·6월 두 번 뜨거나 원천세가 매월·반기 둘 다 떠서 사장님이 헷갈린다. '해당되면 이것도' 같은 별도 묶음으로 내보낼 것.\n\n한 exclusive_group 안에서는 **기본이 되는 쪽에 conditional 을 붙이지 않는다.** 종합소득세가 그 모양이다 — 5/31 은 조건 없이 기본 목록에, 6/30 성실신고확인대상만 conditional 이다. 원천세도 매월 10일이 기본이고 반기납부는 신청해서 승인받아야 한다. 셋 다 conditional 이면 직원 있는 사장님에게 원천세가 한 건도 안 뜬다 — 1년에 열두 번 있고 늦으면 납부지연가산세가 붙는 신고인데 달력에도 카톡에도 없었다.",
+  "conditional_note": "conditional 이 붙은 항목은 '해당되는 사람만' 하는 것이다. 프로필만으로는 해당 여부를 알 수 없다. 기본 목록에 섞어서 보여주면 안 된다 — 종합소득세가 5월·6월 두 번 뜨거나 원천세가 매월·반기 둘 다 떠서 사장님이 헷갈린다. '해당되면 이것도' 같은 별도 묶음으로 내보낼 것.\n\n한 exclusive_group 안에서는 **기본이 되는 쪽에 conditional 을 붙이지 않는다.** 종합소득세가 그 모양이다 — 5/31 은 조건 없이 기본 목록에, 6/30 성실신고확인대상만 conditional 이다. 원천세도 매월 10일이 기본이고 반기납부는 신청해서 승인받아야 한다. 셋 다 conditional 이면 직원 있는 사장님에게 원천세가 한 건도 안 뜬다 — 1년에 열두 번 있고 늦으면 납부지연가산세가 붙는 신고인데 달력에도 카톡에도 없었다.\n\n`conditional_resolved_by` 는 「이 답을 들으면 조건이 풀린다」는 뜻이다. 원천세 반기납부가 그렇다 — 승인을 받았는지 안 받았는지는 사장님만 안다. 온보딩에서 물어보면 셋 중 하나만 남길 수 있다. 안 물어봤으면(값이 없으면) 지금처럼 매월이 기본 목록에, 반기가 「해당되면 이것도」에 남는다.",
   "sources": [
     "부가가치세 과세기간·신고납부기한 — 국세청 https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?mi=2273&cntntsId=7694",
     "종합소득세 신고납부기한 — 국세청 https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?mi=2225&cntntsId=7665",

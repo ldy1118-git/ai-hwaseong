@@ -84,9 +84,12 @@ function applies(event, profile) {
     const mine = profile?.[key]
     if (allowed && mine && !allowed.includes(mine)) return false
   }
-  const want = target.has_employee
-  const mine = profile?.has_employee
-  if (want != null && mine != null && want !== mine) return false
+  // 참/거짓으로 답하는 것들. 목록이 아니라 값으로 견준다.
+  for (const key of ['has_employee', 'withholding_half']) {
+    const want = target[key]
+    const mine = profile?.[key]
+    if (want != null && mine != null && want !== mine) return false
+  }
   return true
 }
 
@@ -117,7 +120,13 @@ export function taxSchedule(profile, year = new Date().getFullYear()) {
       item.dueDate = date
       item.moved = moved
     }
-    ;(event.conditional ? ifApplicable : mustDo).push(item)
+    // 조건이 붙어 있어도 사장님이 그 조건을 직접 답했으면 더는 「해당되면
+    // 이것도」가 아니다. 원천세 반기납부가 그렇다 — 승인을 받았는지는
+    // 사장님만 안다. 받았다고 답하면 1월·7월 두 건이 반드시 해야 하는
+    // 것으로 올라온다.
+    const asked = event.conditional_resolved_by
+    const resolved = asked != null && profile?.[asked] != null
+    ;(event.conditional && !resolved ? ifApplicable : mustDo).push(item)
   }
 
   const byDate = (a, b) => (a.dueDate || '').localeCompare(b.dueDate || '')

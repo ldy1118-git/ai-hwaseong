@@ -134,17 +134,25 @@ if policy.get("source_url"): result["source_url"] = policy["source_url"]
 판정은 반드시 **원문**으로 하고, 줄이는 건 `shorten_target()` 으로 따로
 한다. 줄인 뒤에 판정하면 뒤쪽의 `①` 같은 제한 신호가 사라진다.
 
-### 세무일정용 키 3개 — 공고 매칭에는 안 쓴다
+### 세무일정용 키 4개 — 공고 매칭에는 안 쓴다
 
-`entity_type` · `vat_type` · `has_employee` 는 위 12개와 성격이 다르다.
+`entity_type` · `vat_type` · `has_employee` · `withholding_half` 는
+위 12개와 성격이 다르다.
 **공고 자격 판정에 쓰지 않는다.** 세무일정(`policy_data/tax_calendar.json`)을
 사람에 맞게 거르는 데만 쓴다.
 
 ```
-entity_type    개인 | 법인
-vat_type       일반과세 | 간이과세 | 면세
-has_employee   true | false
+entity_type       개인 | 법인
+vat_type          일반과세 | 간이과세 | 면세
+has_employee      true | false
+withholding_half  true = 원천세 1·7월 반기납부 · false = 매월 10일
 ```
+
+`withholding_half` 는 **직원이 있다고 답한 사람에게만 묻는다.** 반기납부는
+상시 근로자 20명 이하 사업장이 신청해서 승인을 받아야 하는 것이라, 우리가
+알 방법이 없고 사장님만 안다. 안 물어보면 원천세가 매월(12건)과 반기(2건)
+둘 다 후보로 남아서, 매월을 기본 목록에 두고 반기는 「해당되면 이것도」로
+내려둔다(`conditional_resolved_by`).
 
 없으면 어떻게 되나 — 세무일정 14건이 통째로 나온다. 간이과세 카페 사장님은
 실제로 **2건**만 하면 되는데 법인세·원천세까지 다 보이게 된다.
@@ -162,7 +170,7 @@ has_employee   true | false
 
 ```
 business_status      예비창업자 | 운영중
-categories           카페 | 음식점 | 소매업 | 기타
+categories           카페 | 음식점 | 소매업 | 제조업 | 기타
 career_experience    있음 | 없음
 asset_groups         기초생활수급자 | 차상위 | 일반
 marital_status       미혼 | 기혼

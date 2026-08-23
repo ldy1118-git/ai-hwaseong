@@ -68,11 +68,16 @@ function ProfileCard({ profile, onEdit }) {
     profile?.vat_type,
     profile?.has_employee === true ? '직원 있음'
       : profile?.has_employee === false ? '혼자 운영' : null,
+    profile?.withholding_half === true ? '원천세 반기납부'
+      : profile?.withholding_half === false ? '원천세 매월 10일' : null,
   ].filter(Boolean)
 
   // 세무일정을 거르는 데 쓰는 답이 빠져 있으면, 해당 없는 일정까지 다 보인다.
+  // 원천세 납부 주기는 직원이 있을 때만 센다. 혼자 하는 사장님에게는
+  // 원천세가 아예 없어서 「안 답한 질문」으로 세면 영영 안 채워진다.
   const missing = ['entity_type', 'vat_type'].filter(k => !profile?.[k]).length
     + (profile?.has_employee == null ? 1 : 0)
+    + (profile?.has_employee === true && profile?.withholding_half == null ? 1 : 0)
 
   return (
     <Card className="p-4">

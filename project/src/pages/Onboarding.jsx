@@ -334,6 +334,10 @@ const FIELD_LABELS = {
   asset_group:            { label: '소득 분위',   emoji: '💰' },
   marital_status:         { label: '결혼 여부',   emoji: '💍' },
   living_with_parents:    { label: '부모 동거',   emoji: '🏠' },
+  entity_type:            { label: '사업자 형태', emoji: '🏢' },
+  vat_type:               { label: '과세 유형',   emoji: '🧾' },
+  has_employee:           { label: '직원',        emoji: '👥' },
+  withholding_half:       { label: '원천세 납부', emoji: '📆' },
 }
 
 function displayValue(key, val) {
@@ -341,6 +345,8 @@ function displayValue(key, val) {
   if (key === 'business_period_months') return `${val}개월`
   if (key === 'age') return `${val}세`
   if (key === 'living_with_parents') return val ? '함께 거주' : '별거'
+  if (key === 'has_employee') return val ? '있음' : '혼자 운영'
+  if (key === 'withholding_half') return val ? '반기납부 (1·7월)' : '매월 10일'
   if (key === 'career_experience') return val === '없음' ? '첫 창업' : '경험 있음'
   return String(val)
 }
@@ -376,6 +382,39 @@ const EDIT_CFG = {
     ],
   },
   age: { title: '나이 변경', type: 'age' },
+  entity_type: {
+    title: '사업자 형태 변경',
+    type: 'choice',
+    options: [
+      { value: '개인', label: '개인사업자', emoji: '🙍' },
+      { value: '법인', label: '법인사업자', emoji: '🏢' },
+    ],
+  },
+  vat_type: {
+    title: '과세 유형 변경',
+    type: 'choice',
+    options: [
+      { value: '일반과세', label: '일반과세', emoji: '🧾' },
+      { value: '간이과세', label: '간이과세', emoji: '🧾' },
+      { value: '면세',     label: '면세',     emoji: '🧾' },
+    ],
+  },
+  has_employee: {
+    title: '직원 여부 변경',
+    type: 'choice',
+    options: [
+      { value: 'true',  label: '직원이 있어요', emoji: '👥' },
+      { value: 'false', label: '저 혼자예요',   emoji: '🙋' },
+    ],
+  },
+  withholding_half: {
+    title: '원천세를 언제 내세요?',
+    type: 'choice',
+    options: [
+      { value: 'false', label: '매월 10일',      emoji: '📆' },
+      { value: 'true',  label: '1월·7월 두 번',  emoji: '🗓' },
+    ],
+  },
   business_period_months: { title: '운영 기간 변경', type: 'number', unit: '개월', min: 0, max: 600 },
   career_experience: {
     title: '창업 경험 변경',
@@ -430,7 +469,8 @@ function InlineEditDrawer({ field, profile, onSave, onClose }) {
 
   function confirm(raw) {
     let val = raw
-    if (field === 'living_with_parents') val = raw === 'true'
+    if (['living_with_parents', 'has_employee', 'withholding_half'].includes(field))
+      val = raw === 'true'
     else if (field === 'age' || field === 'business_period_months') val = Number(raw)
     onSave(field, val)
   }
@@ -522,11 +562,28 @@ function InlineEditDrawer({ field, profile, onSave, onClose }) {
 }
 
 // 목록에 그리는 순서
-const GRID_KEYS = [
+const COMMON_GRID_KEYS = [
   'business_status', 'category',        'business_period_months',
   'age',             'region',           'career_experience',
   'asset_group',     'marital_status',   'living_with_parents',
 ]
+
+/* 「내 정보」에 그릴 칸.
+ *
+ * 세무 질문 넷은 온보딩에서 묻기만 하고 여기에는 없었다. 그런데
+ * `ui/TaxProfileHint.jsx` 가 「사업자 형태를 정해주시면」 하면서 보내는
+ * 곳이 바로 여기다. 도착하면 고칠 데가 없는 막다른 길이었다.
+ *
+ * 사업 상태에 따라 칸 수가 달라진다. 예비창업자에게 과세유형을 물으면
+ * 답할 수가 없고(사업자등록이 아직 없다), 혼자 하는 사장님에게 원천세
+ * 반기납부를 물으면 뜻이 없다. 영영 못 채우는 빈 칸을 두면 「9개 중
+ * 2개가 비어 있어요」가 거짓말이 된다. */
+function gridKeys(profile) {
+  if (profile?.business_status !== '운영중') return COMMON_GRID_KEYS
+  const tax = ['entity_type', 'vat_type', 'has_employee']
+  if (profile.has_employee === true) tax.push('withholding_half')
+  return [...COMMON_GRID_KEYS, ...tax]
+}
 
 /* 화면을 성격별로 가르는 머리글.
  *
@@ -600,20 +657,22 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
     navigate('/')
   }
 
-  const filledCount = GRID_KEYS.filter(k => {
+  const keys = useMemo(() => gridKeys(profile), [profile])
+
+  const filledCount = keys.filter(k => {
     const v = profile[k]
     return v !== undefined && v !== null && v !== ''
   }).length
 
-  const missing = GRID_KEYS.length - filledCount
+  const missing = keys.length - filledCount
 
   // 빈 칸 먼저, 그다음 채운 칸. 각 무리 안에서는 원래 순서를 지킨다 —
   // 매번 순서가 바뀌면 어디를 눌렀는지 기억할 수가 없다.
   const orderedKeys = useMemo(() => {
-    const empty = GRID_KEYS.filter(k => displayValue(k, profile[k]) === null)
-    const filled = GRID_KEYS.filter(k => displayValue(k, profile[k]) !== null)
+    const empty = keys.filter(k => displayValue(k, profile[k]) === null)
+    const filled = keys.filter(k => displayValue(k, profile[k]) !== null)
     return [...empty, ...filled]
-  }, [profile])
+  }, [keys, profile])
 
   return (
     <div className="min-h-screen bg-primary-bg pb-24">
@@ -630,7 +689,7 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
         {/* ── 내 조건 ── */}
         <SectionTitle right={
           <span className="ml-auto text-xs font-bold text-warm-text tabular-nums">
-            {filledCount} / {GRID_KEYS.length}
+            {filledCount} / {keys.length}
           </span>
         }>
           내 조건
@@ -751,7 +810,7 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
           <div className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl">
             <p className="text-base font-extrabold text-navy">정말 탈퇴할까요?</p>
             <p className="mt-2 text-sm text-warm-text leading-relaxed">
-              온보딩에서 답해주신 내용 {GRID_KEYS.length}가지와 관심공고·달력 메모·
+              온보딩에서 답해주신 내용과 관심공고·달력 메모·
               서류 진행상황·신청 목록이 모두 지워져요. 이 기기뿐 아니라
               다른 기기에서 보던 것도 함께 지워지고, 카카오톡 알림도 꺼져요.
               <span className="block mt-1.5 font-semibold text-navy">
@@ -808,6 +867,7 @@ const EMPTY = {
   business_period_months: '', career_experience: '', asset_group: '',
   marital_status: '', living_with_parents: undefined,
   entity_type: '', vat_type: '', has_employee: undefined,
+  withholding_half: undefined,
 }
 
 /* 시연용 건너뛰기.
@@ -879,10 +939,26 @@ export default function Onboarding() {
   const set = (key, value) => setData(prev => ({ ...prev, [key]: value }))
 
   // 운영중이면 세무 질문 3개가 붙는다
-  const steps = useMemo(
-    () => data.business_status === '운영중' ? [...COMMON_STEPS, ...TAX_STEPS] : COMMON_STEPS,
-    [data.business_status],
-  )
+  // 원천세 반기납부는 **직원이 있다고 답한 사람에게만** 묻는다. 혼자
+  // 하는 사장님에게는 원천세 자체가 없어서 물어도 답할 게 없다.
+  //
+  // 목록이 답에 따라 늘어난다. 「네, 있어요」를 누르면 그 순간 칸이 하나
+  // 붙고 다음 화면이 생긴다. nextCommon 이 이 배열을 ref 로 읽는 이유다 —
+  // 클릭 시점 클로저를 그대로 쓰면 늘어난 걸 모르고 끝내버린다.
+  const steps = useMemo(() => {
+    if (data.business_status !== '운영중') return COMMON_STEPS
+    const tax = [...TAX_STEPS]
+    if (data.has_employee === true) tax.push('withholding')
+    return [...COMMON_STEPS, ...tax]
+  }, [data.business_status, data.has_employee])
+
+  // 선택지를 누르면 setTimeout 으로 다음 칸에 간다. 그 함수는 **누른
+  // 시점의 값**을 들고 있어서, 마지막 질문이면 방금 고른 답이 빠진 채로
+  // 저장됐다. 「직원을 두고 계세요?」가 바로 그 마지막이었다.
+  const dataRef = useRef(data)
+  const stepsRef = useRef(steps)
+  useEffect(() => { dataRef.current = data }, [data])
+  useEffect(() => { stepsRef.current = steps }, [steps])
 
   // 진행률: 경로마다 화면 수가 다르다
   const total = useMemo(() => (path === 'A' ? 2 : 1) + steps.length + 1, [path, steps])
@@ -954,14 +1030,15 @@ export default function Onboarding() {
   }
 
   function nextCommon() {
-    if (common < steps.length - 1) { setCommon(c => c + 1); return }
+    if (common < stepsRef.current.length - 1) { setCommon(c => c + 1); return }
     finish()
   }
 
   async function finish() {
-    localStorage.setItem('mars-fit-profile', JSON.stringify(data))
+    const profile = dataRef.current
+    localStorage.setItem('mars-fit-profile', JSON.stringify(profile))
     if (getToken()) {
-      try { await saveOnboarding(data) } catch { /* 로컬 저장으로 대체 */ }
+      try { await saveOnboarding(profile) } catch { /* 로컬 저장으로 대체 */ }
     }
     setDone(true)
   }
@@ -1467,6 +1544,29 @@ export default function Onboarding() {
           </div>
           <SkipLink onClick={() => { set('has_employee', undefined); nextCommon() }}>
             건너뛰기
+          </SkipLink>
+        </Ask>
+      )}
+
+      {step === 'withholding' && (
+        <Ask title="원천세를 언제 내세요?"
+             why="반기납부 승인을 받으셨으면 1년에 열두 번이 두 번으로 줄어요.">
+          <div className="flex flex-col gap-3">
+            <Choice emoji="📆" label="매월 10일" desc="따로 신청한 적 없으면 여기예요"
+              selected={data.withholding_half === false}
+              onClick={() => { set('withholding_half', false); setTimeout(nextCommon, 120) }} />
+            <Choice emoji="🗓" label="1월·7월 두 번" desc="반기납부 승인을 받았어요"
+              selected={data.withholding_half === true}
+              onClick={() => { set('withholding_half', true); setTimeout(nextCommon, 120) }} />
+          </div>
+          {/* 승인은 신청해서 받는 것이라 「자동으로 되는 게 아니다」를
+              알려준다. 안 받았는데 두 번만 내면 열 달치가 납부지연이 된다. */}
+          <p className="mt-3 text-[13px] text-warm-text leading-relaxed">
+            반기납부는 상시 근로자 20명 이하인 사업장이 <b className="text-navy">신청해서
+            승인을 받아야</b> 해요. 신청한 적이 없으면 매월 10일이에요.
+          </p>
+          <SkipLink onClick={() => { set('withholding_half', undefined); nextCommon() }}>
+            잘 모르겠어요
           </SkipLink>
         </Ask>
       )}

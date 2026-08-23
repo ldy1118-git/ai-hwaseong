@@ -100,10 +100,12 @@ def applies(event: dict, profile: dict) -> bool:
         mine = profile.get(key)
         if allowed and mine and mine not in allowed:
             return False
-    want = target.get("has_employee")
-    mine = profile.get("has_employee")
-    if want is not None and mine is not None and want != mine:
-        return False
+    # 참/거짓으로 답하는 것들. 목록이 아니라 값으로 견준다.
+    for key in ("has_employee", "withholding_half"):
+        want = target.get(key)
+        mine = profile.get(key)
+        if want is not None and mine is not None and want != mine:
+            return False
     return True
 
 
@@ -130,7 +132,13 @@ def schedule(profile: dict, year: int) -> dict:
             item["due_date"] = when.isoformat()
             item["moved"] = moved
 
-        (maybe if event.get("conditional") else must).append(item)
+        # 조건이 붙어 있어도 사장님이 그 조건을 직접 답했으면 더는
+        # 「해당되면 이것도」가 아니다. 원천세 반기납부가 그렇다 — 승인을
+        # 받았는지는 사장님만 안다. 받았다고 답하면 1월·7월 두 건이
+        # 반드시 해야 하는 것으로 올라온다.
+        asked = event.get("conditional_resolved_by")
+        resolved = asked is not None and profile.get(asked) is not None
+        (maybe if event.get("conditional") and not resolved else must).append(item)
 
     key = lambda x: x.get("due_date") or f"{year}-01-10"
     return {
