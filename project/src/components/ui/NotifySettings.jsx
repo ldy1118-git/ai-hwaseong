@@ -62,7 +62,9 @@ export default function NotifySettings({ profile, className = '' }) {
         on={s.newNotices}
         onToggle={() => set({ newNotices: !s.newNotices })}
       >
-        <p className="text-[11px] font-bold text-warm-text mb-1.5">얼마나 잘 맞아야 알릴까요</p>
+        <p className="text-[11px] font-bold text-warm-text mb-1.5">
+          매칭 점수 몇 점부터 알릴까요
+        </p>
         <div className="flex gap-1.5">
           {SCORE_CHOICES.map(c => {
             const on = s.minScore === c.value
@@ -72,19 +74,23 @@ export default function NotifySettings({ profile, className = '' }) {
                 onClick={() => set({ minScore: c.value })}
                 aria-pressed={on}
                 className={[
-                  'flex-1 rounded-xl border px-2 py-2 text-center transition-colors',
+                  'flex-1 rounded-xl border py-2 text-center transition-colors tabular-nums',
+                  'text-[13px] font-bold',
                   on ? 'border-navy bg-navy text-white'
                      : 'border-warm-gray/40 text-warm-text hover:border-navy/40',
                 ].join(' ')}
               >
-                <span className="block text-[12px] font-bold">{c.label}</span>
-                <span className={`block text-[10px] mt-0.5 ${on ? 'text-white/70' : 'text-warm-gray'}`}>
-                  {c.hint}
-                </span>
+                {c.value}점
               </button>
             )
           })}
         </div>
+        {/* 고른 것에 따라 한 줄만 바뀐다. 칸마다 설명을 넣으면 글자가 작아져서
+            정작 숫자가 안 읽힌다. */}
+        <p className="mt-1.5 text-[11px] text-warm-gray leading-relaxed">
+          {SCORE_CHOICES.find(c => c.value === s.minScore)?.hint}
+          {' '}홈 공고 카드에 보이는 그 점수예요.
+        </p>
       </Row>
 
       <Row
