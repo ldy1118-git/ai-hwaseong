@@ -88,6 +88,11 @@ React 18 + Vite 6 + Tailwind. Vercel 이 이 폴더를 빌드해서 배포한다
 세무일정. 여기에 사장님이 직접 적는 메모(`utils/calendarNotes.js`)가 겹친다.
 메모는 층으로 안 뺐다 — 자기가 적은 것이라 몇 개 없고, 껐다 켤 이유가 없다.
 
+오른쪽 목록에서 날짜를 누르면 달력이 그 달로 넘어가 그 칸을 편다.
+`DeadlineCalendar` 의 `focus={{ date, seq }}` prop 이다. **seq 가 있어야
+같은 날짜를 다시 눌러도 반응한다** — 날짜만 넘기면 값이 안 바뀌어서
+useEffect 가 안 돈다.
+
 **달력 칸의 열쇠와 메모 저장 열쇠는 형식이 다르다.** 칸은 `'YYYY-M-D'` 로
 월이 0부터고, 저장은 `'YYYY-MM-DD'` 다. `noteKey(year, month0, day)` 로만
 만들 것 — 칸 열쇠를 그대로 저장하면 1월 메모가 다른 달에 붙는다. `DeadlineCalendar` 의 `taxEvents` prop 은 기본값이 빈 배열이라

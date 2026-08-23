@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pencil } from 'lucide-react'
+import { Pencil, CornerUpLeft } from 'lucide-react'
 import { listNotes, setNote, noteKey, subscribeNotes } from '../../utils/calendarNotes'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -52,11 +52,19 @@ function DayNote({ dateKey, value, onSave }) {
   )
 }
 
+/**
+ * @param focus  { date: 'YYYY-MM-DD', seq: number } — 밖에서 특정 날짜를 펴게
+ *               한다. 오른쪽 목록에서 항목을 누르면 달력이 그 달로 넘어가고
+ *               그 칸이 선택된다. seq 는 같은 날짜를 다시 눌러도 반응하게
+ *               하려고 있다 — 날짜만 보면 값이 안 바뀌어서 아무 일도 안 난다.
+ */
 export default function DeadlineCalendar({
   matches = [], loading, inProgress = null, inProgressItems = [], taxEvents = [],
+  focus = null,
 }) {
   const navigate = useNavigate()
   const today    = new Date()
+  const boxRef   = useRef(null)
 
   const [year,  setYear]  = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
@@ -94,6 +102,33 @@ export default function DeadlineCalendar({
     })
     return map
   }, [taxEvents])
+
+  // 밖에서 날짜를 지정하면 그 달로 넘어가 그 칸을 편다.
+  useEffect(() => {
+    if (!focus?.date) return
+    const [y, m, d] = focus.date.split('-').map(Number)
+    if (!y || !m || !d) return
+    setYear(y)
+    setMonth(m - 1)
+    setSelKey(`${y}-${m - 1}-${d}`)
+    // 좁은 화면에서는 달력이 목록보다 위에 있다. 안 옮겨주면 눌러도
+    // 화면에 아무 변화가 없어 보인다.
+    //
+    // 'nearest' 인 이유 — 넓은 화면에서는 달력과 목록이 나란히 있어서
+    // 이미 다 보인다. 'start' 로 두면 볼 필요도 없는데 화면이 덜컥 움직인다.
+    boxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [focus?.date, focus?.seq])
+
+  const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`
+  const awayFromToday =
+    year !== today.getFullYear() || month !== today.getMonth() ||
+    (selKey !== null && selKey !== todayKey)
+
+  function goToday() {
+    setYear(today.getFullYear())
+    setMonth(today.getMonth())
+    setSelKey(todayKey)
+  }
 
   function prevMonth() {
     if (month === 0) { setYear(y => y - 1); setMonth(11) }
@@ -134,7 +169,7 @@ export default function DeadlineCalendar({
     : null
 
   return (
-    <section className="px-5 pb-8">
+    <section ref={boxRef} className="px-5 pb-8 scroll-mt-20">
       {/* 섹션 헤더 */}
       <div className="flex items-center gap-2 mb-3">
         <span className="w-2 h-2 rounded-full bg-sunset-orange" />
@@ -149,7 +184,20 @@ export default function DeadlineCalendar({
                        text-navy text-xl font-bold transition-colors leading-none">
             ‹
           </button>
-          <span className="text-sm font-bold text-navy">{year}년 {month + 1}월</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-navy">{year}년 {month + 1}월</span>
+            {/* 다른 달을 뒤지다 보면 돌아오는 길이 없었다. 이번 달을 보고
+                있고 고른 칸도 없으면 누를 이유가 없어서 안 그린다. */}
+            {awayFromToday && (
+              <button
+                type="button" onClick={goToday}
+                className="flex items-center gap-1 px-2 py-1 rounded-full
+                           border border-warm-gray/40 text-[11px] font-bold text-navy
+                           hover:border-navy/50 hover:bg-warm-gray/10 transition-colors">
+                <CornerUpLeft size={11} /> 오늘
+              </button>
+            )}
+          </div>
           <button onClick={nextMonth}
             className="w-8 h-8 rounded-full hover:bg-warm-gray/20 flex items-center justify-center
                        text-navy text-xl font-bold transition-colors leading-none">

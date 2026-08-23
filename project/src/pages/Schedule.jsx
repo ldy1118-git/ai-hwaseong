@@ -101,7 +101,7 @@ function LayerChip({ on, onClick, dot, label, count }) {
  *
  * 지난 것은 뺀다. 이미 지난 신고기한은 알려줘도 할 수 있는 게 없고,
  * 남은 것 사이에 섞이면 뭐가 남았는지가 흐려진다. */
-function TaxSchedule({ events, profile }) {
+function TaxSchedule({ events, profile, onPick }) {
   const today = todayISO()
   const upcoming = events.filter(e => e.dueDate >= today)
   if (upcoming.length === 0) return null
@@ -139,9 +139,13 @@ function TaxSchedule({ events, profile }) {
                 <span className="flex-1 h-px bg-warm-gray/30" />
               </div>
             )}
-            <div
+            <button
+              type="button"
+              onClick={() => onPick?.(e.dueDate)}
+              title="달력에서 이 날 보기"
               className={[
-                'bg-white border rounded-xl px-4 py-3 flex items-center gap-3',
+                'w-full text-left bg-white border rounded-xl px-4 py-3 flex items-center gap-3',
+                'hover:border-emerald-600/60 transition-colors duration-150',
                 soon ? 'border-emerald-600/40' : 'border-warm-gray/30',
               ].join(' ')}>
               <span className="text-sm font-bold text-emerald-700 tabular-nums flex-shrink-0 w-12">
@@ -161,7 +165,7 @@ function TaxSchedule({ events, profile }) {
               ].join(' ')}>
                 {left === 0 ? '오늘' : `D-${left}`}
               </span>
-            </div>
+            </button>
             </div>
           )
         })}
@@ -170,7 +174,7 @@ function TaxSchedule({ events, profile }) {
   )
 }
 
-function InProgressCard({ inProgress, onResume }) {
+function InProgressCard({ inProgress, onResume, onPick }) {
   const pct = inProgress.totalCount > 0
     ? Math.round((inProgress.checkedCount / inProgress.totalCount) * 100)
     : 0
@@ -192,13 +196,26 @@ function InProgressCard({ inProgress, onResume }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <button
-        onClick={onResume}
-        className="w-full py-2.5 rounded-xl bg-navy text-white text-xs font-bold
-                   hover:bg-navy/90 active:scale-[0.98] transition-all"
-      >
-        이어서 준비하기 →
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={onResume}
+          className="flex-1 py-2.5 rounded-xl bg-navy text-white text-xs font-bold
+                     hover:bg-navy/90 active:scale-[0.98] transition-all"
+        >
+          이어서 준비하기 →
+        </button>
+        {/* 마감일이 문구로만 적힌 공고가 절반이라, 달력에 없는 것도 있다. */}
+        {inProgress.apply_period?.end && (
+          <button
+            onClick={() => onPick?.(inProgress.apply_period.end)}
+            title="달력에서 마감일 보기"
+            className="px-3 py-2.5 rounded-xl border border-warm-gray/40 text-xs font-bold
+                       text-navy hover:border-navy/50 hover:bg-warm-gray/10 transition-colors"
+          >
+            달력에서
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -211,6 +228,11 @@ export default function Schedule() {
   const [favIds,     setFavIds]     = useState(() => listFavorites().map(f => f.notice_id))
   const [taxEvents,  setTaxEvents]  = useState([])
   const [profile,    setProfile]    = useState(null)
+
+  // 달력에게 「이 날을 펴라」고 시킨다. seq 가 있어야 같은 날짜를 다시
+  // 눌러도 반응한다 — 날짜만 넘기면 값이 안 바뀌어서 아무 일도 안 난다.
+  const [focus, setFocus] = useState(null)
+  const pickDate = date => setFocus(f => ({ date, seq: (f?.seq ?? 0) + 1 }))
 
   // 무엇을 그릴지. 셋 다 켠 채로 시작한다 — 처음 온 사람에게 뭐가 있는지
   // 다 보여주고, 많다 싶으면 끄게 한다. 반대로 하면 끈 줄 모르고 「공고가
@@ -305,6 +327,7 @@ export default function Schedule() {
             key={item.notice_id}
             inProgress={item}
             onResume={() => resumeApply(item)}
+            onPick={pickDate}
           />
         ))}
 
@@ -320,7 +343,7 @@ export default function Schedule() {
           <div className="min-w-0">
             <DeadlineCalendar
               matches={shown} loading={loading} inProgressItems={inProgress}
-              taxEvents={shownTax}
+              taxEvents={shownTax} focus={focus}
             />
           </div>
           {/* 세무일정을 상시 접수보다 위에 둔다. 신청은 안 해도 그만이지만
@@ -328,7 +351,7 @@ export default function Schedule() {
           {/* 여백을 여기서 한 번에 준다. 두 섹션이 각자 mt-6 lg:mt-0 을
               들고 있었더니, 넓은 화면에서 둘 다 mt-0 이 되어 붙어버렸다. */}
           <div className="min-w-0 mt-6 lg:mt-0 space-y-6">
-            <TaxSchedule events={shownTax} profile={profile} />
+            <TaxSchedule events={shownTax} profile={profile} onPick={pickDate} />
             <AlwaysOpen matches={shown} />
           </div>
         </div>
