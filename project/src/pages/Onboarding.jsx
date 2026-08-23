@@ -5,7 +5,7 @@ import Button from '../components/ui/Button'
 import logoImg from '../../design/logo.png'
 import marsImg from '../../design/mars.png'
 import findImg from '../../design/find.png'
-import { getToken, clearToken, saveOnboarding, apiUrl, mockOcrResult,
+import { getToken, clearToken, saveOnboarding, patchOnboarding, apiUrl, mockOcrResult,
          deleteOnboarding, clearLocalData } from '../utils/api'
 import { generateText } from '../utils/llm/llmProvider'
 import { RotateCcw, LogOut, ChevronRight, ArrowRight, AlertTriangle, Trash2 } from 'lucide-react'
@@ -539,6 +539,16 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
     localStorage.setItem('mars-fit-profile', JSON.stringify(next))
     setProfile(next)
     setEditing(null)
+
+    // 서버에도 올린다. 이게 없으면 고친 조건이 이 기기에만 남는다.
+    // 카톡 알림은 새벽에 **서버 프로필**로 매칭하므로, 업종을 바꿔도
+    // 옛 조건으로 공고가 골라져서 나간다. 화면과 카톡이 다른 말을 한다.
+    //
+    // 실패해도 화면은 그대로 둔다 — 기기에는 이미 저장됐고, 로그인이
+    // 풀렸을 뿐일 수도 있다. 여기서 오류를 띄우면 고친 게 안 된 줄 안다.
+    if (getToken()) {
+      patchOnboarding({ [field]: value }).catch(() => {})
+    }
   }
 
   function handleLogout() {
