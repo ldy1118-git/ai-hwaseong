@@ -107,7 +107,9 @@ export default function NotificationBell({ className = '' }) {
                 >
                   <p className="text-[13px] leading-snug text-warm-text">{n.message}</p>
                   <p className={`mt-1 text-[11px] font-bold ${toneOf(n.urgency)}`}>
-                    {n.daysLeft === 0 ? '오늘 마감' : `D-${n.daysLeft}`}
+                    {n.kind === 'new'
+                      ? `매칭 ${n.score}점`
+                      : n.daysLeft === 0 ? '오늘 마감' : `D-${n.daysLeft}`}
                   </p>
                   {gone === n.notice_id && (
                     <p className="mt-1 text-[11px] text-sunset-orange">

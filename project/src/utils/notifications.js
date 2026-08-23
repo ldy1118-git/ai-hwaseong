@@ -20,6 +20,32 @@ import { todayISO } from './today'
 const READ_KEY = 'mars-fit-notifications-read'
 const EVENT = 'mars-fit-notifications-changed'
 
+/* ── 새로 뜬 공고 ──────────────────────────────────────────
+ *
+ * 공고는 매일 아침 06:11 에 갱신된다(연구실 서버 cron). 그날 새로 뜬 것
+ * 중에 조건이 잘 맞는 게 있으면 알려준다. 사장님이 매일 목록을 훑어야만
+ * 알 수 있던 것이다.
+ *
+ * 서버가 아니라 브라우저가 판단한다. 지난번에 본 공고 번호를 적어두고
+ * 이번에 온 목록과 견준다. 로그인이 필요 없고 시연에서 안 깨진다.
+ *
+ * **처음 들어온 사람에게는 하나도 안 띄운다.** 적어둔 게 없으면 58건이
+ * 전부 「새로 뜬 공고」가 된다. 첫 방문에는 목록만 적어두고 넘어간다.
+ */
+const SEEN_KEY = 'mars-fit-seen-notices'
+const NEW_KEY = 'mars-fit-new-notices'
+
+// 점수는 조건별 가중평균(0~100)이다. 실제 분포에서 최고가 81, 다수가 73이라
+// 70 아래는 「조건이 잘 맞는다」고 말하기 어렵다. 판정이 「신청가능」인
+// 것만 본다 — 「확인필요」는 우리도 되는지 모른다는 뜻이라 알릴 게 못 된다.
+const NEW_SCORE_MIN = 70
+// 하루에 여러 건이 한꺼번에 떠도 종에 다섯 개까지만. 그 이상은 목록에서 본다.
+const NEW_MAX_PER_SYNC = 5
+// 일주일 지나면 「새로 떴다」는 말이 안 맞는다.
+const NEW_KEEP_DAYS = 7
+// 본 공고 번호가 무한정 쌓이지 않게. 지금 공고가 58건이라 넉넉하다.
+const SEEN_MAX = 1000
+
 /**
  * 알림이 뜨는 문턱. 위에서부터 먼저 맞는 것 하나만 쓴다.
  *
@@ -52,6 +78,76 @@ function writeIds(ids) {
   window.dispatchEvent(new Event(EVENT))
 }
 
+function readList(key) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) ?? '[]')
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeList(key, list) {
+  try {
+    localStorage.setItem(key, JSON.stringify(list))
+  } catch {
+    // 저장이 막혀도 화면은 돌아가게 둔다.
+  }
+}
+
+/**
+ * 매칭 결과를 받아 새로 뜬 공고를 골라 둔다. 목록을 받아온 화면에서 부른다.
+ *
+ * @param results  /api/match 가 준 results 배열. Home 의 카드({raw})도 받는다.
+ * @returns 이번에 새로 잡힌 알림 수
+ */
+export function syncNoticeAlerts(results, today = todayISO()) {
+  const rows = (results ?? [])
+    .map(r => r?.raw ?? r)
+    .filter(r => r?.notice_id)
+  if (rows.length === 0) return 0
+
+  const seen = new Set(readList(SEEN_KEY))
+  const first = seen.size === 0
+
+  const fresh = rows.filter(r => !seen.has(r.notice_id))
+  rows.forEach(r => seen.add(r.notice_id))
+  writeList(SEEN_KEY, [...seen].slice(-SEEN_MAX))
+
+  // 처음 온 사람에게는 아무것도 안 띄운다. 전부 「새로 떴다」가 되어버린다.
+  if (first) return 0
+
+  const picked = fresh
+    .filter(r => r.overall_status === '신청가능')
+    .filter(r => Number(r.match_score) >= NEW_SCORE_MIN)
+    .sort((a, b) => Number(b.match_score) - Number(a.match_score))
+    .slice(0, NEW_MAX_PER_SYNC)
+  if (picked.length === 0) return 0
+
+  const kept = readList(NEW_KEY).filter(n => daysSince(n.created, today) < NEW_KEEP_DAYS)
+  const have = new Set(kept.map(n => n.notice_id))
+
+  const added = picked
+    .filter(r => !have.has(r.notice_id))
+    .map(r => ({
+      notice_id: r.notice_id,
+      title: r.notice_title ?? '이름 없는 공고',
+      score: Number(r.match_score),
+      apply_url: r.apply_url ?? null,
+      created: today,
+    }))
+  if (added.length === 0) return 0
+
+  writeList(NEW_KEY, [...added, ...kept])
+  window.dispatchEvent(new Event(EVENT))
+  return added.length
+}
+
+function daysSince(date, today) {
+  const diff = Date.parse(`${today}T00:00:00Z`) - Date.parse(`${date}T00:00:00Z`)
+  return Number.isNaN(diff) ? 999 : Math.round(diff / 86400000)
+}
+
 /**
  * 오늘부터 며칠 남았나. 마감일이 없으면 null.
  *
@@ -73,7 +169,8 @@ export function daysLeft(endDate, today = todayISO()) {
 export function listNotifications(today = todayISO()) {
   const read = new Set(readIds())
 
-  return listFavorites()
+  // ① 담아둔 공고의 마감이 다가온 것
+  const deadlines = listFavorites()
     .map((fav) => {
       const left = daysLeft(fav.apply_period?.end, today)
       if (left === null || left < 0 || left > 7) return null
@@ -85,6 +182,7 @@ export function listNotifications(today = todayISO()) {
       const id = `${fav.notice_id}:${step.key}`
       return {
         id,
+        kind: 'deadline',
         notice_id: fav.notice_id,
         title: fav.notice_title,
         message: `${what}「${fav.notice_title}」이 ${step.label} 마감이에요`,
@@ -92,10 +190,37 @@ export function listNotifications(today = todayISO()) {
         urgency: step.urgency,
         apply_url: fav.apply_url ?? null,
         read: read.has(id),
+        // 급한 마감 → 새 공고 → 나머지 마감. 오늘·내일 마감이 제일 위다.
+        rank: left <= 1 ? 0 : 2,
       }
     })
     .filter(Boolean)
-    .sort((a, b) => a.daysLeft - b.daysLeft)
+
+  // ② 새로 뜬 공고 중 조건이 잘 맞는 것
+  const fresh = readList(NEW_KEY)
+    .filter(n => daysSince(n.created, today) < NEW_KEEP_DAYS)
+    .map((n) => {
+      const id = `new:${n.notice_id}`
+      return {
+        id,
+        kind: 'new',
+        notice_id: n.notice_id,
+        title: n.title,
+        message: `조건에 잘 맞는 공고가 새로 떴어요 — 「${n.title}」`,
+        score: n.score,
+        daysLeft: null,
+        urgency: 'soon',
+        apply_url: n.apply_url ?? null,
+        read: read.has(id),
+        rank: 1,
+      }
+    })
+
+  return [...deadlines, ...fresh].sort((a, b) => {
+    if (a.rank !== b.rank) return a.rank - b.rank
+    if (a.daysLeft !== null && b.daysLeft !== null) return a.daysLeft - b.daysLeft
+    return 0
+  })
 }
 
 export function unreadCount(today = todayISO()) {

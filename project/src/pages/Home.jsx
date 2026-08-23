@@ -9,6 +9,7 @@ import DeadlineCalendar from '../components/ui/DeadlineCalendar'
 import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
 import { nextDeadline } from '../utils/taxSchedule'
 import FavoriteNotices from '../components/sections/FavoriteNotices'
+import { syncNoticeAlerts } from '../utils/notifications'
 
 /* ── 유틸 ───────────────────────────────────────── */
 
@@ -605,6 +606,9 @@ export default function Home() {
     setMatchError('')
     fetchMatches(profile ?? DEFAULT_PROFILE)
       .then(({ results }) => {
+        // 지난번에 본 목록과 견줘 새로 뜬 공고를 종에 잡아둔다.
+        // 첫 방문에는 아무것도 안 뜬다(`utils/notifications.js`).
+        syncNoticeAlerts(results)
         setAllMatches(
           results
             .filter(r => r.overall_status !== '대상아님')
