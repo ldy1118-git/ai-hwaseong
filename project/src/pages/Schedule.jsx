@@ -6,6 +6,7 @@ import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
 import { listFavorites, subscribeFavorites } from '../utils/favorites'
 import { taxCalendarEventsAround } from '../utils/taxCalendar'
 import { listUnfinished, subscribeProgress } from '../utils/checklistProgress'
+import { todayISO } from '../utils/today'
 
 function calcDDay(end) {
   if (!end) return null
@@ -34,7 +35,7 @@ function AlwaysOpen({ matches }) {
   if (list.length === 0) return null
 
   return (
-    <section className="mt-6 lg:mt-0">
+    <section>
       <div className="flex items-baseline gap-2 mb-1">
         <h3 className="text-base font-bold text-navy">상시 접수</h3>
         <span className="text-sm font-bold text-sunset-orange">{list.length}건</span>
@@ -88,6 +89,79 @@ function LayerChip({ on, onClick, dot, label, count }) {
       {label}
       <span className={`tabular-nums ${on ? 'text-white/70' : 'text-warm-gray'}`}>{count}</span>
     </button>
+  )
+}
+
+/* 다가오는 세무 신고기한.
+ *
+ * 달력에는 ■ 점만 찍힌다. 날짜를 눌러야 무슨 신고인지 나오는데, 그러려면
+ * 어느 날에 점이 있는지 먼저 찾아야 한다. 오른쪽에 펴두면 「이번 달에
+ * 뭘 해야 하나」가 바로 읽힌다.
+ *
+ * 지난 것은 뺀다. 이미 지난 신고기한은 알려줘도 할 수 있는 게 없고,
+ * 남은 것 사이에 섞이면 뭐가 남았는지가 흐려진다. */
+function TaxSchedule({ events }) {
+  const today = todayISO()
+  const upcoming = events.filter(e => e.dueDate >= today)
+  if (upcoming.length === 0) return null
+
+  const dday = (date) => Math.round(
+    (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000,
+  )
+
+  return (
+    <section>
+      <div className="flex items-baseline gap-2 mb-1">
+        <h3 className="text-base font-bold text-navy">세무 신고기한</h3>
+        <span className="text-sm font-bold text-emerald-600">{upcoming.length}건</span>
+      </div>
+      <p className="text-sm text-warm-text mb-3 leading-snug">
+        기한을 넘기면 가산세가 붙어요. 공휴일·주말이면 다음 날로 밀린 날짜예요.
+      </p>
+      <div className="space-y-2 lg:max-h-[62vh] lg:overflow-y-auto lg:pr-1">
+        {upcoming.map((e, i) => {
+          const left = dday(e.dueDate)
+          const soon = left <= 7
+          const [year, month, day] = e.dueDate.split('-')
+          // 해가 바뀌는 자리에 줄을 하나 넣는다. 없으면 10.26 다음에 1.25 가
+          // 와서 순서가 틀린 것처럼 읽힌다 — 내년 것인데 그 말이 어디에도 없다.
+          const newYear = i > 0 && upcoming[i - 1].dueDate.slice(0, 4) !== year
+          return (
+            <div key={e.id}>
+            {newYear && (
+              <div className="flex items-center gap-2 pt-2 pb-1">
+                <span className="text-[11px] font-bold text-warm-gray">{year}년</span>
+                <span className="flex-1 h-px bg-warm-gray/30" />
+              </div>
+            )}
+            <div
+              className={[
+                'bg-white border rounded-xl px-4 py-3 flex items-center gap-3',
+                soon ? 'border-emerald-600/40' : 'border-warm-gray/30',
+              ].join(' ')}>
+              <span className="text-sm font-bold text-emerald-700 tabular-nums flex-shrink-0 w-12">
+                {Number(month)}.{Number(day)}
+              </span>
+              <span className="flex-1 text-sm font-medium text-navy leading-snug">
+                {e.title}
+                {/* 법정 기한이 공휴일이라 밀린 날. 달력을 보고 「왜 26일이지」
+                    하는 사장님에게 이유를 준다. */}
+                {e.moved && (
+                  <span className="ml-1.5 text-[11px] font-normal text-warm-gray">밀림</span>
+                )}
+              </span>
+              <span className={[
+                'text-xs font-bold whitespace-nowrap flex-shrink-0',
+                soon ? 'text-emerald-700' : 'text-warm-text',
+              ].join(' ')}>
+                {left === 0 ? '오늘' : `D-${left}`}
+              </span>
+            </div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
@@ -242,7 +316,12 @@ export default function Schedule() {
               taxEvents={shownTax}
             />
           </div>
-          <div className="min-w-0">
+          {/* 세무일정을 상시 접수보다 위에 둔다. 신청은 안 해도 그만이지만
+              신고는 안 하면 가산세가 붙는다. */}
+          {/* 여백을 여기서 한 번에 준다. 두 섹션이 각자 mt-6 lg:mt-0 을
+              들고 있었더니, 넓은 화면에서 둘 다 mt-0 이 되어 붙어버렸다. */}
+          <div className="min-w-0 mt-6 lg:mt-0 space-y-6">
+            <TaxSchedule events={shownTax} />
             <AlwaysOpen matches={shown} />
           </div>
         </div>
