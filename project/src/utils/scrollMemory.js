@@ -39,30 +39,57 @@ export function rememberScroll(path, y) {
 }
 
 /**
- * 되돌린다. 되돌렸으면 정리 함수를, 아니면 null.
+ * 되돌린다. 되돌렸으면 멈추는 함수를, 아니면 null.
  *
- * 바로 못 옮긴다 — 공고 목록은 API 를 받은 뒤에 그려져서, 화면이 뜬 순간엔
- * 문서가 짧아 그 자리까지 내려갈 수가 없다. 브라우저가 알아서 맨 위로
- * 붙여버린다. 그래서 문서가 충분히 길어질 때까지 몇 프레임 기다린다.
+ * **한 번 옮기고 끝내면 안 된다.** 주소가 바뀌는 순간에는 나가는 화면이
+ * 아직 떠 있다(전환 애니메이션 0.12초). 그때 문서가 길다고 옮겨봐야, 곧
+ * 그 화면이 사라지면서 브라우저가 스크롤을 도로 당겨간다. 처음에 이걸
+ * 놓쳐서 되돌리기가 통째로 안 먹었다.
+ *
+ * 그래서 자리를 잡고 몇 프레임 버틸 때까지 계속 붙잡는다. 공고 목록이
+ * API 를 받아 그려지는 시간도 이걸로 같이 기다려진다.
+ *
+ * 사장님이 그 사이에 직접 스크롤하면 즉시 손을 뗀다. 우리가 계속 끌어당기면
+ * 화면이 말을 안 듣는 것처럼 느껴진다.
  */
 export function restoreScroll(path) {
   if (!REMEMBER.has(path)) return null
   const want = read()[path]
   if (!want) return null
 
-  let frame = 0
+  let frames = 0
+  let held = 0
   let raf = 0
+  let stopped = false
+
+  const stop = () => {
+    if (stopped) return
+    stopped = true
+    cancelAnimationFrame(raf)
+    window.removeEventListener('wheel', stop)
+    window.removeEventListener('touchstart', stop)
+    window.removeEventListener('keydown', stop)
+  }
+
   const tick = () => {
+    if (stopped) return
     const reachable = document.documentElement.scrollHeight - window.innerHeight
     if (reachable >= want) {
-      window.scrollTo(0, want)
-      return
+      if (Math.abs(window.scrollY - want) > 2) window.scrollTo(0, want)
+      else held += 1
+    } else {
+      held = 0
     }
-    // 2초쯤(120프레임) 기다려도 안 길어지면 포기한다. 공고가 줄어서
-    // 그 자리가 아예 없어졌을 수 있다.
-    if (++frame > 120) return
+    // 여덟 프레임(0.13초쯤) 버티면 자리를 잡은 것으로 본다.
+    // 2.5초를 기다려도 안 되면 포기한다 — 공고가 줄어서 그 자리가 아예
+    // 없어졌을 수 있다.
+    if (held >= 8 || (frames += 1) > 150) { stop(); return }
     raf = requestAnimationFrame(tick)
   }
+
+  window.addEventListener('wheel', stop, { passive: true })
+  window.addEventListener('touchstart', stop, { passive: true })
+  window.addEventListener('keydown', stop)
   raf = requestAnimationFrame(tick)
-  return () => cancelAnimationFrame(raf)
+  return stop
 }
