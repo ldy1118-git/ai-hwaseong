@@ -103,10 +103,21 @@ Supabase 에만 둔다. 저장소·로그·API 응답에 절대 싣지 않는다
 「보냄」으로 적어두고 넘어간다. 인앱 종도 첫 방문에는 목록만 적어두고
 아무것도 안 띄운다 — 같은 규칙이다.
 
-문턱(`신청가능` + 70점)이 화면과 서버 두 곳에 있다. 한쪽만 고치면 카톡은
-왔는데 종에는 없거나 그 반대가 된다.
+카톡으로 가는 것은 두 가지다 — **조건에 맞는 새 공고**와 **세무 신고기한**.
+한 통에 묶어 보낸다. 따로 보내면 아침에 두 번 울린다.
 
-    project/src/utils/notifications.js  ←→  scripts/notify_kakao.py
+**세무는 첫 실행 기준선에서 빼둔다.** 공고는 켠 순간 스무 건이 쌓여 있어
+기준선이 필요하지만, 세무는 날짜가 정해진 몇 건뿐이라 지금 걸린 것이 곧
+알려야 할 것이다. 닷새 뒤 신고기한이 있는데 「처음이라」고 넘어가면 그
+신고를 놓친다.
+
+**같은 계산이 화면과 서버 두 곳에 있다.** 한쪽만 고치면 카톡은 왔는데
+종에는 없거나 그 반대가 된다.
+
+    문턱(신청가능·점수)   utils/notifications.js  ←→  scripts/notify_kakao.py
+    알림 설정             utils/notifySettings.js ←→  scripts/notify_kakao.py
+    세무 기한 계산        utils/taxCalendar.js    ←→  scripts/notify_kakao.py 의
+                                                     tax_events()
 
 연구실 서버 `.env` 에 `SUPABASE_URL` · `SUPABASE_SERVICE_ROLE_KEY` ·
 `KAKAO_CLIENT_ID` 가 있어야 한다. Vercel 에 넣은 것과 같은 값이다.

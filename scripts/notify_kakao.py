@@ -36,6 +36,7 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -45,6 +46,7 @@ sys.path.insert(0, str(ROOT / "policy_data"))
 
 import _store            # noqa: E402
 import matching          # noqa: E402
+import tax_schedule      # noqa: E402
 
 TOKEN_URL = "https://kauth.kakao.com/oauth/token"
 MEMO_URL = "https://kapi.kakao.com/v2/api/talk/memo/default/send"
@@ -119,6 +121,85 @@ def send_memo(access_token: str, text: str, link: str) -> None:
     )
     with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
         response.read()
+
+
+def tax_events(profile: dict, year: int) -> list[dict]:
+    """세무 신고기한을 달력에 찍을 수 있는 모양으로 편다.
+
+    `project/src/utils/taxCalendar.js` 와 같은 일을 한다. 두 벌인 것이
+    마음에 걸리지만 원본(`policy_data/tax_schedule.py`)이 파이썬이고 화면은
+    JS 라 어차피 계산이 양쪽에 있다. **한쪽만 고치면 카톡과 화면이 다른
+    날짜를 말한다.**
+
+    운영중인 사업자에게만. applies() 가 「프로필에 값이 없으면 통과」라서
+    안 막으면 예비창업자에게 열 건이 뜨고, 일반과세 부가세와 간이과세
+    부가세가 같은 날 나란히 나온다.
+
+    「해당되면 이것도」(if_applicable)는 넣지 않는다. 프로필만으로는 해당
+    여부를 알 수 없어서, 안 해도 되는 신고를 알리게 된다.
+    """
+    if profile.get("business_status") != "운영중":
+        return []
+
+    out = []
+    for year_ in (year, year + 1):
+        for event in tax_schedule.schedule(profile, year_)["must_do"]:
+            if event.get("due_dates"):
+                for index, due in enumerate(event["due_dates"], start=1):
+                    if due.get("date"):
+                        out.append({"id": f"{event['id']}-{year_}-{index}",
+                                    "title": event["title"], "due": due["date"]})
+            elif event.get("due_date"):
+                out.append({"id": f"{event['id']}-{year_}",
+                            "title": event["title"], "due": event["due_date"]})
+    return sorted(out, key=lambda e: e["due"])
+
+
+def pick_tax(profile: dict, settings: dict, today: date, sent: set[str]) -> list[dict]:
+    """오늘 보낼 세무 알림. 화면(`utils/notifications.js`)과 같은 규칙이다.
+
+    고른 시점 중 **아직 안 지난 것 하나**만 쓴다. 30·7·1 을 다 골랐는데
+    D-5 에 처음 켰다면 셋이 한꺼번에 나가면 안 된다.
+
+    보낸 기록으로 걸러서 같은 문턱을 두 번 안 보낸다. cron 이 하루 걸러도
+    다음 날 잡히도록 「딱 그날」이 아니라 「그 문턱 안에 들어왔나」로 본다.
+    """
+    if not settings.get("tax", True):
+        return []
+    leads = sorted(int(n) for n in (settings.get("taxLead") or [7, 1]))
+    if not leads:
+        return []
+
+    out = []
+    for event in tax_events(profile, today.year):
+        try:
+            due = date.fromisoformat(event["due"])
+        except ValueError:
+            continue
+        left = (due - today).days
+        if left < 0:
+            continue
+        lead = next((n for n in leads if left <= n), None)
+        if lead is None:
+            continue
+        if f"{event['id']}::{lead}" in sent:
+            continue
+        out.append({**event, "left": left, "lead": lead})
+    return out
+
+
+def message_for_tax(rows: list[dict]) -> str:
+    if len(rows) == 1:
+        row = rows[0]
+        when = ("오늘까지예요" if row["left"] == 0
+                else "내일까지예요" if row["left"] == 1
+                else f"{row['left']}일 남았어요")
+        return f"세무 신고기한이 다가와요\n\n「{row['title']}」\n{when}"
+    lines = ["세무 신고기한이 다가와요\n"]
+    for row in rows:
+        when = "오늘" if row["left"] == 0 else "내일" if row["left"] == 1 else f"{row['left']}일 뒤"
+        lines.append(f"· {row['title']} ({when})")
+    return "\n".join(lines)
 
 
 def message_for(rows: list[dict]) -> str:
@@ -251,9 +332,8 @@ def main() -> int:
             settings = (_store.get_state(user_id) or {}).get("settings") or {}
         except _store.StoreError:
             settings = {}
-        if not args.demo and settings.get("newNotices") is False:
-            print(f"  꺼둠 user={user_id} — 새 공고 알림 안 받음")
-            continue
+        # 새 공고를 껐어도 세무 알림은 받을 수 있다. 여기서 끊지 않고
+        # 아래에서 공고 목록만 비운다.
         score_min = int(settings.get("minScore") or SCORE_MIN)
 
         results = matching.match_policies(policies, profile)
@@ -281,6 +361,14 @@ def main() -> int:
                 print(f"  보냄 user={user_id} — 1건 (기록 안 남김)")
             continue
 
+        # ── 세무 신고기한 ──
+        # 첫 실행 기준선(아래)에 안 걸리게 먼저 계산한다. 닷새 뒤 신고기한이
+        # 있는데 「처음이라」고 넘어가면 그 신고를 놓친다. 공고는 스무 건이
+        # 쌓여 있어서 기준선이 필요하지만, 세무는 날짜가 정해진 몇 건뿐이라
+        # 지금 걸린 것이 곧 알려야 할 것이다.
+        tax_sent = _store.sent_notice_ids(user_id, "tax")
+        tax_rows = pick_tax(profile, settings, date.today(), tax_sent)
+
         sent = _store.sent_notice_ids(user_id, "new")
 
         # 알림을 켠 직후에는 아무것도 안 보낸다.
@@ -295,18 +383,28 @@ def main() -> int:
         if not sent:
             for r in picked:
                 _store.mark_sent(user_id, r["notice_id"], "new")
-            print(f"  기준선 user={user_id} — {len(picked)}건 적어둠 (첫 실행이라 안 보냄)")
-            continue
+            print(f"  기준선 user={user_id} — 공고 {len(picked)}건 적어둠 (첫 실행이라 안 보냄)")
+            fresh = []
+        else:
+            fresh = [r for r in picked if r["notice_id"] not in sent][:MAX_PER_USER]
 
-        fresh = [r for r in picked if r["notice_id"] not in sent][:MAX_PER_USER]
+        if not settings.get("newNotices", True):
+            fresh = []
 
-        if not fresh:
+        if not fresh and not tax_rows:
             print(f"  없음 user={user_id}")
             continue
 
-        text = message_for(fresh)
+        # 한 통에 묶는다. 따로 보내면 아침에 두 번 울린다.
+        parts = []
+        if tax_rows:
+            parts.append(message_for_tax(tax_rows))
+        if fresh:
+            parts.append(message_for(fresh))
+        text = "\n\n───────────\n\n".join(parts)
+
         if args.dry_run:
-            print(f"  [보냄안함] user={user_id} — {len(fresh)}건")
+            print(f"  [보냄안함] user={user_id} — 공고 {len(fresh)}건 · 세무 {len(tax_rows)}건")
             print("    " + text.replace("\n", "\n    "))
             continue
 
@@ -316,8 +414,10 @@ def main() -> int:
         # 보낸 뒤에 적는다. 반대로 하면 실패한 것이 보낸 것으로 남는다.
         for r in fresh:
             _store.mark_sent(user_id, r["notice_id"], "new")
+        for r in tax_rows:
+            _store.mark_sent(user_id, f"{r['id']}::{r['lead']}", "tax")
         sent_total += 1
-        print(f"  보냄 user={user_id} — {len(fresh)}건")
+        print(f"  보냄 user={user_id} — 공고 {len(fresh)}건 · 세무 {len(tax_rows)}건")
 
     print(f"끝 — {sent_total}명에게 보냄")
     return 0
