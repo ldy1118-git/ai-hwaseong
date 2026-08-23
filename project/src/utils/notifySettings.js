@@ -28,6 +28,13 @@ export const DEFAULTS = {
   minScore: 70,       // 그중 몇 점 이상만 (60 | 70 | 80)
   deadlines: true,    // 담아둔 공고의 마감이 다가올 때
   tax: true,          // 세무 신고기한이 다가올 때 (운영중인 사업자만)
+
+  // 세무 신고기한을 며칠 전에 알릴지. **여러 개 고를 수 있다.**
+  //
+  // 하나만 고르게 하면 곤란하다 — 한 달 전에만 알리면 그때 미뤄두고
+  // 잊어버리고, 하루 전에만 알리면 서류를 준비할 시간이 없다. 미리 한 번,
+  // 코앞에 한 번이 실제로 필요한 모양이다.
+  taxLead: [7, 1],
 }
 
 /* 점수를 그대로 보여준다.
@@ -35,6 +42,13 @@ export const DEFAULTS = {
  * 「넓게·보통·좁게」로 두었더니 같은 것을 두 가지 말로 부르는 꼴이었다 —
  * 홈 공고 카드에는 「매칭 91점」이라고 숫자가 이미 떠 있다. 설정에서만
  * 다른 말을 쓰면 둘이 같은 것인지 알 수가 없다. */
+/** 세무 신고기한을 며칠 전에 알릴지. 여러 개 고를 수 있다. */
+export const TAX_LEAD_CHOICES = [
+  { value: 30, label: '한 달 전' },
+  { value: 7,  label: '일주일 전' },
+  { value: 1,  label: '하루 전' },
+]
+
 export const SCORE_CHOICES = [
   { value: 60, hint: '조건이 조금이라도 맞으면 알려드려요. 알림이 잦아져요.' },
   { value: 70, hint: '웬만큼 맞을 때 알려드려요.' },
@@ -47,7 +61,11 @@ function read() {
     if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return { ...DEFAULTS }
     // 저장된 것에 없는 항목은 기본값으로 채운다. 나중에 종류가 하나 늘면
     // 예전에 저장한 사람 화면에서 그것만 조용히 꺼져 있다.
-    return { ...DEFAULTS, ...saved }
+    const merged = { ...DEFAULTS, ...saved }
+    // taxLead 는 배열이다. 깨진 값이 들어오면 화면이 죽는다.
+    if (!Array.isArray(merged.taxLead)) merged.taxLead = [...DEFAULTS.taxLead]
+    merged.taxLead = merged.taxLead.filter(n => Number.isFinite(n)).sort((a, b) => b - a)
+    return merged
   } catch {
     return { ...DEFAULTS }
   }

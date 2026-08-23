@@ -68,22 +68,22 @@ export default function KakaoNotifyCard({ inline = false, className = '' }) {
       className,
     ].join(' ')}>
       <div className="flex items-center gap-2 mb-1">
-        <MessageSquare size={14} className={enabled ? 'text-[#3C1E1E]' : 'text-warm-gray'} />
+        <MessageSquare size={14} className={enabled ? 'text-[#3C1E1E]' : 'text-warm-text'} />
         <p className="text-sm font-bold text-navy">카카오톡으로도 받기</p>
         {enabled && (
-          <span className="flex items-center gap-0.5 text-[11px] font-bold text-emerald-600">
+          <span className="flex items-center gap-0.5 text-[13px] font-bold text-emerald-600">
             <Check size={11} /> 켜짐
           </span>
         )}
       </div>
 
-      <p className="text-[12px] text-warm-text leading-relaxed">
+      <p className="text-[13px] text-warm-text leading-relaxed">
         앱을 안 열어도 카톡으로 알려드려요. 위에서 켜둔 것만 보내요.
-        {' '}<span className="text-warm-gray">본인에게만 보내고 광고는 보내지 않아요.</span>
+        {' '}<span className="text-warm-text">본인에게만 보내고 광고는 보내지 않아요.</span>
       </p>
 
       {error && (
-        <p className="mt-2 text-[12px] text-sunset-orange leading-relaxed">{error}</p>
+        <p className="mt-2 text-[13px] text-sunset-orange leading-relaxed">{error}</p>
       )}
 
       <button
@@ -91,7 +91,7 @@ export default function KakaoNotifyCard({ inline = false, className = '' }) {
         onClick={enabled ? turnOff : turnOn}
         disabled={busy || enabled === null}
         className={[
-          'mt-3 w-full py-2.5 rounded-xl text-xs font-bold',
+          'mt-3 w-full py-2.5 rounded-xl text-[13px] font-bold',
           'flex items-center justify-center gap-1.5',
           'disabled:opacity-40 disabled:cursor-default transition-all active:scale-[.99]',
           enabled

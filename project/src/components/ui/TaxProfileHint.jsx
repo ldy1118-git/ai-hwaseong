@@ -47,12 +47,12 @@ export default function TaxProfileHint({ profile, className = '' }) {
       ].join(' ')}
     >
       <Info size={14} className="text-navy flex-shrink-0 mt-0.5" />
-      <span className="flex-1 min-w-0 text-[12px] text-warm-text leading-relaxed">
+      <span className="flex-1 min-w-0 text-[13px] text-warm-text leading-relaxed">
         {missing.map(m => m.what).join('와 ')}를 아직 안 정하셔서,
         해당될 수 있는 일정을 <b className="text-navy">모두</b> 보여드리고 있어요.
         정해주시면 {missing.map(m => m.then).join(', ')} 보여드릴게요.
       </span>
-      <ChevronRight size={14} className="text-warm-gray flex-shrink-0 mt-0.5" />
+      <ChevronRight size={14} className="text-warm-text flex-shrink-0 mt-0.5" />
     </button>
   )
 }

@@ -44,7 +44,7 @@ export default function DayPanel({ dateKey, matches = [], taxEvents = [] }) {
         <h3 className="text-base font-bold text-navy">
           {Number(month)}월 {Number(day)}일
         </h3>
-        <span className="text-sm text-warm-gray">{year}년</span>
+        <span className="text-sm text-warm-text">{year}년</span>
       </div>
 
       <div className="space-y-2">
@@ -54,7 +54,7 @@ export default function DayPanel({ dateKey, matches = [], taxEvents = [] }) {
           <div key={e.id}
             className="bg-emerald-50 border border-emerald-600/25 rounded-xl px-4 py-3
                        flex items-center gap-3">
-            <span className="text-emerald-600 text-[13px] leading-none flex-shrink-0">■</span>
+            <span className="text-emerald-600 text-sm leading-none flex-shrink-0">■</span>
             <span className="flex-1 text-sm font-medium text-navy leading-snug">{e.title}</span>
             <span className="text-xs font-bold text-emerald-700 flex-shrink-0">신고기한</span>
           </div>
@@ -73,7 +73,7 @@ export default function DayPanel({ dateKey, matches = [], taxEvents = [] }) {
                 'flex items-center gap-3 hover:shadow-sm transition-shadow',
                 urgent ? 'border-sunset-orange/30' : 'border-warm-gray/20',
               ].join(' ')}>
-              <span className={`text-xs font-bold flex-shrink-0 w-10
+              <span className={`text-[13px] font-bold flex-shrink-0 w-11
                 ${urgent ? 'text-sunset-orange' : 'text-navy'}`}>
                 {m.dDay !== null ? `D-${m.dDay}` : '마감'}
               </span>
@@ -90,7 +90,7 @@ export default function DayPanel({ dateKey, matches = [], taxEvents = [] }) {
         {/* 메모는 언제나 그린다. 공고도 세무일정도 없는 날에 적을 일이
             오히려 더 많다. */}
         <div className="pt-1">
-          <label className="flex items-center gap-1.5 mb-1.5 text-[12px] font-bold text-warm-text">
+          <label className="flex items-center gap-1.5 mb-1.5 text-[13px] font-bold text-warm-text">
             <Pencil size={12} className="text-amber-500" />
             메모
             {saved && <span className="font-medium text-emerald-600">저장됐어요</span>}
@@ -110,7 +110,7 @@ export default function DayPanel({ dateKey, matches = [], taxEvents = [] }) {
             type="button"
             onClick={() => { setNote(dateKey, draft); setSaved(true) }}
             disabled={draft.trim() === note.trim()}
-            className="mt-2 w-full py-2.5 rounded-xl bg-navy text-white text-xs font-bold
+            className="mt-2 w-full py-3 rounded-xl bg-navy text-white text-sm font-bold
                        disabled:opacity-35 disabled:cursor-default
                        hover:bg-navy/90 active:scale-[.99] transition-all">
             {draft.trim() ? '메모 저장' : note ? '메모 지우기' : '메모 저장'}

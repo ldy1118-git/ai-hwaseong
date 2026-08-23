@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Sparkles, CalendarClock, Receipt } from 'lucide-react'
 import {
-  getNotifySettings, setNotifySettings, subscribeNotifySettings, SCORE_CHOICES,
+  getNotifySettings, setNotifySettings, subscribeNotifySettings,
+  SCORE_CHOICES, TAX_LEAD_CHOICES,
 } from '../../utils/notifySettings'
 import KakaoNotifyCard from './KakaoNotifyCard'
 
@@ -10,10 +11,10 @@ function Row({ icon: Icon, title, desc, on, onToggle, children }) {
   return (
     <div className="py-3 border-b border-warm-gray/20 last:border-b-0">
       <div className="flex items-start gap-3">
-        <Icon size={15} className={`flex-shrink-0 mt-0.5 ${on ? 'text-navy' : 'text-warm-gray'}`} />
+        <Icon size={15} className={`flex-shrink-0 mt-0.5 ${on ? 'text-navy' : 'text-warm-text'}`} />
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-bold ${on ? 'text-navy' : 'text-warm-gray'}`}>{title}</p>
-          <p className="text-[12px] text-warm-text leading-relaxed mt-0.5">{desc}</p>
+          <p className={`text-sm font-bold ${on ? 'text-navy' : 'text-warm-text'}`}>{title}</p>
+          <p className="text-[13px] text-warm-text leading-relaxed mt-0.5">{desc}</p>
         </div>
         {/* 스위치. checkbox 를 숨기고 모양만 그리면 키보드와 화면낭독기가
             그대로 동작한다 — 직접 만든 div 스위치는 그게 안 된다. */}
@@ -63,7 +64,7 @@ export default function NotifySettings({ profile, className = '' }) {
         on={s.newNotices}
         onToggle={() => set({ newNotices: !s.newNotices })}
       >
-        <p className="text-[11px] font-bold text-warm-text mb-1.5">
+        <p className="text-[13px] font-bold text-warm-text mb-1.5">
           매칭 점수 몇 점부터 알릴까요
         </p>
         <div className="flex gap-1.5">
@@ -76,7 +77,7 @@ export default function NotifySettings({ profile, className = '' }) {
                 aria-pressed={on}
                 className={[
                   'flex-1 rounded-xl border py-2 text-center transition-colors tabular-nums',
-                  'text-[13px] font-bold',
+                  'text-sm font-bold',
                   on ? 'border-navy bg-navy text-white'
                      : 'border-warm-gray/40 text-warm-text hover:border-navy/40',
                 ].join(' ')}
@@ -88,7 +89,7 @@ export default function NotifySettings({ profile, className = '' }) {
         </div>
         {/* 고른 것에 따라 한 줄만 바뀐다. 칸마다 설명을 넣으면 글자가 작아져서
             정작 숫자가 안 읽힌다. */}
-        <p className="mt-1.5 text-[11px] text-warm-gray leading-relaxed">
+        <p className="mt-1.5 text-[13px] text-warm-text leading-relaxed">
           {SCORE_CHOICES.find(c => c.value === s.minScore)?.hint}
           {' '}홈 공고 카드에 보이는 그 점수예요.
         </p>
@@ -109,7 +110,43 @@ export default function NotifySettings({ profile, className = '' }) {
           desc="부가세·종합소득세 같은 신고 기한이 다가오면 알려드려요. 놓치면 가산세가 붙어요."
           on={s.tax}
           onToggle={() => set({ tax: !s.tax })}
-        />
+        >
+          <p className="text-[13px] font-bold text-warm-text mb-1.5">
+            며칠 전에 알릴까요 <span className="font-medium">(여러 개 고를 수 있어요)</span>
+          </p>
+          <div className="flex gap-1.5">
+            {TAX_LEAD_CHOICES.map(c => {
+              const on = (s.taxLead ?? []).includes(c.value)
+              return (
+                <button
+                  key={c.value} type="button"
+                  onClick={() => {
+                    const now = s.taxLead ?? []
+                    const next = on ? now.filter(v => v !== c.value) : [...now, c.value]
+                    // 하나도 안 고르면 알림이 통째로 안 온다. 그럴 거면
+                    // 위 스위치를 끄는 게 맞아서, 마지막 하나는 못 끄게 한다.
+                    if (next.length === 0) return
+                    set({ taxLead: next.sort((a, b) => b - a) })
+                  }}
+                  aria-pressed={on}
+                  className={[
+                    'flex-1 rounded-xl border py-2 text-center text-[13px] font-bold',
+                    'transition-colors',
+                    on ? 'border-navy bg-navy text-white'
+                       : 'border-warm-gray/40 text-warm-text hover:border-navy/40',
+                  ].join(' ')}
+                >
+                  {c.label}
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-1.5 text-[13px] text-warm-text leading-relaxed">
+            {(s.taxLead ?? []).length > 1
+              ? '고른 시점마다 한 번씩 알려드려요.'
+              : '한 번만 알려드려요. 미리 챙기려면 두 개 이상 고르는 게 좋아요.'}
+          </p>
+        </Row>
       )}
 
       {/* 「어디로 받을지」. 위의 「무엇을 받을지」와 같은 상자에 둔다 —

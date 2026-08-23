@@ -238,28 +238,41 @@ export function listNotifications(today = todayISO(), profile = undefined) {
 
   // ③ 세무 신고기한. 놓치면 가산세가 붙어서 공고 마감보다 무겁다.
   //    운영중인 사업자가 아니면 taxCalendarEventsAround 가 빈 배열을 준다.
-  const tax = !settings.tax ? [] : taxCalendarEventsAround(readProfile(profile))
-    .map((e) => {
-      const left = daysLeft(e.dueDate, today)
-      if (left === null || left < 0 || left > 7) return null
-      const step = STEPS.find(s => left <= s.within)
-      if (!step) return null
-      const id = `tax:${e.id}:${step.key}`
-      return {
-        id,
-        kind: 'tax',
-        notice_id: null,
-        title: e.title,
-        message: `「${e.title}」 신고기한이 ${step.label}이에요`,
-        daysLeft: left,
-        urgency: step.urgency,
-        apply_url: null,
-        read: read.has(id),
-        // 세무는 안 하면 가산세다. 같은 D-day 면 공고보다 위로 올린다.
-        rank: left <= 1 ? -1 : 2,
-      }
-    })
-    .filter(Boolean)
+  //    며칠 전에 알릴지는 사장님이 고른다(`utils/notifySettings.js`).
+  //    여러 개 고르면 그때마다 뜬다 — 한 달 전에 한 번 보고 미뤄뒀다가
+  //    하루 전에 다시 보는 게 실제로 필요한 모양이다.
+  const leads = [...(settings.taxLead ?? [])].sort((a, b) => a - b)
+  const tax = (!settings.tax || leads.length === 0) ? [] :
+    taxCalendarEventsAround(readProfile(profile))
+      .map((e) => {
+        const left = daysLeft(e.dueDate, today)
+        if (left === null || left < 0) return null
+        // 고른 것 중 아직 안 지난 문턱 하나. 날이 갈수록 30 → 7 → 1 로
+        // 갈아타고, 문턱마다 id 가 달라서 읽음 표시가 새 알림을 안 덮는다.
+        const lead = leads.find(n => left <= n)
+        if (lead === undefined) return null
+        // 「29일 뒤이에요」가 되지 않게 문장을 나눈다. 받침에 따라
+        // 이에요/예요가 갈리는데, 숫자가 앞에 오면 매번 달라진다.
+        const phrase =
+          left === 0 ? `「${e.title}」 신고기한이 오늘까지예요`
+          : left === 1 ? `「${e.title}」 신고기한이 내일까지예요`
+          : `「${e.title}」 신고기한까지 ${left}일 남았어요`
+        const id = `tax:${e.id}:${lead}`
+        return {
+          id,
+          kind: 'tax',
+          notice_id: null,
+          title: e.title,
+          message: phrase,
+          daysLeft: left,
+          urgency: left <= 1 ? 'urgent' : left <= 7 ? 'soon' : 'info',
+          apply_url: null,
+          read: read.has(id),
+          // 세무는 안 하면 가산세다. 같은 D-day 면 공고보다 위로 올린다.
+          rank: left <= 1 ? -1 : 2,
+        }
+      })
+      .filter(Boolean)
 
   return [...deadlines, ...fresh, ...tax].sort((a, b) => {
     if (a.rank !== b.rank) return a.rank - b.rank

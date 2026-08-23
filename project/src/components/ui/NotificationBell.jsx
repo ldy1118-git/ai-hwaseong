@@ -69,7 +69,7 @@ export default function NotificationBell({ className = '' }) {
         {unread > 0 && (
           <span className="absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1
                            rounded-full bg-sunset-orange text-white
-                           text-[10px] font-bold leading-[17px] text-center">
+                           text-[12px] font-bold leading-[17px] text-center">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
@@ -84,7 +84,7 @@ export default function NotificationBell({ className = '' }) {
             <button
               type="button" onClick={() => setOpen(false)}
               aria-label="닫기"
-              className="p-1 rounded-full text-warm-gray hover:bg-warm-gray/15"
+              className="p-1 rounded-full text-warm-text hover:bg-warm-gray/15"
             >
               <X size={16} />
             </button>
@@ -108,8 +108,8 @@ export default function NotificationBell({ className = '' }) {
                   }}
                   className="w-full text-left px-4 py-3 hover:bg-primary-bg transition-colors duration-150"
                 >
-                  <p className="text-[13px] leading-snug text-warm-text">{n.message}</p>
-                  <p className={`mt-1 text-[11px] font-bold ${toneOf(n.urgency)}`}>
+                  <p className="text-sm leading-snug text-warm-text">{n.message}</p>
+                  <p className={`mt-1 text-[13px] font-bold ${toneOf(n.urgency)}`}>
                     {n.kind === 'new'
                       ? `매칭 ${n.score}점`
                       : n.kind === 'tax'
@@ -117,7 +117,7 @@ export default function NotificationBell({ className = '' }) {
                       : n.daysLeft === 0 ? '오늘 마감' : `D-${n.daysLeft}`}
                   </p>
                   {gone === n.notice_id && (
-                    <p className="mt-1 text-[11px] text-sunset-orange">
+                    <p className="mt-1 text-[13px] text-sunset-orange">
                       이 공고는 지금 목록에 없어요. 마감됐을 수 있어요.
                     </p>
                   )}
@@ -126,7 +126,7 @@ export default function NotificationBell({ className = '' }) {
             ))}
           </ul>
 
-          <p className="px-4 py-2.5 text-[11px] text-warm-gray border-t border-warm-gray/25">
+          <p className="px-4 py-2.5 text-[13px] text-warm-text border-t border-warm-gray/25">
             내 정보에서 어떤 알림을 받을지 고를 수 있어요.
           </p>
         </div>

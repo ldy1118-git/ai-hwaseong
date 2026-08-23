@@ -71,14 +71,14 @@ export default function FavoriteNotices({ variant = 'full', className = '' }) {
         <Star size={15} className="text-sunset-orange flex-shrink-0" fill="currentColor" strokeWidth={0} />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-navy">담아둔 공고 {items.length}건</p>
-          <p className="text-[12px] text-warm-text mt-0.5">
+          <p className="text-[13px] text-warm-text mt-0.5">
             {urgent > 0 && <span className="font-bold text-sunset-orange">마감 임박 {urgent}건</span>}
             {urgent > 0 && preparing > 0 && ' · '}
             {preparing > 0 && `서류 준비 중 ${preparing}건`}
             {urgent === 0 && preparing === 0 && '홈에서 볼 수 있어요'}
           </p>
         </div>
-        <ChevronRight size={16} className="text-warm-gray flex-shrink-0" />
+        <ChevronRight size={16} className="text-warm-text flex-shrink-0" />
       </button>
     )
   }
@@ -91,7 +91,7 @@ export default function FavoriteNotices({ variant = 'full', className = '' }) {
       <div className="flex items-center gap-1.5 px-1 pb-2">
         <Star size={15} className="text-sunset-orange" fill="currentColor" strokeWidth={0} />
         <h2 className="text-sm font-bold text-navy">관심공고</h2>
-        <span className="text-xs text-warm-gray">{items.length}</span>
+        <span className="text-[13px] text-warm-text">{items.length}</span>
       </div>
 
       <ul className="divide-y divide-warm-gray/20">
@@ -120,19 +120,19 @@ export default function FavoriteNotices({ variant = 'full', className = '' }) {
                 className="flex-1 min-w-0 text-left px-1 py-2.5 group"
               >
                 <div className="flex items-center gap-1.5">
-                  <p className="flex-1 min-w-0 truncate text-[13px] font-semibold text-navy
+                  <p className="flex-1 min-w-0 truncate text-sm font-semibold text-navy
                                 group-hover:underline">
                     {f.notice_title}
                   </p>
-                  <ChevronRight size={14} className="flex-shrink-0 text-warm-gray" />
+                  <ChevronRight size={14} className="flex-shrink-0 text-warm-text" />
                 </div>
 
-                <div className="mt-0.5 flex items-center gap-2 text-[11px]">
-                  <span className={urgent ? 'font-bold text-sunset-orange' : 'text-warm-gray'}>
+                <div className="mt-0.5 flex items-center gap-2 text-[13px]">
+                  <span className={urgent ? 'font-bold text-sunset-orange' : 'text-warm-text'}>
                     {dday}
                   </span>
                   {f.organizer && (
-                    <span className="truncate text-warm-gray">{f.organizer}</span>
+                    <span className="truncate text-warm-text">{f.organizer}</span>
                   )}
                   {prog ? (
                     <span className={`flex items-center gap-0.5 flex-shrink-0
@@ -148,7 +148,7 @@ export default function FavoriteNotices({ variant = 'full', className = '' }) {
                 </div>
 
                 {gone === f.notice_id && (
-                  <p className="mt-1 text-[11px] text-sunset-orange">
+                  <p className="mt-1 text-[13px] text-sunset-orange">
                     이 공고는 지금 목록에 없어요. 마감됐을 수 있어요.
                   </p>
                 )}
@@ -178,7 +178,7 @@ export default function FavoriteNotices({ variant = 'full', className = '' }) {
           aria-expanded={expanded}
           className="w-full flex items-center justify-center gap-1 pt-2 mt-1
                      border-t border-warm-gray/20
-                     text-[12px] font-semibold text-navy hover:underline"
+                     text-[13px] font-semibold text-navy hover:underline"
         >
           {expanded ? '접기' : `${hidden}건 더보기`}
           <ChevronDown
