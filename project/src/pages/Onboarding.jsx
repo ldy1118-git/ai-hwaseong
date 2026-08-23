@@ -334,6 +334,7 @@ const FIELD_LABELS = {
   asset_group:            { label: '소득 분위',   emoji: '💰' },
   marital_status:         { label: '결혼 여부',   emoji: '💍' },
   living_with_parents:    { label: '부모 동거',   emoji: '🏠' },
+  annual_revenue_krw:     { label: '연매출',     emoji: '💵' },
   entity_type:            { label: '사업자 형태', emoji: '🏢' },
   vat_type:               { label: '과세 유형',   emoji: '🧾' },
   has_employee:           { label: '직원',        emoji: '👥' },
@@ -345,6 +346,14 @@ function displayValue(key, val) {
   if (key === 'business_period_months') return `${val}개월`
   if (key === 'age') return `${val}세`
   if (key === 'living_with_parents') return val ? '함께 거주' : '별거'
+  if (key === 'annual_revenue_krw') {
+    // 원 단위로 저장하고 사람이 읽는 단위로 보여준다. 8000만원을
+    // 「80000000원」으로 띄우면 0을 세게 된다.
+    const won = Number(val)
+    if (!Number.isFinite(won)) return null
+    if (won >= 100_000_000) return `${Number((won / 100_000_000).toFixed(1))}억원`
+    return `${Math.round(won / 10_000).toLocaleString()}만원`
+  }
   if (key === 'has_employee') return val ? '있음' : '혼자 운영'
   if (key === 'withholding_half') return val ? '반기납부 (1·7월)' : '매월 10일'
   if (key === 'career_experience') return val === '없음' ? '첫 창업' : '경험 있음'
@@ -416,6 +425,12 @@ const EDIT_CFG = {
     ],
   },
   business_period_months: { title: '운영 기간 변경', type: 'number', unit: '개월', min: 0, max: 600 },
+  // 원 단위로 받으면 0을 여덟 개 쳐야 한다. 만원으로 받고 scale 로 되돌린다.
+  annual_revenue_krw: {
+    title: '작년 연매출 변경', type: 'number', unit: '만원',
+    min: 0, max: 10_000_000, scale: 10_000,
+    hint: '작년 한 해 매출이에요. 부가세 신고한 금액이면 돼요. 대략이어도 괜찮아요.',
+  },
   career_experience: {
     title: '창업 경험 변경',
     type: 'choice',
@@ -455,7 +470,10 @@ function InlineEditDrawer({ field, profile, onSave, onClose }) {
   const cfg = EDIT_CFG[field]
   const [draft, setDraft] = useState(() => {
     const v = profile?.[field]
-    return v === undefined ? '' : String(v)
+    if (v === undefined || v === null) return ''
+    // 저장은 원 단위인데 입력칸은 만원이다. 안 나누면 8000만원이 다음에
+    // 열었을 때 80000000 만원으로 보인다.
+    return cfg?.scale ? String(v / cfg.scale) : String(v)
   })
   // 가운데 창은 Esc 로 닫히는 게 기본 기대다. 시트일 때는 아래로 쓸어내려
   // 닫았지만 이제 그 동작이 없다.
@@ -471,6 +489,7 @@ function InlineEditDrawer({ field, profile, onSave, onClose }) {
     let val = raw
     if (['living_with_parents', 'has_employee', 'withholding_half'].includes(field))
       val = raw === 'true'
+    else if (cfg.scale) val = Math.round(Number(raw) * cfg.scale)
     else if (field === 'age' || field === 'business_period_months') val = Number(raw)
     onSave(field, val)
   }
@@ -496,6 +515,11 @@ function InlineEditDrawer({ field, profile, onSave, onClose }) {
               className="w-8 h-8 rounded-full bg-warm-gray/15 flex items-center justify-center
                          text-warm-text hover:bg-warm-gray/30 transition-colors text-sm">✕</button>
           </div>
+          {/* 무엇을 적어야 하는지 한 줄. 연매출처럼 「어느 해의 어느 금액을
+              말하는 건가」가 걸리는 항목이 있다. */}
+          {cfg.hint && (
+            <p className="mt-1.5 text-[13px] text-warm-text leading-relaxed">{cfg.hint}</p>
+          )}
         </div>
 
         <div className="px-5 py-5">
@@ -580,7 +604,12 @@ const COMMON_GRID_KEYS = [
  * 2개가 비어 있어요」가 거짓말이 된다. */
 function gridKeys(profile) {
   if (profile?.business_status !== '운영중') return COMMON_GRID_KEYS
-  const tax = ['entity_type', 'vat_type', 'has_employee']
+  // 연매출은 운영중인 사장님에게만. 예비창업자는 아직 매출이 없다.
+  // 온보딩에서는 안 묻는다 — 지금 공고 81건 중 매출을 조건으로 쓰는 건
+  // 「소상공인 경영안정 바우처」 1건뿐이라, 그거 하나 때문에 모두에게
+  // 민감한 질문을 던질 값이 안 된다. 매출 조건 공고가 서너 건으로 늘면
+  // 그때 온보딩으로 올릴 것.
+  const tax = ['annual_revenue_krw', 'entity_type', 'vat_type', 'has_employee']
   if (profile.has_employee === true) tax.push('withholding_half')
   return [...COMMON_GRID_KEYS, ...tax]
 }
