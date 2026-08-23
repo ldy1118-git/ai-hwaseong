@@ -12,6 +12,7 @@ import { RotateCcw, LogOut, ChevronRight, ArrowRight, AlertTriangle, Trash2 } fr
 import Header from '../components/layout/Header'
 import FavoriteNotices from '../components/sections/FavoriteNotices'
 import KakaoNotifyCard from '../components/ui/KakaoNotifyCard'
+import NotifySettings from '../components/ui/NotifySettings'
 
 /**
  * 온보딩 — 성현 기획서(docs/온보딩_기획서.txt) 구조.
@@ -602,13 +603,17 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
       <div className="max-w-3xl mx-auto px-5 pt-4 lg:pt-6">
 
         {/* ── 머리 ── */}
-        <div className="flex items-end justify-between mb-1">
-          <h2 className="text-base font-bold text-navy">내 정보</h2>
-          <span className="text-xs font-bold text-warm-text tabular-nums">
-            {filledCount} / {GRID_KEYS.length} 항목
+        <h2 className="text-lg font-extrabold text-navy mb-5">내 정보</h2>
+
+        {/* ── 내 조건 ── */}
+        <SectionTitle right={
+          <span className="ml-auto text-xs font-bold text-warm-text tabular-nums">
+            {filledCount} / {GRID_KEYS.length}
           </span>
-        </div>
-        <p className="text-xs text-warm-text mb-4 leading-relaxed">
+        }>
+          내 조건
+        </SectionTitle>
+        <p className="text-xs text-warm-text mb-3 leading-relaxed">
           조건이 정확할수록 나에게 맞는 공고만 걸러져요. 탭하면 바로 고칠 수 있어요.
         </p>
 
@@ -665,30 +670,36 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
           </p>
         )}
 
-        {/* ── 다음에 할 것 ──
-            정보를 고치고 나면 결과를 다시 봐야 한다. 그 길이 없었다. */}
+        {/* 조건을 고치고 나면 결과를 다시 봐야 한다. 그 길이 없었다. */}
         <button
           onClick={() => navigate('/home')}
-          className="mt-5 w-full sm:w-auto sm:px-8 sm:mx-auto flex items-center justify-center gap-2
-                     py-3.5 rounded-2xl bg-navy text-white text-sm font-bold shadow-sm
+          className="mt-4 w-full sm:w-auto sm:px-8 flex items-center justify-center gap-2
+                     py-3 rounded-2xl bg-navy text-white text-sm font-bold shadow-sm
                      hover:brightness-110 active:scale-[.99] transition">
           내 지원사업 보러가기
           <ArrowRight size={16} />
         </button>
 
-        {/* ── 카톡 알림 ──
-            로그인 안 했으면 스스로 안 그린다. */}
-        <KakaoNotifyCard className="mt-6" />
+        {/* ── 알림 ──
+            앱 안의 종과 카톡이 같은 설정을 본다. 여기서 끄면 둘 다 안 온다. */}
+        <div className="mt-8">
+          <SectionTitle>알림</SectionTitle>
+          <NotifySettings profile={profile} />
+          {/* 로그인 안 했으면 스스로 안 그린다 — 보낼 대상을 모른다. */}
+          <KakaoNotifyCard className="mt-2.5" />
+        </div>
 
         {/* ── 관심공고 ──
-            담아둔 공고. 없으면 스스로 안 그린다(`sections/FavoriteNotices.jsx`). */}
-        <FavoriteNotices className="mt-6" />
+            담아둔 게 없으면 스스로 안 그린다(`sections/FavoriteNotices.jsx`). */}
+        <div className="mt-8">
+          <FavoriteNotices />
+        </div>
 
         {/* ── 되돌리는 것들 ──
             전에는 재설정과 로그아웃이 같은 크기로 나란히 있었다. 둘 다
             되돌릴 수 없는 일인데 눈에 제일 먼저 들어왔다. 밑으로 내리고
             글자만 남긴다. */}
-        <div className="mt-7 pt-4 border-t border-warm-gray/25 flex items-center justify-between">
+        <div className="mt-8 pt-4 border-t border-warm-gray/25 flex items-center justify-between">
           <button onClick={onReset}
             className="flex items-center gap-1.5 text-xs font-semibold text-warm-text
                        hover:text-navy transition-colors">
@@ -938,7 +949,21 @@ export default function Onboarding() {
     navigate('/home')
   }
 
-  /* ── 내 정보 대시보드 ── */
+  /* 화면을 성격별로 가르는 머리글.
+ *
+ * 전에는 머리글이 「내 정보」 하나뿐이었다. 그 아래로 조건 아홉 칸, 카톡
+ * 알림, 관심공고, 계정 정리가 구분 없이 쭉 이어져서 어디까지가 무엇인지
+ * 알 수가 없었다. 알림 설정이 더해지면서 더 뒤엉켰다. */
+function SectionTitle({ children, right = null, className = '' }) {
+  return (
+    <div className={`flex items-baseline gap-2 mb-2 ${className}`}>
+      <h3 className="text-sm font-bold text-navy">{children}</h3>
+      {right}
+    </div>
+  )
+}
+
+/* ── 내 정보 대시보드 ── */
   if (showDashboard && savedProfile) {
     return (
       <ProfileDashboard

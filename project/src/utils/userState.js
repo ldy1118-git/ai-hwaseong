@@ -24,6 +24,7 @@ const KEYS = {
   notes:     'mars-fit-calendar-notes',
   progress:  'mars-fit-checklist-progress',
   applied:   'mars-fit-applied-programs',
+  settings:  'mars-fit-notify-settings',
 }
 
 /* 이 이벤트 중 하나라도 뜨면 올린다. 각 util 이 저장할 때 쏘는 것들이다. */
@@ -32,6 +33,7 @@ const EVENTS = [
   'mars-fit-calendar-notes-changed',
   'mars-fit-checklist-progress-changed',
   'mars-fit-applied-changed',
+  'mars-fit-notify-settings-changed',
 ]
 
 const PUSH_DELAY = 1500
@@ -116,11 +118,17 @@ function mergeApplied(mine = [], theirs = []) {
   )
 }
 
+/** 알림 설정 — 항목별로 합친다. 이 기기에서 고친 것을 남긴다. */
+function mergeSettings(mine = {}, theirs = {}) {
+  return { ...theirs, ...mine }
+}
+
 const MERGERS = {
   favorites: mergeFavorites,
   notes:     mergeNotes,
   progress:  mergeProgress,
   applied:   mergeApplied,
+  settings:  mergeSettings,
 }
 
 /**

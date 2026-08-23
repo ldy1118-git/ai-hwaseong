@@ -50,8 +50,11 @@ TOKEN_URL = "https://kauth.kakao.com/oauth/token"
 MEMO_URL = "https://kapi.kakao.com/v2/api/talk/memo/default/send"
 TIMEOUT = 10
 
+# 사장님이 아무것도 안 고쳤을 때 쓰는 값. 고쳤으면 user_state.settings 에
+# 들어 있고 그쪽이 이긴다.
+#
 # 인앱 종과 같은 기준이어야 한다. 한쪽만 고치면 카톡은 왔는데 화면에는
-# 없거나 그 반대가 된다(`project/src/utils/notifications.js`).
+# 없거나 그 반대가 된다(`project/src/utils/notifySettings.js` 의 DEFAULTS).
 SCORE_MIN = 70
 # 한 사람에게 하루 세 건까지. 그 이상은 알림이 아니라 스팸이다.
 MAX_PER_USER = 3
@@ -242,11 +245,22 @@ def main() -> int:
             print(f"  건너뜀 user={user_id} — 프로필 없음")
             continue
 
+        # 화면에서 고른 알림 설정. 여기를 안 보면 사장님이 「새 공고 알림」을
+        # 껐는데 카톡은 계속 오는, 제일 나쁜 모양이 된다.
+        try:
+            settings = (_store.get_state(user_id) or {}).get("settings") or {}
+        except _store.StoreError:
+            settings = {}
+        if not args.demo and settings.get("newNotices") is False:
+            print(f"  꺼둠 user={user_id} — 새 공고 알림 안 받음")
+            continue
+        score_min = int(settings.get("minScore") or SCORE_MIN)
+
         results = matching.match_policies(policies, profile)
         picked = [
             r for r in results
             if r.get("overall_status") == "신청가능"
-            and int(r.get("match_score", 0)) >= SCORE_MIN
+            and int(r.get("match_score", 0)) >= score_min
         ]
         picked.sort(key=lambda r: -int(r.get("match_score", 0)))
 

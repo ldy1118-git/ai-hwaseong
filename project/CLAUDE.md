@@ -79,10 +79,17 @@ React 18 + Vite 6 + Tailwind. Vercel 이 이 폴더를 빌드해서 배포한다
 것이 말없이 사라졌다. 열쇠 이름(`mars-fit-checklist-progress`)은 그대로 두고
 첫 읽기에서 옛 모양을 새 모양으로 옮긴다.
 
-종에 뜨는 알림은 두 가지다.
+종에 뜨는 알림은 세 가지다.
 
     담아둔 공고 마감 D-7·D-3·D-1     관심공고에서 그때그때 계산
     새로 뜬 고득점 공고               syncNoticeAlerts() 가 잡아둔 것
+    세무 신고기한 D-7·D-3·D-1        taxCalendar 에서 그때그때 계산
+
+무엇을 받을지는 `utils/notifySettings.js` 에 있다. **이 설정을 브라우저와
+연구실 서버가 같이 읽는다** — 종은 브라우저가 계산하고 카톡은 새벽에
+서버가 보낸다. 한쪽만 보면 화면에는 껐는데 카톡은 계속 온다.
+
+    project/src/utils/notifySettings.js  ←→  scripts/notify_kakao.py
 
 두 번째는 `Home` 이 매칭 결과를 받을 때 `syncNoticeAlerts(results)` 를
 부르면서 잡힌다. 지난번에 본 공고 번호(`mars-fit-seen-notices`)와 견준다.

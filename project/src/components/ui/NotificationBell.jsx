@@ -97,6 +97,9 @@ export default function NotificationBell({ className = '' }) {
                   type="button"
                   onClick={async () => {
                     setGone('')
+                    // 세무 신고기한은 공고가 아니다. 세무일정이 있는
+                    // 화면으로 보낸다.
+                    if (n.kind === 'tax') { setOpen(false); navigate('/district'); return }
                     // 공고는 매일 아침 갱신된다. 담아둔 사이에 마감돼서
                     // 사라졌을 수 있으니 열렸는지 확인하고 알려준다.
                     const opened = await openNoticeById(n.notice_id, navigate)
@@ -109,6 +112,8 @@ export default function NotificationBell({ className = '' }) {
                   <p className={`mt-1 text-[11px] font-bold ${toneOf(n.urgency)}`}>
                     {n.kind === 'new'
                       ? `매칭 ${n.score}점`
+                      : n.kind === 'tax'
+                      ? (n.daysLeft === 0 ? '오늘까지' : `D-${n.daysLeft}`)
                       : n.daysLeft === 0 ? '오늘 마감' : `D-${n.daysLeft}`}
                   </p>
                   {gone === n.notice_id && (
@@ -122,7 +127,7 @@ export default function NotificationBell({ className = '' }) {
           </ul>
 
           <p className="px-4 py-2.5 text-[11px] text-warm-gray border-t border-warm-gray/25">
-            관심공고로 담은 것만 알려드려요.
+            내 정보에서 어떤 알림을 받을지 고를 수 있어요.
           </p>
         </div>
       )}

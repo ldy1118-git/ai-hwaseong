@@ -15,6 +15,8 @@
  */
 
 import { listFavorites, subscribeFavorites } from './favorites'
+import { getNotifySettings, subscribeNotifySettings } from './notifySettings'
+import { taxCalendarEventsAround } from './taxCalendar'
 import { todayISO } from './today'
 
 const READ_KEY = 'mars-fit-notifications-read'
@@ -78,6 +80,16 @@ function writeIds(ids) {
   window.dispatchEvent(new Event(EVENT))
 }
 
+/** 넘겨받은 게 없으면 이 기기에 저장된 프로필을 쓴다. */
+function readProfile(given) {
+  if (given) return given
+  try {
+    return JSON.parse(localStorage.getItem('mars-fit-profile') ?? 'null')
+  } catch {
+    return null
+  }
+}
+
 function readList(key) {
   try {
     const parsed = JSON.parse(localStorage.getItem(key) ?? '[]')
@@ -117,9 +129,12 @@ export function syncNoticeAlerts(results, today = todayISO()) {
   // 처음 온 사람에게는 아무것도 안 띄운다. 전부 「새로 떴다」가 되어버린다.
   if (first) return 0
 
+  const settings = getNotifySettings()
+  if (!settings.newNotices) return 0
+
   const picked = fresh
     .filter(r => r.overall_status === '신청가능')
-    .filter(r => Number(r.match_score) >= NEW_SCORE_MIN)
+    .filter(r => Number(r.match_score) >= (settings.minScore ?? NEW_SCORE_MIN))
     .sort((a, b) => Number(b.match_score) - Number(a.match_score))
     .slice(0, NEW_MAX_PER_SYNC)
   if (picked.length === 0) return 0
@@ -166,11 +181,16 @@ export function daysLeft(endDate, today = todayISO()) {
  * 마감이 지난 것은 알리지 않는다 — 이미 늦었다고 알려봐야 할 수 있는 게 없다.
  * 목록에서는 계속 보이니까 사장님이 직접 지우면 된다.
  */
-export function listNotifications(today = todayISO()) {
+/**
+ * @param profile  세무 신고기한을 계산하려면 필요하다. 안 넘기면 저장된 것을
+ *                 읽는다 — 부르는 곳이 여럿이라 매번 넘기게 하면 빠뜨린다.
+ */
+export function listNotifications(today = todayISO(), profile = undefined) {
   const read = new Set(readIds())
+  const settings = getNotifySettings()
 
   // ① 담아둔 공고의 마감이 다가온 것
-  const deadlines = listFavorites()
+  const deadlines = !settings.deadlines ? [] : listFavorites()
     .map((fav) => {
       const left = daysLeft(fav.apply_period?.end, today)
       if (left === null || left < 0 || left > 7) return null
@@ -197,7 +217,7 @@ export function listNotifications(today = todayISO()) {
     .filter(Boolean)
 
   // ② 새로 뜬 공고 중 조건이 잘 맞는 것
-  const fresh = readList(NEW_KEY)
+  const fresh = !settings.newNotices ? [] : readList(NEW_KEY)
     .filter(n => daysSince(n.created, today) < NEW_KEEP_DAYS)
     .map((n) => {
       const id = `new:${n.notice_id}`
@@ -216,7 +236,32 @@ export function listNotifications(today = todayISO()) {
       }
     })
 
-  return [...deadlines, ...fresh].sort((a, b) => {
+  // ③ 세무 신고기한. 놓치면 가산세가 붙어서 공고 마감보다 무겁다.
+  //    운영중인 사업자가 아니면 taxCalendarEventsAround 가 빈 배열을 준다.
+  const tax = !settings.tax ? [] : taxCalendarEventsAround(readProfile(profile))
+    .map((e) => {
+      const left = daysLeft(e.dueDate, today)
+      if (left === null || left < 0 || left > 7) return null
+      const step = STEPS.find(s => left <= s.within)
+      if (!step) return null
+      const id = `tax:${e.id}:${step.key}`
+      return {
+        id,
+        kind: 'tax',
+        notice_id: null,
+        title: e.title,
+        message: `「${e.title}」 신고기한이 ${step.label}이에요`,
+        daysLeft: left,
+        urgency: step.urgency,
+        apply_url: null,
+        read: read.has(id),
+        // 세무는 안 하면 가산세다. 같은 D-day 면 공고보다 위로 올린다.
+        rank: left <= 1 ? -1 : 2,
+      }
+    })
+    .filter(Boolean)
+
+  return [...deadlines, ...fresh, ...tax].sort((a, b) => {
     if (a.rank !== b.rank) return a.rank - b.rank
     if (a.daysLeft !== null && b.daysLeft !== null) return a.daysLeft - b.daysLeft
     return 0
@@ -251,9 +296,11 @@ export function subscribeNotifications(handler) {
   window.addEventListener(EVENT, handler)
   window.addEventListener('storage', onStorage)
   const offFavorites = subscribeFavorites(handler)
+  const offSettings = subscribeNotifySettings(handler)
   return () => {
     window.removeEventListener(EVENT, handler)
     window.removeEventListener('storage', onStorage)
     offFavorites()
+    offSettings()
   }
 }
