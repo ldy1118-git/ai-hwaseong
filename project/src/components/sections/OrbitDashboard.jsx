@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Card from '../ui/Card'
 import { fetchMatches, lookupTerms, DEFAULT_PROFILE } from '../../utils/api'
 import { generateText } from '../../utils/llm/llmProvider'
 import findImg from '../../../design/find.png'
 import FavoriteButton from '../ui/FavoriteButton'
+import { useRememberedScroll } from '../../utils/scrollMemory'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
 // 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
@@ -260,9 +261,35 @@ function SkeletonCard() {
   )
 }
 
-const INITIAL_COUNT = 3
+const INITIAL_COUNT = 4
 
-/* ───────── 목록 칸을 「카드 세 장」에 묶어둔다 ─────────
+/* 목록을 무엇으로 줄 세울지.
+ *
+ * 잘 맞는 것부터 보고 싶은 사람과 급한 것부터 보고 싶은 사람이 갈린다.
+ * 어느 쪽이 맞다고 정할 수가 없어서 고르게 한다.
+ *
+ * 마감일이 없는 공고가 절반이다(58건 중 30건). 마감순으로 세울 때 그것들을
+ * 맨 뒤로 보낸다 — 날짜를 모르는 것을 「급하지 않다」고 위에 두면, 정작
+ * 내일 마감인 것이 아래로 밀린다.
+ */
+const SORTS = {
+  score: {
+    label: '잘 맞는 순',
+    compare: (a, b) => b.score - a.score,
+  },
+  deadline: {
+    label: '마감 임박 순',
+    compare: (a, b) => {
+      if (a.dDay === null && b.dDay === null) return b.score - a.score
+      if (a.dDay === null) return 1
+      if (b.dDay === null) return -1
+      return a.dDay - b.dDay || b.score - a.score
+    },
+  },
+}
+const SORT_KEY = 'mars-fit-notice-sort'
+
+/* ───────── 목록 칸을 「카드 INITIAL_COUNT 장」에 묶어둔다 ─────────
  *
  * 공고 서른 건을 그대로 세우면 페이지가 끝없이 길어져서, 오른쪽 공고를
  * 읽는 동안 왼쪽 캘린더는 한참 위로 사라진다. 그렇다고 「더보기」로
@@ -273,12 +300,13 @@ const INITIAL_COUNT = 3
  * 카드가 두 장 반만 보이고 큰 모니터에서는 네 장이 보인다 — 기준이
  * 화면 높이지 카드가 아니기 때문이다.
  *
- * 그래서 첫 세 장이 실제로 차지하는 높이를 재서 그걸 상한으로 쓴다.
- * 어느 화면에서든 정확히 세 장이 보이고, 나머지는 안에서 스크롤된다.
+ * 그래서 첫 몇 장이 실제로 차지하는 높이를 재서 그걸 상한으로 쓴다.
+ * 어느 화면에서든 정확히 그만큼 보이고, 나머지는 안에서 스크롤된다.
+ * 몇 장인지는 INITIAL_COUNT 하나로 정한다(지금 4장).
  *
  * ResizeObserver 로 계속 지켜본다. 카드 안에서 「매칭이유」를 펴거나
  * AI 요약이 뒤늦게 붙어 높이가 변해도 기준이 따라간다. */
-function useThreeCardCap(deps) {
+function useCardCap(deps) {
   const ref = useRef(null)
   const [cap, setCap] = useState(null)
 
@@ -288,11 +316,11 @@ function useThreeCardCap(deps) {
 
     const measure = () => {
       const kids = Array.from(el.children)
-      // 세 장 이하면 넘칠 게 없다. 상한을 걸면 스크롤바만 생긴다.
+      // 그 수 이하면 넘칠 게 없다. 상한을 걸면 스크롤바만 생긴다.
       if (kids.length <= INITIAL_COUNT) return setCap(null)
       const third = kids[INITIAL_COUNT - 1]
       // offsetTop 은 배치상의 위치라 스크롤해도 변하지 않는다. 칸을 이미
-      // 잘라놓은 뒤에도 세 장의 높이를 그대로 다시 잴 수 있다.
+      // 잘라놓은 뒤에도 그 높이를 그대로 다시 잴 수 있다.
       setCap(third.offsetTop + third.offsetHeight - kids[0].offsetTop)
     }
     measure()
@@ -368,6 +396,15 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
   const navigate = useNavigate()
   const [urgent, setUrgent]               = useState([])
   const [regular, setRegular]             = useState([])
+  // 고른 정렬을 기억한다. 들어올 때마다 되돌아가면 매번 다시 골라야 한다.
+  const [sortKey, setSortKey] = useState(() => {
+    try {
+      const saved = localStorage.getItem(SORT_KEY)
+      return saved in SORTS ? saved : 'score'
+    } catch {
+      return 'score'
+    }
+  })
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState(null)
   const [aiDescs, setAiDescs]             = useState({})
@@ -453,8 +490,20 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
   // 목록은 언제나 전부 그린다. 「더보기」는 없앴다 — 어차피 칸 안에서
   // 스크롤하는데 버튼까지 두면 같은 일을 두 군데서 시키는 셈이다.
   const wide = useIsWide()
-  const [urgentRef,  urgentCap]  = useThreeCardCap([urgent,  loading, aiDescs, termDefs])
-  const [regularRef, regularCap] = useThreeCardCap([regular, loading, aiDescs, termDefs])
+  // 받아온 목록은 그대로 두고 그릴 때만 줄 세운다. 정렬을 바꿀 때마다
+  // 매칭을 다시 돌릴 이유가 없다.
+  const compare = (SORTS[sortKey] ?? SORTS.score).compare
+  const urgentSorted  = useMemo(() => [...urgent].sort(compare),  [urgent, sortKey])
+  const regularSorted = useMemo(() => [...regular].sort(compare), [regular, sortKey])
+
+  const [urgentRef,  urgentCap]  = useCardCap([urgentSorted,  loading, aiDescs, termDefs])
+  const [regularRef, regularCap] = useCardCap([regularSorted, loading, aiDescs, termDefs])
+
+  // 넓은 화면에서는 이 목록이 카드 몇 장 높이로 잘려 안에서 굴러간다.
+  // 공고를 보고 나오면 그 안쪽 위치도 되돌려준다 — 창 스크롤만 기억하면
+  // 넓은 화면에서는 아무 소용이 없다.
+  useRememberedScroll('home-urgent',  urgentRef)
+  useRememberedScroll('home-regular', regularRef)
 
   function handleDetail(item) {
     localStorage.setItem('mars-fit-selected-match', JSON.stringify(item.raw))
@@ -520,7 +569,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
                className="grid grid-cols-1 gap-2.5 mb-6 lg:pr-1.5">
             {loading
               ? [1, 2].map(i => <SkeletonCard key={i} />)
-              : urgent.map(item => (
+              : urgentSorted.map(item => (
                   <ProgramCard key={item.id} item={item} accent="orange" onDetail={() => handleDetail(item)} aiDesc={aiDescs[item.id]} termDefs={termDefs} />
                 ))
             }
@@ -532,12 +581,39 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
       <div className="flex items-center gap-2 mb-3">
         <span className="w-2 h-2 rounded-full bg-navy" />
         <h2 className="text-base font-bold text-navy tracking-wide uppercase">지원사업 탐색</h2>
+
+        {/* 무엇으로 줄 세울지. 잘 맞는 것부터 보고 싶은 사람과 급한 것부터
+            보고 싶은 사람이 갈려서, 어느 쪽이 맞다고 정할 수가 없다. */}
+        {!loading && regular.length > 1 && (
+          <div className="ml-auto flex items-center gap-1 flex-shrink-0" role="group" aria-label="정렬">
+            {Object.entries(SORTS).map(([key, s2]) => {
+              const on = sortKey === key
+              return (
+                <button
+                  key={key} type="button"
+                  onClick={() => {
+                    setSortKey(key)
+                    try { localStorage.setItem(SORT_KEY, key) } catch { /* 저장만 안 된다 */ }
+                  }}
+                  aria-pressed={on}
+                  className={[
+                    'px-2.5 py-1 rounded-full text-[13px] font-bold transition-colors',
+                    on ? 'bg-navy text-white'
+                       : 'text-warm-text hover:bg-warm-gray/20',
+                  ].join(' ')}
+                >
+                  {s2.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
       <div ref={regularRef} style={capStyle(wide, regularCap)}
            className="grid grid-cols-1 gap-2.5 lg:pr-1.5">
         {loading
           ? [1, 2, 3, 4].map(i => <SkeletonCard key={i} />)
-          : regular.map(item => (
+          : regularSorted.map(item => (
               <ProgramCard key={item.id} item={item} accent="navy"
                 onDetail={() => handleDetail(item)} aiDesc={aiDescs[item.id]} termDefs={termDefs} />
             ))
