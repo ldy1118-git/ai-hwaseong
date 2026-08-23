@@ -137,7 +137,27 @@ def rule_food(text: str):
     return None
 
 
+def rule_entity_type(text: str):
+    """개인사업자만 / 법인사업자만.
+
+    비즈플러스카드는 「소상공인(개인사업자)」과 「소상공인(법인사업자)」가
+    각각 따로 공고로 나온다. 그런데 본문 자격 섹션에는 그 말이 없고 제목에만
+    있어서, 조건이 안 잡혀 개인사업자에게 법인용 공고까지 같이 떴다.
+    이름이 거의 같은 두 건이 나란히 서니 어느 게 내 것인지 알 수가 없다.
+
+    「개인 및 법인」처럼 둘 다 되는 경우가 있어서 한쪽만 나올 때만 잡는다.
+    """
+    has_personal = re.search(r"개인\s*사업자", text)
+    has_corp = re.search(r"법인\s*사업자", text)
+    if has_personal and not has_corp:
+        return "entity_types", ["개인"], has_personal.group(0)
+    if has_corp and not has_personal:
+        return "entity_types", ["법인"], has_corp.group(0)
+    return None
+
+
 RULES = [
+    rule_entity_type,
     rule_business_months_max,
     rule_business_months_min,
     rule_revenue_max,
@@ -390,6 +410,7 @@ def polish_summary(text: str) -> str:
 def build_notice(entry: dict, doc_text: str) -> tuple[dict, list[str]]:
     pblanc_id = field(entry, "pblancId", "seq")
     summary_api = clean(field(entry, "bsnsSumryCn"))
+    entry_title = field(entry, "pblancNm")
 
     qualify = section(doc_text, QUALIFY_HEADS) if doc_text else ""
     exclude = section(doc_text, EXCLUDE_HEADS, span=800) if doc_text else ""
@@ -401,7 +422,9 @@ def build_notice(entry: dict, doc_text: str) -> tuple[dict, list[str]]:
     # 그런데 본문 자격 섹션에 없는 조건이 API 요약에는 적혀 있는 경우가 있다.
     # "찾아가는 1:1 디지털 교육"이 그랬다 — 요약에만 "정상적으로 영업 중인
     # 점포"라고 적혀 있어서, 본문이 있다는 이유로 그 조건을 통째로 놓쳤다.
-    basis = "\n".join([qualify, exclude, summary_api]).strip()
+    # 제목도 같이 본다. 「소상공인(개인사업자) 비즈플러스카드」처럼 대상이
+    # 제목에만 적히고 본문 자격 섹션에는 없는 공고가 있다.
+    basis = "\n".join([entry_title, qualify, exclude, summary_api]).strip()
     eligibility, evidence = build_eligibility(basis)
 
     # 규칙에 하나도 안 걸렸으면 지원대상 표기를 본다.

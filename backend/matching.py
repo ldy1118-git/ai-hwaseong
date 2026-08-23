@@ -39,6 +39,7 @@ CONDITION_LABELS = {
     "age": "나이",
     "region": "지역",
     "business_status": "사업 상태",
+    "entity_type": "사업자 형태",
     "category": "업종",
     "career": "창업 경험",
     "income_asset": "소득·자산 구간",
@@ -689,6 +690,16 @@ def normalize_policy(policy: dict[str, Any]) -> dict[str, Any]:
         conditions["category"] = {
             "allowed": eligibility["categories"],
             "label": "업종",
+        }
+
+    # 개인사업자만 / 법인사업자만. 비즈플러스카드처럼 이름이 거의 같은 두
+    # 건이 각각 나오는 공고가 있는데, 이 조건이 없으면 개인사업자에게
+    # 법인용까지 나란히 떠서 어느 게 자기 것인지 알 수가 없다.
+    if eligibility.get("entity_types"):
+        conditions["entity_type"] = {
+            "allowed": _as_list(eligibility["entity_types"]),
+            "label": "사업자 형태",
+            "missing_detail": "사업자 형태(개인·법인) 미입력",
         }
 
     if eligibility.get("career_experience"):

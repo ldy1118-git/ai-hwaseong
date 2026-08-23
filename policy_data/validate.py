@@ -33,7 +33,7 @@ ELIGIBILITY_KEYS = {
     "min_age", "max_age", "regions", "business_status", "categories",
     "career_experience", "asset_groups", "min_business_months",
     "max_business_months", "min_annual_revenue_krw", "max_annual_revenue_krw",
-    "marital_status", "living_with_parents",
+    "marital_status", "living_with_parents", "entity_types",
     # 아래 둘은 값이 공고에 적힌 지원대상 문장이다. 다른 키와 달리 프로필과
     # 대조하지 않고 판정 결과가 고정돼 있다.
     #
@@ -54,6 +54,9 @@ ENUM_VALUES = {
     "career_experience": {"있음", "없음"},
     "asset_groups": {"기초생활수급자", "차상위", "일반"},
     "marital_status": {"미혼", "기혼"},
+    # 온보딩이 이 두 값으로만 묻는다(Onboarding.jsx). 다르게 적으면 아무도
+    # 매칭되지 않는다.
+    "entity_types": {"개인", "법인"},
 }
 
 TOP_LEVEL_KEYS = {
