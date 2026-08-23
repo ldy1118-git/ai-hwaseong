@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react'
 import { Sparkles, CalendarClock, Receipt } from 'lucide-react'
 import {
   getNotifySettings, setNotifySettings, subscribeNotifySettings,
-  SCORE_CHOICES, TAX_LEAD_CHOICES,
+  SCORE_CHOICES, TAX_LEAD_CHOICES, DEFAULTS,
 } from '../../utils/notifySettings'
 import KakaoNotifyCard from './KakaoNotifyCard'
 
 /** 켜고 끄는 줄 하나. */
-function Row({ icon: Icon, title, desc, on, onToggle, children }) {
+function Row({ icon: Icon, title, desc, on, onToggle, children, showChildren }) {
+  // 기본은 켜졌을 때만 보여준다. 세무 쪽은 꺼져 있어도 보여야 한다 —
+  // 시점 버튼이 사라지면 「한 달 전」을 끄고 「하루 전」으로 바꿀 수가 없다.
+  const open = showChildren ?? on
   return (
     <div className="py-3 border-b border-warm-gray/20 last:border-b-0">
       <div className="flex items-start gap-3">
@@ -31,7 +34,7 @@ function Row({ icon: Icon, title, desc, on, onToggle, children }) {
           </span>
         </label>
       </div>
-      {on && children && <div className="mt-2.5 pl-[27px]">{children}</div>}
+      {open && children && <div className="mt-2.5 pl-[27px]">{children}</div>}
     </div>
   )
 }
@@ -109,7 +112,16 @@ export default function NotifySettings({ profile, className = '' }) {
           title="세무 신고기한"
           desc="부가세·종합소득세 같은 신고 기한이 다가오면 알려드려요. 놓치면 가산세가 붙어요."
           on={s.tax}
-          onToggle={() => set({ tax: !s.tax })}
+          onToggle={() => {
+            // 켤 때 고른 시점이 하나도 없으면 기본값을 되돌려준다.
+            // 안 그러면 켜자마자 아무것도 안 오는 상태가 된다.
+            if (!s.tax && (s.taxLead ?? []).length === 0) {
+              set({ tax: true, taxLead: [...DEFAULTS.taxLead] })
+            } else {
+              set({ tax: !s.tax })
+            }
+          }}
+          showChildren
         >
           <p className="text-[13px] font-bold text-warm-text mb-1.5">
             며칠 전에 알릴까요 <span className="font-medium">(여러 개 고를 수 있어요)</span>
@@ -123,10 +135,13 @@ export default function NotifySettings({ profile, className = '' }) {
                   onClick={() => {
                     const now = s.taxLead ?? []
                     const next = on ? now.filter(v => v !== c.value) : [...now, c.value]
-                    // 하나도 안 고르면 알림이 통째로 안 온다. 그럴 거면
-                    // 위 스위치를 끄는 게 맞아서, 마지막 하나는 못 끄게 한다.
-                    if (next.length === 0) return
-                    set({ taxLead: next.sort((a, b) => b - a) })
+                    // 스위치와 시점을 하나로 묶는다. 마지막 하나를 끄면
+                    // 세무 알림도 같이 꺼지고, 다시 하나를 고르면 켜진다.
+                    //
+                    // 전에는 마지막 하나를 못 끄게 막았다. 그랬더니 「한 달
+                    // 전」에서 「하루 전」으로 바꾸려면 하루 전을 먼저 켜야
+                    // 했다 — 순서를 강요하는 셈이었다.
+                    set({ taxLead: next.sort((a, b) => b - a), tax: next.length > 0 })
                   }}
                   aria-pressed={on}
                   className={[
@@ -142,7 +157,9 @@ export default function NotifySettings({ profile, className = '' }) {
             })}
           </div>
           <p className="mt-1.5 text-[13px] text-warm-text leading-relaxed">
-            {(s.taxLead ?? []).length > 1
+            {(s.taxLead ?? []).length === 0
+              ? '하나도 안 고르셔서 세무 알림이 꺼져 있어요.'
+              : (s.taxLead ?? []).length > 1
               ? '고른 시점마다 한 번씩 알려드려요.'
               : '한 번만 알려드려요. 미리 챙기려면 두 개 이상 고르는 게 좋아요.'}
           </p>
