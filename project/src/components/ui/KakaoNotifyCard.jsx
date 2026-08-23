@@ -18,7 +18,7 @@ import { getKakaoNotify, goToKakaoNotifyConsent, stopKakaoNotify } from '../../u
  * 켜는 순간 카카오 동의 화면으로 나갔다가 돌아온다. 로그인할 때 같이 안
  * 받는 이유는 `utils/kakao.js` 에 적어뒀다.
  */
-export default function KakaoNotifyCard({ className = '' }) {
+export default function KakaoNotifyCard({ inline = false, className = '' }) {
   const [enabled, setEnabled] = useState(null)   // null = 아직 모름
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -57,15 +57,19 @@ export default function KakaoNotifyCard({ className = '' }) {
     setBusy(false)
   }
 
+  // inline 이면 자기 상자를 안 그린다. 알림 설정 상자 안에 들어갈 때 쓴다 —
+  // 「무엇을 받을지」와 「어디로 받을지」가 상자 두 개로 갈려 있으면 같은
+  // 층위로 보인다.
   return (
     <div className={[
-      'bg-white border rounded-2xl px-4 py-3.5',
-      enabled ? 'border-[#FEE500]' : 'border-warm-gray/30',
+      inline
+        ? 'pt-3 border-t border-warm-gray/20'
+        : `bg-white border rounded-2xl px-4 py-3.5 ${enabled ? 'border-[#FEE500]' : 'border-warm-gray/30'}`,
       className,
     ].join(' ')}>
       <div className="flex items-center gap-2 mb-1">
         <MessageSquare size={14} className={enabled ? 'text-[#3C1E1E]' : 'text-warm-gray'} />
-        <p className="text-sm font-bold text-navy">카카오톡 알림</p>
+        <p className="text-sm font-bold text-navy">카카오톡으로도 받기</p>
         {enabled && (
           <span className="flex items-center gap-0.5 text-[11px] font-bold text-emerald-600">
             <Check size={11} /> 켜짐
@@ -74,7 +78,7 @@ export default function KakaoNotifyCard({ className = '' }) {
       </div>
 
       <p className="text-[12px] text-warm-text leading-relaxed">
-        조건에 잘 맞는 지원사업이 새로 뜨면 카톡으로 알려드려요.
+        앱을 안 열어도 카톡으로 알려드려요. 위에서 켜둔 것만 보내요.
         {' '}<span className="text-warm-gray">본인에게만 보내고 광고는 보내지 않아요.</span>
       </p>
 

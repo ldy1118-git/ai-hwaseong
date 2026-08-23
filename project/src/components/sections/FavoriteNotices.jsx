@@ -25,7 +25,7 @@ function byNoticeId(list) {
 // 그 아래(창업 궤도, 유형별 안내)가 스크롤 밖으로 밀린다.
 const PREVIEW = 5
 
-export default function FavoriteNotices({ className = '' }) {
+export default function FavoriteNotices({ variant = 'full', className = '' }) {
   const navigate = useNavigate()
   // 담은 순이 아니라 마감순으로 보여준다. 다섯 건만 펴기 때문에, 담은
   // 순으로 두면 제일 급한 것이 「더보기」 아래에 숨을 수 있다.
@@ -47,6 +47,41 @@ export default function FavoriteNotices({ className = '' }) {
   )
 
   if (items.length === 0) return null
+
+  // 요약 — 내 정보에서 쓴다. 홈에 같은 목록이 이미 있어서 두 번 그리면
+  // 어느 쪽이 진짜인지 헷갈린다. 여기서는 몇 건인지만 알려주고 보낸다.
+  if (variant === 'summary') {
+    const preparing = items.filter(f => progress[f.notice_id]).length
+    const urgent = items.filter(f => {
+      const left = daysLeft(f.apply_period?.end)
+      return left !== null && left >= 0 && left <= 7
+    }).length
+
+    return (
+      <button
+        type="button"
+        onClick={() => navigate('/home')}
+        className={[
+          'w-full flex items-center gap-3 text-left',
+          'bg-white border border-warm-gray/30 rounded-2xl px-4 py-3.5',
+          'hover:border-navy/40 transition-colors duration-150',
+          className,
+        ].join(' ')}
+      >
+        <Star size={15} className="text-sunset-orange flex-shrink-0" fill="currentColor" strokeWidth={0} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-navy">담아둔 공고 {items.length}건</p>
+          <p className="text-[12px] text-warm-text mt-0.5">
+            {urgent > 0 && <span className="font-bold text-sunset-orange">마감 임박 {urgent}건</span>}
+            {urgent > 0 && preparing > 0 && ' · '}
+            {preparing > 0 && `서류 준비 중 ${preparing}건`}
+            {urgent === 0 && preparing === 0 && '홈에서 볼 수 있어요'}
+          </p>
+        </div>
+        <ChevronRight size={16} className="text-warm-gray flex-shrink-0" />
+      </button>
+    )
+  }
 
   const hidden = Math.max(0, items.length - PREVIEW)
   const shown = expanded ? items : items.slice(0, PREVIEW)

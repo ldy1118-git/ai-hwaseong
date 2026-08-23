@@ -8,10 +8,9 @@ import findImg from '../../design/find.png'
 import { getToken, clearToken, saveOnboarding, patchOnboarding, apiUrl, mockOcrResult,
          deleteOnboarding, clearLocalData } from '../utils/api'
 import { generateText } from '../utils/llm/llmProvider'
-import { RotateCcw, LogOut, ChevronRight, ArrowRight, AlertTriangle, Trash2 } from 'lucide-react'
+import { RotateCcw, LogOut, ChevronRight, AlertTriangle, Trash2 } from 'lucide-react'
 import Header from '../components/layout/Header'
 import FavoriteNotices from '../components/sections/FavoriteNotices'
-import KakaoNotifyCard from '../components/ui/KakaoNotifyCard'
 import NotifySettings from '../components/ui/NotifySettings'
 
 /**
@@ -607,6 +606,14 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
 
   const missing = GRID_KEYS.length - filledCount
 
+  // 빈 칸 먼저, 그다음 채운 칸. 각 무리 안에서는 원래 순서를 지킨다 —
+  // 매번 순서가 바뀌면 어디를 눌렀는지 기억할 수가 없다.
+  const orderedKeys = useMemo(() => {
+    const empty = GRID_KEYS.filter(k => displayValue(k, profile[k]) === null)
+    const filled = GRID_KEYS.filter(k => displayValue(k, profile[k]) !== null)
+    return [...empty, ...filled]
+  }, [profile])
+
   return (
     <div className="min-h-screen bg-primary-bg pb-24">
       {/* 상단바가 이 화면에만 없었다. 헤더 메뉴의 「내 정보」가 여기로
@@ -640,8 +647,12 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
             길게 늘어진다. 두 칸으로 접으면 화면을 채우면서도 값에 폭을
             충분히 줄 수 있다. 줄마다 따로 떼어놓아 어디를 누르는지가
             더 분명해진다. */}
+        {/* 비어 있는 것을 위로 올린다.
+            값이 찬 칸과 빈 칸이 섞여 있으면 아홉 줄을 다 훑어야 뭘 채워야
+            하는지 알 수 있다. 아래 경고에서야 「2개가 비어 있어요」를
+            알게 되는데, 그때는 이미 목록을 다 지나온 뒤다. */}
         <ul className="grid gap-2 sm:grid-cols-2">
-          {GRID_KEYS.map(key => {
+          {orderedKeys.map(key => {
             const meta = FIELD_LABELS[key]
             const disp = displayValue(key, profile[key])
             const filled = disp !== null
@@ -684,29 +695,24 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
           </p>
         )}
 
-        {/* 조건을 고치고 나면 결과를 다시 봐야 한다. 그 길이 없었다. */}
-        <button
-          onClick={() => navigate('/home')}
-          className="mt-4 w-full sm:w-auto sm:px-8 flex items-center justify-center gap-2
-                     py-3 rounded-2xl bg-navy text-white text-sm font-bold shadow-sm
-                     hover:brightness-110 active:scale-[.99] transition">
-          내 지원사업 보러가기
-          <ArrowRight size={16} />
-        </button>
+        {/* 「내 지원사업 보러가기」 버튼이 여기 있었다. 조건 섹션 끝인지
+            화면 전체의 마무리인지 갈리지 않았다 — 아래로 더 내려가면 알림과
+            관심공고가 또 나와서, 그게 끝이 아니었다는 게 뒤늦게 드러난다.
+            홈은 상단바에 늘 있으니 뺀다. */}
 
         {/* ── 알림 ──
             앱 안의 종과 카톡이 같은 설정을 본다. 여기서 끄면 둘 다 안 온다. */}
         <div className="mt-8">
           <SectionTitle>알림</SectionTitle>
+          {/* 카톡(어디로 받을지)까지 이 안에 들어 있다. */}
           <NotifySettings profile={profile} />
-          {/* 로그인 안 했으면 스스로 안 그린다 — 보낼 대상을 모른다. */}
-          <KakaoNotifyCard className="mt-2.5" />
         </div>
 
         {/* ── 관심공고 ──
-            담아둔 게 없으면 스스로 안 그린다(`sections/FavoriteNotices.jsx`). */}
+            홈에 같은 목록이 있어서 여기서는 몇 건인지만 알려주고 보낸다.
+            담아둔 게 없으면 스스로 안 그린다. */}
         <div className="mt-8">
-          <FavoriteNotices />
+          <FavoriteNotices variant="summary" />
         </div>
 
         {/* ── 되돌리는 것들 ──

@@ -3,6 +3,7 @@ import { Sparkles, CalendarClock, Receipt } from 'lucide-react'
 import {
   getNotifySettings, setNotifySettings, subscribeNotifySettings, SCORE_CHOICES,
 } from '../../utils/notifySettings'
+import KakaoNotifyCard from './KakaoNotifyCard'
 
 /** 켜고 끄는 줄 하나. */
 function Row({ icon: Icon, title, desc, on, onToggle, children }) {
@@ -110,6 +111,13 @@ export default function NotifySettings({ profile, className = '' }) {
           onToggle={() => set({ tax: !s.tax })}
         />
       )}
+
+      {/* 「어디로 받을지」. 위의 「무엇을 받을지」와 같은 상자에 둔다 —
+          상자를 나누면 카톡이 또 다른 알림 종류처럼 보인다.
+          로그인 안 했으면 스스로 안 그린다. */}
+      <div className="pb-3">
+        <KakaoNotifyCard inline />
+      </div>
     </div>
   )
 }
