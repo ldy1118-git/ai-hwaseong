@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import Header from '../components/layout/Header'
 import DeadlineCalendar from '../components/ui/DeadlineCalendar'
 import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
+import { listFavorites, subscribeFavorites } from '../utils/favorites'
+import { taxCalendarEventsAround } from '../utils/taxCalendar'
 
 function calcDDay(end) {
   if (!end) return null
@@ -63,6 +65,31 @@ function AlwaysOpen({ matches }) {
   )
 }
 
+/* 무엇을 달력에 그릴지 고르는 칩.
+ *
+ * 라디오가 아니라 층(layer)이다. 셋 다 켤 수도, 하나만 켤 수도 있다.
+ * 「전체 공고」와 「관심공고」는 겹치는 관계라 라디오로 두면 관심공고만
+ * 보고 싶을 때 전체를 꺼야 하는지 헷갈린다. 각각 껐다 켜는 게 낫다. */
+function LayerChip({ on, onClick, dot, label, count }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      className={[
+        'flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[13px] font-semibold',
+        'transition-colors duration-150',
+        on ? 'bg-navy text-white border-navy'
+           : 'bg-white text-warm-text border-warm-gray/40 hover:border-navy/40',
+      ].join(' ')}
+    >
+      <span className={`leading-none ${on ? 'text-white' : dot.className}`}>{dot.glyph}</span>
+      {label}
+      <span className={`tabular-nums ${on ? 'text-white/70' : 'text-warm-gray'}`}>{count}</span>
+    </button>
+  )
+}
+
 function InProgressCard({ inProgress, onResume }) {
   const pct = inProgress.totalCount > 0
     ? Math.round((inProgress.checkedCount / inProgress.totalCount) * 100)
@@ -101,11 +128,26 @@ export default function Schedule() {
   const [matches,    setMatches]    = useState([])
   const [loading,    setLoading]    = useState(true)
   const [inProgress, setInProgress] = useState(null)
+  const [favIds,     setFavIds]     = useState(() => listFavorites().map(f => f.notice_id))
+  const [taxEvents,  setTaxEvents]  = useState([])
+
+  // 무엇을 그릴지. 셋 다 켠 채로 시작한다 — 처음 온 사람에게 뭐가 있는지
+  // 다 보여주고, 많다 싶으면 끄게 한다. 반대로 하면 끈 줄 모르고 「공고가
+  // 없네」 한다.
+  const [layers, setLayers] = useState({ all: true, fav: true, tax: true })
+  const toggle = key => setLayers(v => ({ ...v, [key]: !v[key] }))
+
+  useEffect(() => subscribeFavorites(
+    () => setFavIds(listFavorites().map(f => f.notice_id)),
+  ), [])
 
   useEffect(() => {
     const profile = (() => {
       try { return JSON.parse(localStorage.getItem('mars-fit-profile')) } catch { return null }
     })() ?? DEFAULT_PROFILE
+
+    // 사업자가 아니면 빈 배열이 나온다. 그러면 칩도 안 그린다.
+    setTaxEvents(taxCalendarEventsAround(profile))
 
     fetchMatches(profile)
       .then(r => setMatches((r?.results ?? []).map(mapMatch)))
@@ -127,11 +169,53 @@ export default function Schedule() {
     navigate('/apply')
   }
 
+  // 켠 층만 합친다. 관심공고는 전체 공고의 일부라, 전체를 켜면 이미
+  // 들어와 있고 전체를 끄면 관심공고만 남는다.
+  const favSet = new Set(favIds)
+  const shown = layers.all
+    ? matches
+    : layers.fav
+    ? matches.filter(m => favSet.has(m.id))
+    : []
+  const shownTax = layers.tax ? taxEvents : []
+  const favCount = matches.filter(m => favSet.has(m.id)).length
+  const nothingOn = !layers.all && !layers.fav && !layers.tax
+
   return (
     <div className="min-h-screen bg-primary-bg pb-20">
       <Header />
       <div className="max-w-4xl lg:max-w-6xl mx-auto px-5 pt-4 lg:pt-6">
-        <h2 className="text-base font-bold text-navy mb-4">신청 마감 일정</h2>
+        <h2 className="text-base font-bold text-navy mb-3">신청 마감 일정</h2>
+
+        {/* 무엇을 그릴지 고르는 칩. 세무일정은 사업자에게만 있어서,
+            없으면 칩 자체를 안 그린다 — 눌러도 아무것도 안 생기는 버튼은
+            고장 난 것처럼 보인다. */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <LayerChip
+            on={layers.all} onClick={() => toggle('all')}
+            dot={{ glyph: '★', className: 'text-navy' }}
+            label="전체 공고" count={matches.length}
+          />
+          <LayerChip
+            on={layers.fav} onClick={() => toggle('fav')}
+            dot={{ glyph: '★', className: 'text-sunset-orange' }}
+            label="관심공고" count={favCount}
+          />
+          {taxEvents.length > 0 && (
+            <LayerChip
+              on={layers.tax} onClick={() => toggle('tax')}
+              dot={{ glyph: '■', className: 'text-emerald-600' }}
+              label="세무일정" count={taxEvents.length}
+            />
+          )}
+        </div>
+
+        {nothingOn && (
+          <p className="mb-4 text-xs text-warm-text bg-white border border-warm-gray/30
+                        rounded-xl px-4 py-3">
+            표시할 것을 하나 이상 골라주세요.
+          </p>
+        )}
         {inProgress && (
           <InProgressCard inProgress={inProgress} onResume={resumeApply} />
         )}
@@ -146,10 +230,13 @@ export default function Schedule() {
             공고 제목이 길어서 넓을수록 읽기 좋다. */}
         <div className="lg:grid lg:grid-cols-[minmax(0,620px)_minmax(0,1fr)] lg:gap-x-6 lg:items-start">
           <div className="min-w-0">
-            <DeadlineCalendar matches={matches} loading={loading} inProgress={inProgress} />
+            <DeadlineCalendar
+              matches={shown} loading={loading} inProgress={inProgress}
+              taxEvents={shownTax}
+            />
           </div>
           <div className="min-w-0">
-            <AlwaysOpen matches={matches} />
+            <AlwaysOpen matches={shown} />
           </div>
         </div>
       </div>

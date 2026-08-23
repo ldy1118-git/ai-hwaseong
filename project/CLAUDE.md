@@ -51,7 +51,7 @@ React 18 + Vite 6 + Tailwind. Vercel 이 이 폴더를 빌드해서 배포한다
 | `components/sections/CommercialAnalysisView.jsx` | 성현 — 상권분석 (사업자가 아닌 사람) |
 | `components/ui/DocumentStepDrawer.jsx` | 서희 — 서류 상세 창 |
 | `pages/Onboarding.jsx` · `pages/NoticeDetail.jsx` · `pages/MissionControl.jsx` | 서희 |
-| `components/ui/DeadlineCalendar.jsx` · `pages/Schedule.jsx` | 성현 |
+| `components/ui/DeadlineCalendar.jsx` · `pages/Schedule.jsx` | 성현 달력 메모 · 대윤 표시 층(공고·관심공고·세무) |
 | `pages/ApplicationGuide.jsx` | **서희·성현 둘 다.** 의존관계는 없고 그냥 같은 파일이다 |
 | `pages/Home.jsx` · `components/sections/OrbitDashboard.jsx` | 성현 — 메인 UI 개선 |
 | `utils/favorites.js` · `utils/notifications.js` · `utils/openNotice.js` | 대윤 — 관심공고·알림 |
@@ -78,6 +78,18 @@ React 18 + Vite 6 + Tailwind. Vercel 이 이 폴더를 빌드해서 배포한다
 공고 원본을 안 담았다 — 원본에는 「신청가능/대상아님」 판정이 들어 있는데
 담을 때의 프로필 기준이라 며칠 지나면 틀린 말이 된다. 그래서 열 때 매칭을
 다시 돌린다. 마감돼서 사라진 공고면 false 를 돌려준다.
+
+일정 탭의 달력은 층 세 개를 껐다 켤 수 있다 — 전체 공고 · 관심공고 ·
+세무일정. `DeadlineCalendar` 의 `taxEvents` prop 은 기본값이 빈 배열이라
+홈에서 부르는 옛 호출부는 그대로 돈다.
+
+세무일정을 달력 모양으로 펴는 것은 `utils/taxCalendar.js` 다.
+`utils/taxSchedule.js` 는 `policy_data/tax_schedule.py` 와 두 벌이라
+화면용 코드를 거기 넣지 말 것.
+
+`taxCalendar.js` 는 **운영중인 사업자에게만** 일정을 준다. `applies()` 가
+「프로필에 값이 없으면 통과」라서 안 막으면 예비창업자에게 열 건이 뜨고,
+일반과세 부가세와 간이과세 부가세가 같은 날 나란히 나온다.
 
 **마감일이 없는 공고가 절반이다.** 58건 중 30건은 `apply_period` 에 `end` 가
 없고 `note` 문자열만 있다(「세부사업별 상이」). 거기서 날짜를 뽑아내지 말 것.

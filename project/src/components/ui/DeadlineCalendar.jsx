@@ -3,7 +3,13 @@ import { useNavigate } from 'react-router-dom'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
-export default function DeadlineCalendar({ matches = [], loading, inProgress = null }) {
+/**
+ * @param taxEvents  세무일정. `utils/taxCalendar.js` 의 taxCalendarEvents() 모양.
+ *                   기본값이 빈 배열이라 안 넘기면 예전처럼 공고만 그린다.
+ */
+export default function DeadlineCalendar({
+  matches = [], loading, inProgress = null, taxEvents = [],
+}) {
   const navigate = useNavigate()
   const today    = new Date()
 
@@ -25,6 +31,19 @@ export default function DeadlineCalendar({ matches = [], loading, inProgress = n
     })
     return map
   }, [matches])
+
+  // date-key → TaxEvent[]. 공고와 따로 둔다. 같은 날에 둘 다 있을 수 있고,
+  // 「신청 마감」과 「신고 기한」은 놓쳤을 때 벌어지는 일이 아예 다르다.
+  const taxMap = useMemo(() => {
+    const map = {}
+    taxEvents.forEach(e => {
+      const [y, m, d] = (e.dueDate ?? '').split('-').map(Number)
+      if (!y || !m || !d) return
+      const key = `${y}-${m - 1}-${d}`
+      ;(map[key] ??= []).push(e)
+    })
+    return map
+  }, [taxEvents])
 
   function prevMonth() {
     if (month === 0) { setYear(y => y - 1); setMonth(11) }
@@ -51,6 +70,7 @@ export default function DeadlineCalendar({ matches = [], loading, inProgress = n
 
   const selData = selKey ? (deadlineMap[selKey] ?? { urgent: [], regular: [] }) : null
   const selList = selData ? [...selData.urgent, ...selData.regular] : []
+  const selTax  = selKey ? (taxMap[selKey] ?? []) : []
 
   return (
     <section className="px-5 pb-8">
@@ -100,6 +120,7 @@ export default function DeadlineCalendar({ matches = [], loading, inProgress = n
             const hasU    = (dl?.urgent?.length ?? 0) > 0
             const hasR    = (dl?.regular?.length ?? 0) > 0
             const hasIP   = inProgressKey === key
+            const hasTax  = (taxMap[key]?.length ?? 0) > 0
             const isSun   = (firstDay + day - 1) % 7 === 0
             const isSat   = (firstDay + day - 1) % 7 === 6
 
@@ -138,6 +159,9 @@ export default function DeadlineCalendar({ matches = [], loading, inProgress = n
                   {hasIP && !isSel && (
                     <span className="text-[13px] lg:text-base leading-none text-blue-400">◉</span>
                   )}
+                  {hasTax && !isSel && (
+                    <span className="text-[13px] lg:text-base leading-none text-emerald-600">■</span>
+                  )}
                 </div>
               </button>
             )
@@ -160,11 +184,35 @@ export default function DeadlineCalendar({ matches = [], loading, inProgress = n
               <span className="text-[13px] text-warm-text">서류 준비 중</span>
             </div>
           )}
+          {taxEvents.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[13px] leading-none text-emerald-600">■</span>
+              <span className="text-[13px] text-warm-text">세무 신고기한</span>
+            </div>
+          )}
         </div>
       </div>
 
+      {/* 선택한 날짜의 세무 신고기한 —
+          공고보다 위에 둔다. 신청은 안 해도 그만이지만 신고는 안 하면
+          가산세가 붙는다. 눌러도 이동하지 않는다 — 세무일정 화면은
+          사업자에게만 있어서, 눌렀는데 아무 데도 못 가면 더 헷갈린다. */}
+      {selTax.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {selTax.map(e => (
+            <div key={e.id}
+              className="bg-emerald-50 border border-emerald-600/25 rounded-xl px-4 py-3
+                         flex items-center gap-3">
+              <span className="text-emerald-600 text-[13px] leading-none flex-shrink-0">■</span>
+              <span className="flex-1 text-sm font-medium text-navy leading-snug">{e.title}</span>
+              <span className="text-xs font-bold text-emerald-700 flex-shrink-0">신고기한</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* 선택한 날짜의 공모 목록 */}
-      {selData && selList.length === 0 && (
+      {selData && selList.length === 0 && selTax.length === 0 && (
         <p className="mt-3 text-xs text-warm-text text-center py-2">이 날은 마감하는 공모가 없어요.</p>
       )}
       {selList.length > 0 && (
