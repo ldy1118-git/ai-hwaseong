@@ -20,17 +20,27 @@ function Row({ icon: Icon, title, desc, on, onToggle, children, showChildren }) 
           <p className="text-[13px] text-warm-text leading-relaxed mt-0.5">{desc}</p>
         </div>
         {/* 스위치. checkbox 를 숨기고 모양만 그리면 키보드와 화면낭독기가
-            그대로 동작한다 — 직접 만든 div 스위치는 그게 안 된다. */}
+            그대로 동작한다 — 직접 만든 div 스위치는 그게 안 된다.
+
+            색과 위치는 peer-checked 가 아니라 on 으로 직접 그린다.
+            peer-* 는 **형제**에게만 먹어서, 손잡이(안쪽 span)는 형제가
+            아니라 자식이라 무시됐다. 켜도 색만 바뀌고 동그라미가 제자리에
+            있었던 게 그 탓이다. 초점 테두리만 형제라 peer 로 둔다. */}
         <label className="flex-shrink-0 cursor-pointer mt-0.5">
           <input
             type="checkbox" checked={on} onChange={onToggle}
             className="sr-only peer" aria-label={title}
           />
-          <span className="block w-10 h-6 rounded-full bg-warm-gray/40 transition-colors
-                           peer-checked:bg-navy peer-focus-visible:ring-2
-                           peer-focus-visible:ring-navy/40 relative">
-            <span className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white
-                             transition-transform peer-checked:translate-x-4" />
+          <span className={[
+            'block w-11 h-6 rounded-full relative transition-colors duration-150',
+            'peer-focus-visible:ring-2 peer-focus-visible:ring-navy/40',
+            on ? 'bg-navy' : 'bg-warm-gray/50',
+          ].join(' ')}>
+            <span className={[
+              'absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm',
+              'transition-transform duration-150',
+              on ? 'translate-x-5' : 'translate-x-0',
+            ].join(' ')} />
           </span>
         </label>
       </div>
