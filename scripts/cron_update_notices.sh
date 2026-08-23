@@ -62,7 +62,7 @@ fi
 # git diff 가 아니라 git status 로 본다. diff 는 새로 생긴 파일을 못 봐서,
 # 새 공고만 뜨고 기존 공고는 그대로인 날에 「바뀐 것 없음」으로 판단하고
 # 새 공고를 통째로 놓친다. 공고가 새로 뜨는 게 이 작업의 본체다.
-changed=$(git status --porcelain -- policy_data/notices | wc -l)
+changed=$(git status --porcelain -- policy_data/notices policy_data/hscity_support.json | wc -l)
 if [ "$changed" -eq 0 ]; then
     finish "성공" "바뀐 공고 없음"
 fi
@@ -73,7 +73,7 @@ git diff --stat -- policy_data/notices | tail -5
 # 다음 실행 때 guard.py 가 낡은 기준으로 재서 헛경고를 낸다.
 python3 policy_data/guard.py --save
 
-git add policy_data/notices policy_data/baseline.json
+git add policy_data/notices policy_data/baseline.json policy_data/hscity_support.json
 git commit -q -m "공고 자동 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d'))
 
 기업마당 API 에서 받아 파일 ${changed}개가 바뀌었다.

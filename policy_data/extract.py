@@ -81,6 +81,14 @@ def rule_business_months_min(text: str):
     match = re.search(r"(?:업력|창업)\s*(\d+)\s*년\s*이상", text)
     if match:
         return "min_business_months", int(match.group(1)) * 12, match.group(0)
+    # 달로 적는 공고가 많다. 화성시 소상공인 자금지원사업이 그렇다 —
+    # 「개업일 및 사업자등록일부터 2개월 이상 경과한 사업자」. 해가 아니라
+    # 달로 끊는 조건은 갓 문 연 사장님에게 걸리는 유일한 문턱인데
+    # 「N년 이상」만 보고 있어서 통째로 놓쳤다.
+    match = re.search(
+        r"(?:업력|개업일|사업자\s*등록일|창업일)[^\n]{0,40}?(\d+)\s*개월\s*이상", text)
+    if match:
+        return "min_business_months", int(match.group(1)), match.group(0)
     return None
 
 
@@ -99,8 +107,12 @@ def rule_operating(text: str):
     '제외'라는 단어가 같은 줄에 없어도 잡는다. 제외 섹션 전체를 함께 넘겨받기
     때문에 오탐이 잘 안 난다.
     """
-    if re.search(r"휴\s*[·․‧,]?\s*폐업|휴업|폐업|정상\s*영업|영업\s*중", text):
-        found = re.search(r"[^\n]{0,50}(?:휴업|폐업|정상\s*영업|영업\s*중)[^\n]{0,50}", text)
+    # 「영업 중」 말고 「사업 중인 자」, 「사업을 영위 중인」으로 쓰는 공고가
+    # 많다. 화성시 공고가 대체로 그렇다.
+    if re.search(r"휴\s*[·․‧,]?\s*폐업|휴업|폐업|정상\s*영업|영업\s*중|"
+                 r"사업\s*중인|사업을?\s*(?:영위|운영)\s*(?:중|하고)", text):
+        found = re.search(r"[^\n]{0,50}(?:휴업|폐업|정상\s*영업|영업\s*중|사업\s*중인|"
+                          r"사업을?\s*(?:영위|운영)\s*(?:중|하고))[^\n]{0,50}", text)
         return "business_status", ["운영중"], found.group(0).strip() if found else "휴·폐업 제외"
     return None
 
@@ -584,6 +596,22 @@ def main() -> int:
         print("먼저 python3 policy_data/collect.py --raw 를 실행하세요.")
         return 1
     rows = json.loads(snapshots[-1].read_text(encoding="utf-8"))
+
+    # 화성시청 고시공고를 같이 싣는다.
+    #
+    # 기업마당에 안 올라오는 화성시 전용 사업이 여기 있다 — 소상공인
+    # 자금지원사업(특례보증 5천만원 + 이차보전 2% 5년)과 저신용 소상공인
+    # 미소금융 이자지원. 둘 다 지금 열려 있는데 목록에 없었다.
+    #
+    # policy_data/hscity.py --support 가 기업마당과 같은 열쇠로 맞춰서
+    # 넣어둔다. 여기서는 그냥 이어 붙이면 된다.
+    hscity = ROOT / "policy_data" / "hscity_support.json"
+    if hscity.exists():
+        extra = json.loads(hscity.read_text(encoding="utf-8"))
+        rows += extra
+        print(f"화성시청 고시공고 {len(extra)}건 합침")
+    else:
+        print("화성시청 고시공고 없음 — python3 policy_data/hscity.py --support 로 받는다")
     # is_open 이 None 이면 "판단할 근거가 없다"는 뜻이지 "닫혔다"가 아니다.
     # 예전에는 None 을 falsy 로 흘려버려서, 기간이 "예산 소진시까지" 나
     # "세부사업별 상이" 로 적힌 공고 31건이 통째로 빠졌다. 그 안에

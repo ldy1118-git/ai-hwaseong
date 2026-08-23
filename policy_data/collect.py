@@ -257,6 +257,11 @@ def scope(entry: dict) -> str:
     대괄호를 믿기만 하면 안 된다. 표시 없이 들어오는 지역 공고가 있어서
     소관기관도 같이 본다.
     """
+    # 화성시청 고시공고는 출처 자체가 화성시다. 제목에 「화성」이 없는
+    # 것이 있어서(「골목형상점가 지정 공고」) 제목으로 재면 전국으로 샌다.
+    if entry.get("_source") == "hscity":
+        return "화성"
+
     title = field(entry, "pblancNm", "title")
     match = BRACKET.match(title)
     if match is None:

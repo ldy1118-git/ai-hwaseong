@@ -1,0 +1,39 @@
+{
+ "notice_id": "HSCITY_141781",
+ "title": "2026년 화성시 소상공인 자금지원사업",
+ "source_url": "https://www.hscity.go.kr/www/gosi/BD_selectGosiDetail.do?q_notAncmtMgtNo=141781",
+ "summary": "2026년 화성시 소상공인 자금지원사업 특례보증 지원 : 소상공인 대상 5천만원 한도 내 보증서 발행을 통한 대출지원 - 특례보증 수수료 지원 : 특례보증 시 수수료(1%) 최초 1회 한도 지원 - 이차차액보전 지원 : 특례보증을 통한 대출 시 이자 2%, 5년 지원 경기신용보증재단 및 협약은행 13개사 ☞ 「소상공인 보호 및 지원에 관한 법률」에 따른 소상공인 중 화성시 관내에 사업장을 두고, 사업자등록증 상 개업일 및 사업자등록일부터 2개월 이상 경과한 사업자로서 신청일 현재 사업 중인 자",
+ "apply_period": {
+  "start": "2026-01-26",
+  "end": "2026-12-31"
+ },
+ "eligibility": {
+  "min_business_months": 2,
+  "business_status": [
+   "운영중"
+  ],
+  "regions": [
+   "화성시",
+   "화성특례시"
+  ]
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_url": "https://www.hscity.go.kr/www/gosi/BD_selectGosiDetail.do?q_notAncmtMgtNo=141781",
+ "apply_method": "운영기관 경기신용보증재단 및 협약은행 13개사 · 화성시청 지역경제과 · 문의 방재필/031-5189-7220 · 신청서는 공고문 첨부에 있어요",
+ "contact": "방재필/031-5189-7220",
+ "organizer": "화성시",
+ "operator": "경기신용보증재단 및 협약은행 13개사"
+}
