@@ -9,6 +9,25 @@ import { listUnfinished, subscribeProgress } from '../utils/checklistProgress'
 import { todayISO } from '../utils/today'
 import TaxProfileHint from '../components/ui/TaxProfileHint'
 
+const LAYERS_KEY = 'mars-fit-schedule-layers'
+const LAYERS_DEFAULT = { all: true, fav: true, tax: true }
+
+function readLayers() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYERS_KEY) ?? 'null')
+    if (!saved || typeof saved !== 'object') return LAYERS_DEFAULT
+    // 저장된 것에 없는 열쇠는 기본값으로 채운다. 나중에 층이 하나 늘면
+    // 예전에 저장한 사람 화면에서 그 층이 undefined 라 조용히 꺼져 있다.
+    return { ...LAYERS_DEFAULT, ...saved }
+  } catch {
+    return LAYERS_DEFAULT
+  }
+}
+
+function writeLayers(value) {
+  try { localStorage.setItem(LAYERS_KEY, JSON.stringify(value)) } catch {}
+}
+
 function calcDDay(end) {
   if (!end) return null
   return Math.ceil((new Date(end) - new Date()) / 86400000)
@@ -237,8 +256,15 @@ export default function Schedule() {
   // 무엇을 그릴지. 셋 다 켠 채로 시작한다 — 처음 온 사람에게 뭐가 있는지
   // 다 보여주고, 많다 싶으면 끄게 한다. 반대로 하면 끈 줄 모르고 「공고가
   // 없네」 한다.
-  const [layers, setLayers] = useState({ all: true, fav: true, tax: true })
-  const toggle = key => setLayers(v => ({ ...v, [key]: !v[key] }))
+  //
+  // 껐던 것은 기억한다. 관심공고만 보려고 매번 두 개를 끄는 사람이 있을
+  // 텐데, 들어올 때마다 다시 켜져 있으면 그때마다 또 꺼야 한다.
+  const [layers, setLayers] = useState(readLayers)
+  const toggle = key => setLayers(v => {
+    const next = { ...v, [key]: !v[key] }
+    writeLayers(next)
+    return next
+  })
 
   useEffect(() => subscribeFavorites(
     () => setFavIds(listFavorites().map(f => f.notice_id)),

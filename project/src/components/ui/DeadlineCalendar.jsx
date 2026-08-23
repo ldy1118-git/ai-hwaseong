@@ -9,45 +9,72 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
  * @param taxEvents  세무일정. `utils/taxCalendar.js` 의 taxCalendarEvents() 모양.
  *                   기본값이 빈 배열이라 안 넘기면 예전처럼 공고만 그린다.
  */
-/* 날짜 하나에 붙는 메모.
+/* 날짜 하나에 붙는 메모. 달력 위에 뜨는 창이다.
  *
- * 저장 버튼을 따로 두지 않는다. 달력에서 다른 날을 누르거나 화면을 떠나면
- * 적던 게 사라지는데, 저장을 눌러야 남는다는 걸 그때 알게 된다. 칸에서
- * 손을 떼면(blur) 저장한다.
+ * 처음에는 달력 아래에 칸을 폈는데, 적으려면 화면을 내려야 하고 적는
+ * 동안 어느 날을 고른 건지 안 보였다. 위에 띄우면 달력이 그대로 뒤에
+ * 남는다.
  *
- * 대신 저장됐다는 표시가 필요하다 — 아무 반응이 없으면 눌렀는지 모른다. */
-function DayNote({ dateKey, value, onSave }) {
+ * 창에는 저장 버튼을 둔다. 아래 칸일 때는 손을 떼면 저장하게 했는데,
+ * 창은 닫는 동작(바깥 누르기·Esc)이 분명해서 그때 저장인지 취소인지가
+ * 애매해진다. 물어보지 말고 버튼으로 가른다. */
+function DayNoteDialog({ dateKey, value, onSave, onClose }) {
   const [draft, setDraft] = useState(value)
-  const [saved, setSaved] = useState(false)
+  const boxRef = useRef(null)
 
-  // 다른 날을 누르면 그 날의 메모로 갈아탄다. 안 하면 앞 날짜에 적던
-  // 글이 남아서, 저장하면 엉뚱한 날에 붙는다.
-  useEffect(() => { setDraft(value); setSaved(false) }, [dateKey, value])
+  useEffect(() => { setDraft(value) }, [dateKey, value])
 
-  function commit() {
-    if (draft.trim() === value.trim()) return
-    onSave(draft)
-    setSaved(true)
-  }
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    // 열자마자 적을 수 있게. 한 번 더 눌러야 하면 창을 띄운 값이 없다.
+    boxRef.current?.focus()
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const [year, month, day] = dateKey.split('-')
 
   return (
-    <div className="mt-3">
-      <label className="flex items-center gap-1.5 mb-1.5 text-[12px] font-bold text-warm-text">
-        <Pencil size={12} className="text-amber-500" />
-        메모
-        {saved && <span className="font-medium text-emerald-600">저장됐어요</span>}
-      </label>
-      <textarea
-        value={draft}
-        onChange={e => { setDraft(e.target.value); setSaved(false) }}
-        onBlur={commit}
-        rows={2}
-        placeholder="이 날 할 일을 적어두세요"
-        className="w-full resize-y rounded-xl border border-warm-gray/40 bg-white
-                   px-3.5 py-2.5 text-sm text-navy leading-relaxed
-                   placeholder:text-warm-gray
-                   focus:outline-none focus:border-amber-500/70"
-      />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-5"
+         role="dialog" aria-modal="true" aria-label="메모">
+      <div className="absolute inset-0 bg-navy/40" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl">
+        <div className="flex items-center gap-2 mb-3">
+          <Pencil size={14} className="text-amber-500" />
+          <p className="text-sm font-extrabold text-navy">
+            {Number(month)}월 {Number(day)}일 메모
+          </p>
+          <span className="ml-auto text-[11px] text-warm-gray">{year}년</span>
+        </div>
+
+        <textarea
+          ref={boxRef}
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          rows={4}
+          placeholder="이 날 할 일을 적어두세요"
+          className="w-full resize-y rounded-xl border border-warm-gray/40 bg-white
+                     px-3.5 py-2.5 text-sm text-navy leading-relaxed
+                     placeholder:text-warm-gray
+                     focus:outline-none focus:border-amber-500/70"
+        />
+
+        <div className="flex gap-2 mt-4">
+          <button
+            type="button" onClick={onClose}
+            className="px-4 py-2.5 rounded-xl border border-warm-gray/40
+                       text-xs font-bold text-warm-text hover:bg-warm-gray/10 transition-colors">
+            취소
+          </button>
+          {/* 비우고 저장하면 지워진다. 「지우기」를 따로 두면 버튼이 셋이 된다. */}
+          <button
+            type="button" onClick={() => { onSave(draft); onClose() }}
+            className="flex-1 py-2.5 rounded-xl bg-navy text-white text-xs font-bold
+                       hover:bg-navy/90 active:scale-[.99] transition-all">
+            {draft.trim() ? '저장' : value ? '메모 지우기' : '저장'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -88,6 +115,7 @@ export default function DeadlineCalendar({
   // 'YYYY-MM-DD' → 메모. 달력 칸의 열쇠(`${y}-${m0}-${d}`)와 형식이 다르다.
   // 달력 쪽은 월이 0부터라 저장 열쇠로 쓰면 다른 화면에서 읽을 때 어긋난다.
   const [notes, setNotes] = useState(() => listNotes())
+  const [noteOpen, setNoteOpen] = useState(false)
   useEffect(() => subscribeNotes(() => setNotes(listNotes())), [])
 
   // date-key → TaxEvent[]. 공고와 따로 둔다. 같은 날에 둘 다 있을 수 있고,
@@ -254,7 +282,7 @@ export default function DeadlineCalendar({
 
             return (
               <button key={day}
-                onClick={() => setSelKey(prev => prev === key ? null : key)}
+                onClick={() => { setNoteOpen(false); setSelKey(prev => prev === key ? null : key) }}
                 className={[
                   'relative aspect-square flex flex-col items-center justify-center gap-1',
                   'rounded-xl transition-colors',
@@ -315,13 +343,32 @@ export default function DeadlineCalendar({
         </div>
       </div>
 
-      {/* 고른 날에 메모. 공고도 세무일정도 없는 날에도 적을 수 있어야 해서
-          목록이 비어 있어도 그린다. */}
+      {/* 고른 날의 메모. 공고도 세무일정도 없는 날에도 적을 수 있어야 해서
+          목록이 비어 있어도 그린다. 적힌 게 있으면 눌러보기 전에 보여준다. */}
       {selNoteKey && (
-        <DayNote
+        <button
+          type="button"
+          onClick={() => setNoteOpen(true)}
+          className="mt-3 w-full flex items-start gap-2 text-left
+                     bg-white border border-warm-gray/40 rounded-xl px-3.5 py-2.5
+                     hover:border-amber-500/60 transition-colors duration-150">
+          <Pencil size={13} className="text-amber-500 flex-shrink-0 mt-0.5" />
+          {notes[selNoteKey] ? (
+            <span className="flex-1 min-w-0 text-sm text-navy leading-relaxed whitespace-pre-line">
+              {notes[selNoteKey]}
+            </span>
+          ) : (
+            <span className="flex-1 text-sm text-warm-gray">이 날 할 일을 적어두세요</span>
+          )}
+        </button>
+      )}
+
+      {noteOpen && selNoteKey && (
+        <DayNoteDialog
           dateKey={selNoteKey}
           value={notes[selNoteKey] ?? ''}
           onSave={text => setNote(selNoteKey, text)}
+          onClose={() => setNoteOpen(false)}
         />
       )}
 
