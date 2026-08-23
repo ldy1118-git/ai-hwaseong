@@ -11,11 +11,13 @@ import termsData from '../data/terms.json'
 import searchImg from '../../design/search.png'
 import marsImg from '../../design/mars.png'
 import { addFavorite } from '../utils/favorites'
+import {
+  saveProgress as storeProgress, getProgress,
+} from '../utils/checklistProgress'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
 // 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
 
-const PROGRESS_KEY = 'mars-fit-checklist-progress'
 const APPLIED_KEY  = 'mars-fit-applied-programs'
 
 function markApplied(prog) {
@@ -34,33 +36,28 @@ function markApplied(prog) {
   } catch {}
 }
 
+// 공고마다 따로 남긴다. 예전에는 한 건만 저장해서, 두 번째 공고를 열면
+// 첫 번째에서 체크한 것이 말없이 사라졌다(`utils/checklistProgress.js`).
 function saveProgress(prog, itms) {
   if (!prog?.notice_id) return
-  try {
-    localStorage.setItem(PROGRESS_KEY, JSON.stringify({
-      notice_id:    prog.notice_id,
-      notice_title: prog.notice_title,
-      apply_period: prog.apply_period ?? {},
-      checkedCount: itms.filter(i => i.checked).length,
-      totalCount:   itms.length,
-      items:        itms.map(({ id, label, checked }) => ({ id, label, checked })),
-      raw:          prog,
-    }))
-  } catch {}
+  storeProgress({
+    notice_id:    prog.notice_id,
+    notice_title: prog.notice_title,
+    apply_period: prog.apply_period ?? {},
+    checkedCount: itms.filter(i => i.checked).length,
+    totalCount:   itms.length,
+    items:        itms.map(({ id, label, checked }) => ({ id, label, checked })),
+    raw:          prog,
+  })
 }
 
 function restoreChecked(newItems, noticeId) {
-  if (!noticeId) return newItems
-  try {
-    const saved = JSON.parse(localStorage.getItem(PROGRESS_KEY) ?? 'null')
-    if (saved?.notice_id !== noticeId || !saved?.items?.length) return newItems
-    return newItems.map(it => {
-      const s = saved.items.find(si => si.label === it.label)
-      return s ? { ...it, checked: s.checked } : it
-    })
-  } catch {
-    return newItems
-  }
+  const saved = getProgress(noticeId)
+  if (!saved?.items?.length) return newItems
+  return newItems.map(it => {
+    const s = saved.items.find(si => si.label === it.label)
+    return s ? { ...it, checked: s.checked } : it
+  })
 }
 
 const STATIC_ITEMS = [

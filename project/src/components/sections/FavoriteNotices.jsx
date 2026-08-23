@@ -5,6 +5,7 @@ import Card from '../ui/Card'
 import { listFavorites, removeFavorite, subscribeFavorites, sortByDeadline } from '../../utils/favorites'
 import { daysLeft } from '../../utils/notifications'
 import { openNoticeById } from '../../utils/openNotice'
+import { listProgress, subscribeProgress } from '../../utils/checklistProgress'
 
 /**
  * 관심공고 목록.
@@ -16,6 +17,10 @@ import { openNoticeById } from '../../utils/openNotice'
  * 담긴 게 없으면 아무것도 그리지 않는다. 빈 카드가 화면을 차지하면
  * 사장님이 뭘 해야 하는지가 아니라 뭐가 없는지를 먼저 읽게 된다.
  */
+function byNoticeId(list) {
+  return Object.fromEntries(list.map(p => [p.notice_id, p]))
+}
+
 // 처음에 보여줄 개수. 담은 게 열 몇 건이 되면 목록이 화면을 다 먹어서
 // 그 아래(창업 궤도, 유형별 안내)가 스크롤 밖으로 밀린다.
 const PREVIEW = 5
@@ -28,8 +33,16 @@ export default function FavoriteNotices({ className = '' }) {
   const [gone, setGone] = useState('')
   const [expanded, setExpanded] = useState(false)
 
+  // 서류를 어디까지 챙겼는지. 「서류 준비 중」이라고만 적으면 다시
+  // 열어봐야 얼마나 남았는지 알 수 있다.
+  const [progress, setProgress] = useState(() => byNoticeId(listProgress()))
+
   useEffect(
     () => subscribeFavorites(() => setItems(sortByDeadline(listFavorites()))),
+    [],
+  )
+  useEffect(
+    () => subscribeProgress(() => setProgress(byNoticeId(listProgress()))),
     [],
   )
 
@@ -57,6 +70,8 @@ export default function FavoriteNotices({ className = '' }) {
             : left === 0  ? '오늘 마감'
             : `D-${left}`
           const urgent = left !== null && left >= 0 && left <= 7
+          const prog = progress[f.notice_id]
+          const done = prog && prog.checkedCount >= prog.totalCount
 
           return (
             <li key={f.notice_id} className="flex items-center gap-2">
@@ -84,7 +99,13 @@ export default function FavoriteNotices({ className = '' }) {
                   {f.organizer && (
                     <span className="truncate text-warm-gray">{f.organizer}</span>
                   )}
-                  {f.auto && (
+                  {prog ? (
+                    <span className={`flex items-center gap-0.5 flex-shrink-0
+                      ${done ? 'text-emerald-600' : 'text-navy/70'}`}>
+                      <FileText size={11} />
+                      {done ? '서류 다 챙김' : `서류 ${prog.checkedCount}/${prog.totalCount}`}
+                    </span>
+                  ) : f.auto && (
                     <span className="flex items-center gap-0.5 flex-shrink-0 text-navy/70">
                       <FileText size={11} /> 서류 준비 중
                     </span>

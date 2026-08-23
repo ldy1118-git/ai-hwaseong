@@ -5,6 +5,7 @@ import DeadlineCalendar from '../components/ui/DeadlineCalendar'
 import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
 import { listFavorites, subscribeFavorites } from '../utils/favorites'
 import { taxCalendarEventsAround } from '../utils/taxCalendar'
+import { listUnfinished, subscribeProgress } from '../utils/checklistProgress'
 
 function calcDDay(end) {
   if (!end) return null
@@ -127,7 +128,7 @@ export default function Schedule() {
   const navigate = useNavigate()
   const [matches,    setMatches]    = useState([])
   const [loading,    setLoading]    = useState(true)
-  const [inProgress, setInProgress] = useState(null)
+  const [inProgress, setInProgress] = useState([])
   const [favIds,     setFavIds]     = useState(() => listFavorites().map(f => f.notice_id))
   const [taxEvents,  setTaxEvents]  = useState([])
 
@@ -154,17 +155,19 @@ export default function Schedule() {
       .catch(() => {})
       .finally(() => setLoading(false))
 
-    try {
-      const saved = JSON.parse(localStorage.getItem('mars-fit-checklist-progress') ?? 'null')
-      if (saved?.notice_id && (saved.checkedCount ?? 0) < (saved.totalCount ?? 1)) {
-        setInProgress(saved)
-      }
-    } catch {}
   }, [])
 
-  function resumeApply() {
-    if (inProgress?.raw) {
-      localStorage.setItem('mars-fit-selected-match', JSON.stringify(inProgress.raw))
+  // 준비하다 만 공고는 여러 개일 수 있다. 예전에는 한 건만 저장돼서
+  // 두 번째를 열면 첫 번째 체크가 사라졌다.
+  useEffect(() => {
+    const refresh = () => setInProgress(listUnfinished())
+    refresh()
+    return subscribeProgress(refresh)
+  }, [])
+
+  function resumeApply(item) {
+    if (item?.raw) {
+      localStorage.setItem('mars-fit-selected-match', JSON.stringify(item.raw))
     }
     navigate('/apply')
   }
@@ -216,9 +219,13 @@ export default function Schedule() {
             표시할 것을 하나 이상 골라주세요.
           </p>
         )}
-        {inProgress && (
-          <InProgressCard inProgress={inProgress} onResume={resumeApply} />
-        )}
+        {inProgress.map(item => (
+          <InProgressCard
+            key={item.notice_id}
+            inProgress={item}
+            onResume={() => resumeApply(item)}
+          />
+        ))}
 
         {/* 넓은 화면에서는 두 단으로 편다.
             달력은 날짜가 있는 것만 그릴 수 있고, 상시 접수는 날짜가 없다.
@@ -231,7 +238,7 @@ export default function Schedule() {
         <div className="lg:grid lg:grid-cols-[minmax(0,620px)_minmax(0,1fr)] lg:gap-x-6 lg:items-start">
           <div className="min-w-0">
             <DeadlineCalendar
-              matches={shown} loading={loading} inProgress={inProgress}
+              matches={shown} loading={loading} inProgressItems={inProgress}
               taxEvents={shownTax}
             />
           </div>

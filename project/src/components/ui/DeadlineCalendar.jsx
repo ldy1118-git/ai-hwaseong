@@ -53,7 +53,7 @@ function DayNote({ dateKey, value, onSave }) {
 }
 
 export default function DeadlineCalendar({
-  matches = [], loading, inProgress = null, taxEvents = [],
+  matches = [], loading, inProgress = null, inProgressItems = [], taxEvents = [],
 }) {
   const navigate = useNavigate()
   const today    = new Date()
@@ -110,13 +110,19 @@ export default function DeadlineCalendar({
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const cells       = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
 
-  const inProgressKey = (() => {
-    const end = inProgress?.apply_period?.end
-    if (!end) return null
-    const d = new Date(end)
-    if (isNaN(d)) return null
-    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
-  })()
+  // 준비 중인 공고는 여러 개일 수 있다. inProgress(한 건)는 옛 호출부를
+  // 위해 남겨두고 같이 합친다.
+  const inProgressKeys = useMemo(() => {
+    const keys = new Set()
+    for (const item of [...(inProgress ? [inProgress] : []), ...inProgressItems]) {
+      const end = item?.apply_period?.end
+      if (!end) continue
+      const d = new Date(end)
+      if (isNaN(d)) continue
+      keys.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)
+    }
+    return keys
+  }, [inProgress, inProgressItems])
 
   const selData = selKey ? (deadlineMap[selKey] ?? { urgent: [], regular: [] }) : null
   const selList = selData ? [...selData.urgent, ...selData.regular] : []
@@ -174,7 +180,7 @@ export default function DeadlineCalendar({
             const dl      = deadlineMap[key]
             const hasU    = (dl?.urgent?.length ?? 0) > 0
             const hasR    = (dl?.regular?.length ?? 0) > 0
-            const hasIP   = inProgressKey === key
+            const hasIP   = inProgressKeys.has(key)
             const hasTax  = (taxMap[key]?.length ?? 0) > 0
             const hasNote = Boolean(notes[noteKey(year, month, day)])
             const isSun   = (firstDay + day - 1) % 7 === 0
@@ -240,7 +246,7 @@ export default function DeadlineCalendar({
             <span className="text-[13px] leading-none text-navy">★</span>
             <span className="text-[13px] text-warm-text">일반 마감</span>
           </div>
-          {inProgress && (
+          {inProgressKeys.size > 0 && (
             <div className="flex items-center gap-1.5">
               <span className="text-[13px] leading-none text-blue-400">◉</span>
               <span className="text-[13px] text-warm-text">서류 준비 중</span>
