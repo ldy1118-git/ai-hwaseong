@@ -188,12 +188,24 @@ def main() -> int:
         ]
         picked.sort(key=lambda r: -int(r.get("match_score", 0)))
 
-        fresh = []
-        for r in picked:
-            if len(fresh) >= MAX_PER_USER:
-                break
-            if not _store.already_sent(user_id, r["notice_id"], "new"):
-                fresh.append(r)
+        sent = _store.sent_notice_ids(user_id, "new")
+
+        # 알림을 켠 직후에는 아무것도 안 보낸다.
+        #
+        # 여기 걸리는 공고가 스무 건이 넘는데, 그건 「새로 떴다」가 아니라
+        # 처음부터 있던 것이다. 하루 세 건씩 보내면 아흐레 동안 카톡이
+        # 온다 — 사장님은 그 전에 알림을 꺼버린다.
+        #
+        # 그래서 첫 실행에는 지금 걸리는 것을 전부 「보냄」으로 적어두고
+        # 넘어간다. 인앱 종도 첫 방문에는 목록만 적어두고 아무것도 안 띄운다
+        # (`project/src/utils/notifications.js`). 같은 규칙이다.
+        if not sent:
+            for r in picked:
+                _store.mark_sent(user_id, r["notice_id"], "new")
+            print(f"  기준선 user={user_id} — {len(picked)}건 적어둠 (첫 실행이라 안 보냄)")
+            continue
+
+        fresh = [r for r in picked if r["notice_id"] not in sent][:MAX_PER_USER]
 
         if not fresh:
             print(f"  없음 user={user_id}")

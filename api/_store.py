@@ -200,6 +200,21 @@ def list_kakao_notify() -> list[dict]:
     })
 
 
+def sent_notice_ids(user_id: int, kind: str) -> set[str]:
+    """이 사람에게 이미 보낸 공고 번호 전부.
+
+    공고마다 already_sent() 를 부르면 58번 왕복한다. 한 번에 받아온다.
+    **비어 있으면 이 사람에게 아직 한 번도 안 보낸 것이다** — 부르는 쪽이
+    그걸로 첫 실행을 가려낸다.
+    """
+    rows = _call("GET", "kakao_sent", params={
+        "user_id": f"eq.{user_id}",
+        "kind": f"eq.{kind}",
+        "select": "notice_id",
+    })
+    return {row["notice_id"] for row in rows}
+
+
 def already_sent(user_id: int, notice_id: str, kind: str) -> bool:
     rows = _call("GET", "kakao_sent", params={
         "user_id": f"eq.{user_id}",
