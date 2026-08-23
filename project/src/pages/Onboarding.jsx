@@ -528,6 +528,20 @@ const GRID_KEYS = [
   'asset_group',     'marital_status',   'living_with_parents',
 ]
 
+/* 화면을 성격별로 가르는 머리글.
+ *
+ * 전에는 머리글이 「내 정보」 하나뿐이었다. 그 아래로 조건 아홉 칸, 카톡
+ * 알림, 관심공고, 계정 정리가 구분 없이 쭉 이어져서 어디까지가 무엇인지
+ * 알 수가 없었다. 알림 설정이 더해지면서 더 뒤엉켰다. */
+function SectionTitle({ children, right = null, className = '' }) {
+  return (
+    <div className={`flex items-baseline gap-2 mb-2 ${className}`}>
+      <h3 className="text-sm font-bold text-navy">{children}</h3>
+      {right}
+    </div>
+  )
+}
+
 function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
   const [profile, setProfile] = useState(initProfile)
   const [editing, setEditing] = useState(null)
@@ -949,21 +963,7 @@ export default function Onboarding() {
     navigate('/home')
   }
 
-  /* 화면을 성격별로 가르는 머리글.
- *
- * 전에는 머리글이 「내 정보」 하나뿐이었다. 그 아래로 조건 아홉 칸, 카톡
- * 알림, 관심공고, 계정 정리가 구분 없이 쭉 이어져서 어디까지가 무엇인지
- * 알 수가 없었다. 알림 설정이 더해지면서 더 뒤엉켰다. */
-function SectionTitle({ children, right = null, className = '' }) {
-  return (
-    <div className={`flex items-baseline gap-2 mb-2 ${className}`}>
-      <h3 className="text-sm font-bold text-navy">{children}</h3>
-      {right}
-    </div>
-  )
-}
-
-/* ── 내 정보 대시보드 ── */
+  /* ── 내 정보 대시보드 ── */
   if (showDashboard && savedProfile) {
     return (
       <ProfileDashboard
