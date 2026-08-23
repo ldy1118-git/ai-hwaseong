@@ -122,3 +122,34 @@ alter table kakao_notify enable row level security;
 alter table kakao_sent   enable row level security;
 
 grant all on public.kakao_notify, public.kakao_sent to service_role;
+
+-- =====================================================================
+-- 기기 사이 이어보기 (2026-08-23 추가)
+--
+-- 관심공고·달력 메모·서류 진행·신청 완료가 브라우저에만 있었다. PC 에서
+-- ★ 담은 공고가 폰에는 없고, 로그아웃하면 통째로 날아갔다.
+--
+-- 로그인이 필수가 아니라 기기 저장은 그대로 둔다. 로그인한 사람만 여기에
+-- 같이 올려서, 어느 기기로 들어와도 이어진다.
+--
+-- 한 덩이(jsonb)로 두는 이유는 프로필과 같다 — 항목이 늘 때마다 컬럼을
+-- 만들면 마이그레이션이 따라붙는다.
+-- =====================================================================
+
+create table if not exists user_state (
+  user_id    bigint      primary key references users(id) on delete cascade,
+  state      jsonb       not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+comment on column user_state.state is
+  'favorites / notes / progress / applied. 키 이름은 project/src/utils/userState.js 참고.';
+
+drop trigger if exists user_state_touch on user_state;
+create trigger user_state_touch
+  before update on user_state
+  for each row execute function touch_updated_at();
+
+alter table user_state enable row level security;
+
+grant all on public.user_state to service_role;

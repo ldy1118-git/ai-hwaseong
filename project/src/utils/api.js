@@ -138,6 +138,15 @@ export const patchOnboarding = (profile) =>
 export const deleteOnboarding = () =>
   authed('/api/users/me/onboarding', 'DELETE')
 
+/* 기기 사이로 이어지는 것들 (관심공고·메모·서류진행·신청완료).
+   서버는 내용을 해석하지 않는다. 합치는 판단은 utils/userState.js 가 한다. */
+
+export const getUserState = () =>
+  authed('/api/users/me/state', 'GET')
+
+export const putUserState = (state) =>
+  authed('/api/users/me/state', 'PUT', { state })
+
 /* 카톡 알림 — refresh_token 은 서버에만 있다. 여기로 안 내려온다. */
 
 /** { enabled, authorize_url } */

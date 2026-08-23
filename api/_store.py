@@ -212,3 +212,28 @@ def mark_sent(user_id: int, notice_id: str, kind: str) -> None:
           params={"on_conflict": "user_id,notice_id,kind"},
           body={"user_id": user_id, "notice_id": notice_id, "kind": kind},
           prefer="resolution=merge-duplicates,return=minimal")
+
+
+# ----------------------------------------------------- 기기 사이 이어보기
+
+def get_state(user_id: int) -> dict:
+    """저장된 것이 없으면 빈 dict. 처음 로그인한 사람이 그렇다."""
+    rows = _call("GET", "user_state", params={
+        "user_id": f"eq.{user_id}",
+        "select": "state",
+        "limit": "1",
+    })
+    return (rows[0].get("state") if rows else None) or {}
+
+
+def put_state(user_id: int, state: dict) -> None:
+    """통째로 덮어쓴다.
+
+    항목별로 합치지 않는다. 무엇을 지웠는지 서버가 알 수 없어서, 합치기만
+    하면 사장님이 ★ 를 뺀 공고가 다른 기기에서 다시 살아난다. 합치는 일은
+    로그인할 때 브라우저가 한 번만 한다(`utils/userState.js`).
+    """
+    _call("POST", "user_state",
+          params={"on_conflict": "user_id"},
+          body={"user_id": user_id, "state": state},
+          prefer="resolution=merge-duplicates,return=minimal")

@@ -11,6 +11,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/users/me/state",
+      "destination": "/api/user_state"
+    },
+    {
       "source": "/api/notify/kakao",
       "destination": "/api/notify_kakao"
     },

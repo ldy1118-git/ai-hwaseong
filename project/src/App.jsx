@@ -14,6 +14,7 @@ import BottomNav        from './components/layout/BottomNav'
 import { consumeKakaoRedirect, isKakaoNotifyReturn, finishKakaoNotify } from './utils/kakao'
 import { loadOnboarding, saveOnboarding } from './utils/api'
 import DevTools from './components/dev/DevTools'
+import { pullState, startStateSync } from './utils/userState'
 
 const pageVariants = {
   initial: { opacity: 0, y: 10 },
@@ -114,6 +115,10 @@ function KakaoReturn() {
         } catch {
           // 프로필 동기화에 실패해도 로그인 자체는 됐다. 온보딩을 다시 하면 된다.
         }
+        // 관심공고·메모·서류진행을 다른 기기 것과 합친다. 둘러보기로
+        // 담아둔 것이 계정에 붙는 순간이기도 하다(`utils/userState.js`).
+        try { await pullState() } catch { /* 기기 것으로 계속 쓴다 */ }
+
         if (cancelled) return
         navigate(hasProfile ? '/home' : '/onboarding', { replace: true })
       })
@@ -146,6 +151,14 @@ function KakaoReturn() {
 }
 
 export default function App() {
+  // 바뀔 때마다 서버에 올린다. 로그인 안 했으면 아무 일도 안 한다.
+  // 새로고침으로 들어온 경우에도 서버 것을 한 번 받아온다 — 다른 기기에서
+  // 담은 것이 이 기기에 없을 수 있다.
+  useEffect(() => {
+    startStateSync()
+    pullState().catch(() => {})
+  }, [])
+
   return (
     <>
       <KakaoReturn />

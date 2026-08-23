@@ -33,6 +33,8 @@ function markApplied(prog) {
       applied_at:   new Date().toISOString().slice(0, 10),
     })
     localStorage.setItem(APPLIED_KEY, JSON.stringify(saved))
+    // 다른 기기로 이어주려면 바뀐 걸 알려야 한다(`utils/userState.js`).
+    window.dispatchEvent(new Event('mars-fit-applied-changed'))
   } catch {}
 }
 
