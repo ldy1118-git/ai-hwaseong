@@ -1,5 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Pencil } from 'lucide-react'
+import { listNotes, setNote, noteKey, subscribeNotes } from '../../utils/calendarNotes'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -7,6 +9,49 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
  * @param taxEvents  세무일정. `utils/taxCalendar.js` 의 taxCalendarEvents() 모양.
  *                   기본값이 빈 배열이라 안 넘기면 예전처럼 공고만 그린다.
  */
+/* 날짜 하나에 붙는 메모.
+ *
+ * 저장 버튼을 따로 두지 않는다. 달력에서 다른 날을 누르거나 화면을 떠나면
+ * 적던 게 사라지는데, 저장을 눌러야 남는다는 걸 그때 알게 된다. 칸에서
+ * 손을 떼면(blur) 저장한다.
+ *
+ * 대신 저장됐다는 표시가 필요하다 — 아무 반응이 없으면 눌렀는지 모른다. */
+function DayNote({ dateKey, value, onSave }) {
+  const [draft, setDraft] = useState(value)
+  const [saved, setSaved] = useState(false)
+
+  // 다른 날을 누르면 그 날의 메모로 갈아탄다. 안 하면 앞 날짜에 적던
+  // 글이 남아서, 저장하면 엉뚱한 날에 붙는다.
+  useEffect(() => { setDraft(value); setSaved(false) }, [dateKey, value])
+
+  function commit() {
+    if (draft.trim() === value.trim()) return
+    onSave(draft)
+    setSaved(true)
+  }
+
+  return (
+    <div className="mt-3">
+      <label className="flex items-center gap-1.5 mb-1.5 text-[12px] font-bold text-warm-text">
+        <Pencil size={12} className="text-amber-500" />
+        메모
+        {saved && <span className="font-medium text-emerald-600">저장됐어요</span>}
+      </label>
+      <textarea
+        value={draft}
+        onChange={e => { setDraft(e.target.value); setSaved(false) }}
+        onBlur={commit}
+        rows={2}
+        placeholder="이 날 할 일을 적어두세요"
+        className="w-full resize-y rounded-xl border border-warm-gray/40 bg-white
+                   px-3.5 py-2.5 text-sm text-navy leading-relaxed
+                   placeholder:text-warm-gray
+                   focus:outline-none focus:border-amber-500/70"
+      />
+    </div>
+  )
+}
+
 export default function DeadlineCalendar({
   matches = [], loading, inProgress = null, taxEvents = [],
 }) {
@@ -31,6 +76,11 @@ export default function DeadlineCalendar({
     })
     return map
   }, [matches])
+
+  // 'YYYY-MM-DD' → 메모. 달력 칸의 열쇠(`${y}-${m0}-${d}`)와 형식이 다르다.
+  // 달력 쪽은 월이 0부터라 저장 열쇠로 쓰면 다른 화면에서 읽을 때 어긋난다.
+  const [notes, setNotes] = useState(() => listNotes())
+  useEffect(() => subscribeNotes(() => setNotes(listNotes())), [])
 
   // date-key → TaxEvent[]. 공고와 따로 둔다. 같은 날에 둘 다 있을 수 있고,
   // 「신청 마감」과 「신고 기한」은 놓쳤을 때 벌어지는 일이 아예 다르다.
@@ -71,6 +121,11 @@ export default function DeadlineCalendar({
   const selData = selKey ? (deadlineMap[selKey] ?? { urgent: [], regular: [] }) : null
   const selList = selData ? [...selData.urgent, ...selData.regular] : []
   const selTax  = selKey ? (taxMap[selKey] ?? []) : []
+
+  // 선택한 칸의 저장용 열쇠. selKey 는 'YYYY-M-D'(월 0시작)라 그대로 못 쓴다.
+  const selNoteKey = selKey
+    ? (([y, m, d]) => noteKey(Number(y), Number(m), Number(d)))(selKey.split('-'))
+    : null
 
   return (
     <section className="px-5 pb-8">
@@ -121,6 +176,7 @@ export default function DeadlineCalendar({
             const hasR    = (dl?.regular?.length ?? 0) > 0
             const hasIP   = inProgressKey === key
             const hasTax  = (taxMap[key]?.length ?? 0) > 0
+            const hasNote = Boolean(notes[noteKey(year, month, day)])
             const isSun   = (firstDay + day - 1) % 7 === 0
             const isSat   = (firstDay + day - 1) % 7 === 6
 
@@ -146,11 +202,17 @@ export default function DeadlineCalendar({
               <button key={day}
                 onClick={() => setSelKey(prev => prev === key ? null : key)}
                 className={[
-                  'aspect-square flex flex-col items-center justify-center gap-1',
+                  'relative aspect-square flex flex-col items-center justify-center gap-1',
                   'rounded-xl transition-colors',
                   bgClass,
                   isToday && !isSel ? 'ring-1 ring-inset ring-navy/40' : '',
                 ].join(' ')}>
+                {/* 메모는 모서리 점으로. 아래 줄에 네 번째 글자를 넣으면
+                    좁은 화면에서 칸을 넘친다. */}
+                {hasNote && (
+                  <span className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-full
+                    ${isSel ? 'bg-white' : 'bg-amber-500'}`} />
+                )}
                 <span className={`text-xs lg:text-base leading-none ${textClass}`}>{day}</span>
                 <div className="h-3 flex items-center gap-0.5">
                   {(hasU || hasR) && !isSel && (
@@ -190,8 +252,24 @@ export default function DeadlineCalendar({
               <span className="text-[13px] text-warm-text">세무 신고기한</span>
             </div>
           )}
+          {Object.keys(notes).length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span className="text-[13px] text-warm-text">내 메모</span>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* 고른 날에 메모. 공고도 세무일정도 없는 날에도 적을 수 있어야 해서
+          목록이 비어 있어도 그린다. */}
+      {selNoteKey && (
+        <DayNote
+          dateKey={selNoteKey}
+          value={notes[selNoteKey] ?? ''}
+          onSave={text => setNote(selNoteKey, text)}
+        />
+      )}
 
       {/* 선택한 날짜의 세무 신고기한 —
           공고보다 위에 둔다. 신청은 안 해도 그만이지만 신고는 안 하면
@@ -213,7 +291,7 @@ export default function DeadlineCalendar({
 
       {/* 선택한 날짜의 공모 목록 */}
       {selData && selList.length === 0 && selTax.length === 0 && (
-        <p className="mt-3 text-xs text-warm-text text-center py-2">이 날은 마감하는 공모가 없어요.</p>
+        <p className="mt-2 text-xs text-warm-text text-center">이 날은 마감하는 공모가 없어요.</p>
       )}
       {selList.length > 0 && (
         <div className="mt-3 space-y-2">

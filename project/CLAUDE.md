@@ -51,7 +51,7 @@ React 18 + Vite 6 + Tailwind. Vercel 이 이 폴더를 빌드해서 배포한다
 | `components/sections/CommercialAnalysisView.jsx` | 성현 — 상권분석 (사업자가 아닌 사람) |
 | `components/ui/DocumentStepDrawer.jsx` | 서희 — 서류 상세 창 |
 | `pages/Onboarding.jsx` · `pages/NoticeDetail.jsx` · `pages/MissionControl.jsx` | 서희 |
-| `components/ui/DeadlineCalendar.jsx` · `pages/Schedule.jsx` | 성현 달력 메모 · 대윤 표시 층(공고·관심공고·세무) |
+| `components/ui/DeadlineCalendar.jsx` · `pages/Schedule.jsx` | 대윤 — 달력 전부 |
 | `pages/ApplicationGuide.jsx` | **서희·성현 둘 다.** 의존관계는 없고 그냥 같은 파일이다 |
 | `pages/Home.jsx` · `components/sections/OrbitDashboard.jsx` | 성현 — 메인 UI 개선 |
 | `utils/favorites.js` · `utils/notifications.js` · `utils/openNotice.js` | 대윤 — 관심공고·알림 |
@@ -80,7 +80,12 @@ React 18 + Vite 6 + Tailwind. Vercel 이 이 폴더를 빌드해서 배포한다
 다시 돌린다. 마감돼서 사라진 공고면 false 를 돌려준다.
 
 일정 탭의 달력은 층 세 개를 껐다 켤 수 있다 — 전체 공고 · 관심공고 ·
-세무일정. `DeadlineCalendar` 의 `taxEvents` prop 은 기본값이 빈 배열이라
+세무일정. 여기에 사장님이 직접 적는 메모(`utils/calendarNotes.js`)가 겹친다.
+메모는 층으로 안 뺐다 — 자기가 적은 것이라 몇 개 없고, 껐다 켤 이유가 없다.
+
+**달력 칸의 열쇠와 메모 저장 열쇠는 형식이 다르다.** 칸은 `'YYYY-M-D'` 로
+월이 0부터고, 저장은 `'YYYY-MM-DD'` 다. `noteKey(year, month0, day)` 로만
+만들 것 — 칸 열쇠를 그대로 저장하면 1월 메모가 다른 달에 붙는다. `DeadlineCalendar` 의 `taxEvents` prop 은 기본값이 빈 배열이라
 홈에서 부르는 옛 호출부는 그대로 돈다.
 
 세무일정을 달력 모양으로 펴는 것은 `utils/taxCalendar.js` 다.
