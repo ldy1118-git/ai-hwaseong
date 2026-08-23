@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Star, ChevronRight, ChevronDown, FileText } from 'lucide-react'
 import Card from '../ui/Card'
-import { listFavorites, removeFavorite, subscribeFavorites } from '../../utils/favorites'
+import { listFavorites, removeFavorite, subscribeFavorites, sortByDeadline } from '../../utils/favorites'
 import { daysLeft } from '../../utils/notifications'
 import { openNoticeById } from '../../utils/openNotice'
 
@@ -22,11 +22,16 @@ const PREVIEW = 5
 
 export default function FavoriteNotices({ className = '' }) {
   const navigate = useNavigate()
-  const [items, setItems] = useState(() => listFavorites())
+  // 담은 순이 아니라 마감순으로 보여준다. 다섯 건만 펴기 때문에, 담은
+  // 순으로 두면 제일 급한 것이 「더보기」 아래에 숨을 수 있다.
+  const [items, setItems] = useState(() => sortByDeadline(listFavorites()))
   const [gone, setGone] = useState('')
   const [expanded, setExpanded] = useState(false)
 
-  useEffect(() => subscribeFavorites(() => setItems(listFavorites())), [])
+  useEffect(
+    () => subscribeFavorites(() => setItems(sortByDeadline(listFavorites()))),
+    [],
+  )
 
   if (items.length === 0) return null
 

@@ -112,6 +112,36 @@ export function toggleFavorite(notice) {
 }
 
 /**
+ * 마감이 급한 것부터. 저장 순서(담은 순)는 안 건드리고 복사본을 돌려준다.
+ *
+ * 마감일이 없는 공고가 절반이다 — 58건 중 30건은 apply_period 에 end 가
+ * 없고 「세부사업별 상이」 같은 note 뿐이다. 그것들은 아직 신청할 수 있으니
+ * 날짜가 있는 것들 아래, 이미 끝난 것 위에 둔다. 순서는
+ *
+ *     급한 것 → 먼 것 → 마감일 미정 → 마감됨
+ *
+ * 마감된 것을 맨 아래로 내리는 이유는 이제 할 수 있는 게 없어서다. 지우지는
+ * 않는다 — 사장님이 담아둔 것을 우리가 말없이 치우면 사라진 줄 안다.
+ */
+export function sortByDeadline(list, today) {
+  const day = today ?? new Date().toISOString().slice(0, 10)
+  const rank = (f) => {
+    const end = f.apply_period?.end
+    if (typeof end !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return [1, '']
+    return end < day ? [2, end] : [0, end]
+  }
+  return [...list].sort((a, b) => {
+    const [ga, da] = rank(a)
+    const [gb, db] = rank(b)
+    if (ga !== gb) return ga - gb
+    if (da === db) return 0
+    // 마감된 것끼리는 최근에 끝난 것이 위로. 오래된 것이 위에 있으면
+    // 방금 놓친 게 제일 아래로 밀린다.
+    return ga === 2 ? (da < db ? 1 : -1) : (da < db ? -1 : 1)
+  })
+}
+
+/**
  * 목록이 바뀔 때마다 부른다. 해제 함수를 돌려준다.
  *
  *     useEffect(() => subscribeFavorites(() => setList(listFavorites())), [])
