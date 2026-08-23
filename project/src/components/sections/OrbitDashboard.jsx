@@ -6,6 +6,7 @@ import { generateText } from '../../utils/llm/llmProvider'
 import findImg from '../../../design/find.png'
 import FavoriteButton from '../ui/FavoriteButton'
 import { useRememberedScroll } from '../../utils/scrollMemory'
+import { isVisited, markVisited, subscribeVisited } from '../../utils/visitedNotices'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
 // 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
@@ -136,13 +137,22 @@ const COND_STYLE = {
 function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
   const [showReason, setShowReason] = useState(false)
   const isUrgent = accent === 'orange'
+
+  // 한 번 열어본 공고는 흐리게. 목록이 마흔 건이 넘고 다 비슷하게 생겨서,
+  // 오르내리다 보면 아까 본 것을 또 연다.
+  const [seen, setSeen] = useState(() => isVisited(item.id))
+  useEffect(() => {
+    setSeen(isVisited(item.id))
+    return subscribeVisited(() => setSeen(isVisited(item.id)))
+  }, [item.id])
   const conditions = (item.raw?.condition_results ?? []).filter(c => c.status !== '대상아님')
 
   // 왼쪽에 색막대를 세운 둥근 카드는 어느 서비스에나 있는 모양이라
   // 눈에 안 남는다. 급한 것은 D-day 색과 「긴급 마감」 묶음이 이미
   // 말해주고 있어서 막대가 없어도 구분된다.
   return (
-    <Card padding="compact" tone={isUrgent ? 'urgent' : 'plain'}>
+    <Card padding="compact" tone={isUrgent ? 'urgent' : 'plain'}
+      className={seen ? 'opacity-60 hover:opacity-100 transition-opacity duration-150' : ''}>
 
       {/* 상단: 상태 배지 + 매칭 점수 + D-Day */}
       <div className="flex items-center justify-between gap-3 mb-1">
@@ -172,7 +182,15 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
       </div>
 
       {/* 정책명 */}
-      <p className="text-[15px] font-bold text-navy leading-snug line-clamp-2">{item.title}</p>
+      <p className="text-[15px] font-bold text-navy leading-snug line-clamp-2">
+        {seen && (
+          <span className="mr-1.5 align-middle text-[12px] font-bold text-warm-text
+                           bg-warm-gray/25 rounded px-1.5 py-0.5">
+            본 공고
+          </span>
+        )}
+        {item.title}
+      </p>
 
       {/* 공고 요약 — AI 요약 우선, 없으면 첫 문장 fallback. 어려운 단어는 툴팁 */}
       {(aiDesc || briefDesc(item.summary)) && (
@@ -274,11 +292,11 @@ const INITIAL_COUNT = 4
  */
 const SORTS = {
   score: {
-    label: '잘 맞는 순',
+    label: '매칭점수순',
     compare: (a, b) => b.score - a.score,
   },
   deadline: {
-    label: '마감 임박 순',
+    label: '마감임박순',
     compare: (a, b) => {
       if (a.dDay === null && b.dDay === null) return b.score - a.score
       if (a.dDay === null) return 1
@@ -502,10 +520,13 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
   // 넓은 화면에서는 이 목록이 카드 몇 장 높이로 잘려 안에서 굴러간다.
   // 공고를 보고 나오면 그 안쪽 위치도 되돌려준다 — 창 스크롤만 기억하면
   // 넓은 화면에서는 아무 소용이 없다.
-  useRememberedScroll('home-urgent',  urgentRef)
-  useRememberedScroll('home-regular', regularRef)
+  // 목록이 그려지고 높이가 잘린 뒤에야 되돌린다. 그 전에는 컨테이너가
+  // 안 굴러가서 되돌리기가 「굴릴 데가 없다」고 포기해버린다.
+  useRememberedScroll('home-urgent',  urgentRef,  !loading && urgentCap != null)
+  useRememberedScroll('home-regular', regularRef, !loading && regularCap != null)
 
   function handleDetail(item) {
+    markVisited(item.id)
     localStorage.setItem('mars-fit-selected-match', JSON.stringify(item.raw))
     navigate('/notice')
   }

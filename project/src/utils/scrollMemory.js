@@ -114,7 +114,16 @@ export function restoreScroll(path) {
  *
  * ref 를 다른 곳에서도 써야 하면 두 번째 인자로 넘긴다.
  */
-export function useRememberedScroll(key, outerRef = null) {
+/**
+ * @param ready  되돌리기를 시작해도 되는 시점. 목록이 그려지고 안쪽 스크롤이
+ *               생긴 뒤여야 한다.
+ *
+ *               이걸 안 두었더니 되돌리기가 통째로 안 먹었다. 공고 목록은
+ *               카드 높이를 재고 나서야 잘리는데(`useCardCap`), 그 전에는
+ *               컨테이너가 안 굴러가서 「굴릴 데가 없다」고 포기해버린다.
+ *               API 가 느린 날엔 포기하고 나서야 목록이 그려졌다.
+ */
+export function useRememberedScroll(key, outerRef = null, ready = true) {
   const own = useRef(null)
   const ref = outerRef ?? own
 
@@ -157,7 +166,7 @@ export function useRememberedScroll(key, outerRef = null) {
       el.removeEventListener('wheel', stop)
       el.removeEventListener('touchstart', stop)
     }
-    if (want) {
+    if (want && ready) {
       const tick = () => {
         if (stopped) return
         if (el.scrollHeight - el.clientHeight >= want) {
@@ -178,7 +187,7 @@ export function useRememberedScroll(key, outerRef = null) {
       el.removeEventListener('scroll', onScroll)
       stop()
     }
-  }, [key, ref])
+  }, [key, ref, ready])
 
   return ref
 }
