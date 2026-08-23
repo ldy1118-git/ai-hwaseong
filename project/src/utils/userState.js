@@ -25,6 +25,7 @@ const KEYS = {
   progress:  'mars-fit-checklist-progress',
   applied:   'mars-fit-applied-programs',
   settings:  'mars-fit-notify-settings',
+  taxDone:   'mars-fit-tax-done',
 }
 
 /* 이 이벤트 중 하나라도 뜨면 올린다. 각 util 이 저장할 때 쏘는 것들이다. */
@@ -34,6 +35,7 @@ const EVENTS = [
   'mars-fit-checklist-progress-changed',
   'mars-fit-applied-changed',
   'mars-fit-notify-settings-changed',
+  'mars-fit-tax-done-changed',
 ]
 
 const PUSH_DELAY = 1500
@@ -123,12 +125,22 @@ function mergeSettings(mine = {}, theirs = {}) {
   return { ...theirs, ...mine }
 }
 
+/** 신고 완료 — 열쇠에 기한이 들어 있어서 해가 바뀌어도 안 겹친다.
+ *
+ * 합치기만 하면, 폰에서 체크를 뺀 신고가 PC 에 남아 있다가 다음 로그인에
+ * 되살아난다. 합치는 것은 로그인 때 한 번뿐이고 표시를 다시 빼면 그만이라
+ * 여기까지 맞추지 않는다 — 달력 메모도 같은 자리에 있다. */
+function mergeTaxDone(mine = {}, theirs = {}) {
+  return { ...theirs, ...mine }
+}
+
 const MERGERS = {
   favorites: mergeFavorites,
   notes:     mergeNotes,
   progress:  mergeProgress,
   applied:   mergeApplied,
   settings:  mergeSettings,
+  taxDone:   mergeTaxDone,
 }
 
 /**

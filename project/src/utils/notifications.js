@@ -18,6 +18,7 @@ import { listFavorites, subscribeFavorites } from './favorites'
 import { getNotifySettings, subscribeNotifySettings } from './notifySettings'
 import { taxCalendarEventsAround } from './taxCalendar'
 import { todayISO } from './today'
+import { listTaxDone, taxDoneKey } from './taxDone'
 
 const READ_KEY = 'mars-fit-notifications-read'
 const EVENT = 'mars-fit-notifications-changed'
@@ -242,11 +243,16 @@ export function listNotifications(today = todayISO(), profile = undefined) {
   //    여러 개 고르면 그때마다 뜬다 — 한 달 전에 한 번 보고 미뤄뒀다가
   //    하루 전에 다시 보는 게 실제로 필요한 모양이다.
   const leads = [...(settings.taxLead ?? [])].sort((a, b) => a - b)
+  // 마쳤다고 표시한 신고는 알리지 않는다. 안 걸러내면 7월에 부가세를 내고
+  // 체크했는데도 D-1 에 종이 울린다. 카톡도 같은 규칙이다
+  // (`scripts/notify_kakao.py`).
+  const done = listTaxDone()
   const tax = (!settings.tax || leads.length === 0) ? [] :
     taxCalendarEventsAround(readProfile(profile))
       .map((e) => {
         const left = daysLeft(e.dueDate, today)
         if (left === null || left < 0) return null
+        if (done[taxDoneKey(e.groupId ?? e.id, e.dueDate)]) return null
         // 고른 것 중 아직 안 지난 문턱 하나. 날이 갈수록 30 → 7 → 1 로
         // 갈아타고, 문턱마다 id 가 달라서 읽음 표시가 새 알림을 안 덮는다.
         const lead = leads.find(n => left <= n)

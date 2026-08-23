@@ -171,6 +171,38 @@ useEffect 가 안 돈다.
 `utils/taxSchedule.js` 는 `policy_data/tax_schedule.py` 와 같은 로직이다.
 **한쪽만 고치면 화면과 서버가 다른 날짜를 말한다.** 양쪽 다 고칠 것.
 
+데이터(`data/tax_calendar.json`)도 `policy_data/tax_calendar.json` 과 두 벌이다.
+맞춰주는 스크립트가 없으니 고친 뒤 `md5sum` 으로 확인할 것.
+
+세무 한 줄은 `ui/TaxRow.jsx` 하나다. 세 화면이 같이 쓴다 — `/district` 의
+연간 목록, `/schedule` 오른쪽의 다가오는 기한, 달력에서 날짜를 눌렀을 때의
+`DayPanel`. 전에는 상세가 District 안에만 있어서, 달력에서 같은 신고를 봐도
+제목과 D-day 뿐이었다.
+
+**들어오는 모양이 두 가지다.** `taxSchedule()` 은 원천세를 `dueDates` 열두
+개로 주고 `recurrence: 'monthly'` 를 달아 보낸다. `taxCalendarEvents()` 는
+그걸 날짜별로 편다. TaxRow 는 `dueDate` 가 있으면 언제나 그 날짜를 쓴다 —
+`recurrence` 를 먼저 보면 9월 10일짜리가 「매월 10일」로 나와 D-day 와 안 맞는다.
+
+원천세는 **dueDate 가 없다.** `e.dueDate < today` 도 `e.dueDate >= today` 도
+둘 다 false 라서, 그냥 거르면 지난 목록에도 남은 목록에도 안 들어가고
+화면에서 통째로 사라진다(`District.jsx` 의 `past`/`left`).
+
+`/schedule` 오른쪽 목록은 **매월 반복을 제일 가까운 한 건으로 접는다.**
+안 접으면 직원 있는 사장님 화면에 「원천세 신고·납부 (매월)」이 열여섯 줄
+이어진다. 달력에는 열두 개 점이 그대로 찍힌다 — 목록은 할 일이고 달력은
+지도다. 이번 달 것을 완료로 찍으면 다음 달 것으로 넘어간다.
+
+### 신고 완료 표시
+
+`utils/taxDone.js`. 열쇠는 「원본항목번호::기한」이라 해가 바뀌어도 안 겹친다.
+**날짜가 정해진 건에만 붙인다** — 「매월 10일」 한 줄에 체크하면 어느 달을
+냈다는 말인지 알 수 없다.
+
+완료로 찍으면 인앱 종(`utils/notifications.js`)과 카톡(`scripts/notify_kakao.py`
+의 `pick_tax`)에서 같이 빠진다. **열쇠 모양을 한쪽만 고치면 화면에서 지운
+신고가 카톡으로 계속 온다.**
+
 ## 알려진 것
 
 - 용어 뜻풀이 툴팁이 `onMouseEnter`/`onMouseLeave` 라 **휴대폰에서 안 열린다**

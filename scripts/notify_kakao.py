@@ -148,14 +148,17 @@ def tax_events(profile: dict, year: int) -> list[dict]:
                 for index, due in enumerate(event["due_dates"], start=1):
                     if due.get("date"):
                         out.append({"id": f"{event['id']}-{year_}-{index}",
+                                    "base": event["id"],
                                     "title": event["title"], "due": due["date"]})
             elif event.get("due_date"):
                 out.append({"id": f"{event['id']}-{year_}",
+                            "base": event["id"],
                             "title": event["title"], "due": event["due_date"]})
     return sorted(out, key=lambda e: e["due"])
 
 
-def pick_tax(profile: dict, settings: dict, today: date, sent: set[str]) -> list[dict]:
+def pick_tax(profile: dict, settings: dict, today: date, sent: set[str],
+             done: dict | None = None) -> list[dict]:
     """오늘 보낼 세무 알림. 화면(`utils/notifications.js`)과 같은 규칙이다.
 
     고른 시점 중 **아직 안 지난 것 하나**만 쓴다. 30·7·1 을 다 골랐는데
@@ -163,6 +166,11 @@ def pick_tax(profile: dict, settings: dict, today: date, sent: set[str]) -> list
 
     보낸 기록으로 걸러서 같은 문턱을 두 번 안 보낸다. cron 이 하루 걸러도
     다음 날 잡히도록 「딱 그날」이 아니라 「그 문턱 안에 들어왔나」로 본다.
+
+    `done` 은 화면에서 「완료」로 찍은 것이다(user_state.taxDone). 7월에
+    부가세를 내고 체크했는데 D-1 에 카톡이 오면 안 된다. 열쇠 모양은
+    `project/src/utils/taxDone.js` 의 taxDoneKey() 와 같아야 한다 —
+    「원본항목번호::기한」. 한쪽만 고치면 화면은 지웠는데 카톡은 계속 온다.
     """
     if not settings.get("tax", True):
         return []
@@ -170,8 +178,11 @@ def pick_tax(profile: dict, settings: dict, today: date, sent: set[str]) -> list
     if not leads:
         return []
 
+    done = done or {}
     out = []
     for event in tax_events(profile, today.year):
+        if done.get(f"{event['base']}::{event['due']}"):
+            continue
         try:
             due = date.fromisoformat(event["due"])
         except ValueError:
@@ -329,9 +340,11 @@ def main() -> int:
         # 화면에서 고른 알림 설정. 여기를 안 보면 사장님이 「새 공고 알림」을
         # 껐는데 카톡은 계속 오는, 제일 나쁜 모양이 된다.
         try:
-            settings = (_store.get_state(user_id) or {}).get("settings") or {}
+            state = _store.get_state(user_id) or {}
         except _store.StoreError:
-            settings = {}
+            state = {}
+        settings = state.get("settings") or {}
+        tax_done = state.get("taxDone") or {}
         # 새 공고를 껐어도 세무 알림은 받을 수 있다. 여기서 끊지 않고
         # 아래에서 공고 목록만 비운다.
         score_min = int(settings.get("minScore") or SCORE_MIN)
@@ -367,7 +380,7 @@ def main() -> int:
         # 쌓여 있어서 기준선이 필요하지만, 세무는 날짜가 정해진 몇 건뿐이라
         # 지금 걸린 것이 곧 알려야 할 것이다.
         tax_sent = _store.sent_notice_ids(user_id, "tax")
-        tax_rows = pick_tax(profile, settings, date.today(), tax_sent)
+        tax_rows = pick_tax(profile, settings, date.today(), tax_sent, tax_done)
 
         sent = _store.sent_notice_ids(user_id, "new")
 

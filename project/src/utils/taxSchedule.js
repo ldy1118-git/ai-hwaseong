@@ -128,13 +128,13 @@ export function taxSchedule(profile, year = new Date().getFullYear()) {
   }
 }
 
-/** 오늘 기준으로 다음에 닥칠 일정 하나. 홈 화면 배너용 */
-export function nextDeadline(profile, today = new Date()) {
-  const year = today.getFullYear()
-  const iso = `${year}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
-  const { mustDo } = taxSchedule(profile, year)
-  const upcoming = mustDo.filter(e => e.dueDate && e.dueDate >= iso)
-  if (upcoming.length) return upcoming[0]
-  // 올해 남은 게 없으면 내년 첫 일정
-  return taxSchedule(profile, year + 1).mustDo[0] || null
-}
+/* nextDeadline() 은 지웠다.
+ *
+ * dueDate 가 있는 것만 보던 함수라, 「매월 10일」인 원천세를 통째로
+ * 놓쳤다. 직원 있는 사장님에게는 그게 제일 가까운 신고인데 홈 배너는
+ * 두 달 뒤 부가세를 가리켰다.
+ *
+ * 대신 `utils/taxCalendar.js` 의 nextTaxDeadline() 을 쓴다. 거기는 매월
+ * 반복을 이미 날짜별로 펴둔 자리라 그냥 제일 앞을 집으면 된다. 이 파일은
+ * policy_data/tax_schedule.py 와 두 벌이라, 짝이 없는 화면용 계산을
+ * 여기 두지 않는 편이 낫다. */

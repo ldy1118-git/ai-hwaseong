@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/layout/Header'
 import DeadlineCalendar from '../components/ui/DeadlineCalendar'
@@ -9,6 +9,8 @@ import { listUnfinished, subscribeProgress } from '../utils/checklistProgress'
 import { todayISO } from '../utils/today'
 import TaxProfileHint from '../components/ui/TaxProfileHint'
 import DayPanel from '../components/ui/DayPanel'
+import TaxRow from '../components/ui/TaxRow'
+import { listTaxDone, subscribeTaxDone, taxDoneKey } from '../utils/taxDone'
 
 const LAYERS_KEY = 'mars-fit-schedule-layers'
 const LAYERS_DEFAULT = { all: true, fav: true, tax: true }
@@ -120,72 +122,91 @@ function LayerChip({ on, onClick, dot, label, count }) {
  * 뭘 해야 하나」가 바로 읽힌다.
  *
  * 지난 것은 뺀다. 이미 지난 신고기한은 알려줘도 할 수 있는 게 없고,
- * 남은 것 사이에 섞이면 뭐가 남았는지가 흐려진다. */
+ * 남은 것 사이에 섞이면 뭐가 남았는지가 흐려진다.
+ *
+ * 줄을 누르면 펴지면서 달력도 그 날로 옮겨간다. 무엇을 준비해야 하는지와
+ * 그게 언제인지를 한 번에 본다. */
 function TaxSchedule({ events, profile, onPick }) {
   const today = todayISO()
-  const upcoming = events.filter(e => e.dueDate >= today)
+  const [openId, setOpenId]   = useState(null)
+  const [doneMap, setDoneMap] = useState(listTaxDone)
+
+  useEffect(() => subscribeTaxDone(() => setDoneMap(listTaxDone())), [])
+
+  const doneOf = e => Boolean(doneMap[taxDoneKey(e.groupId ?? e.id, e.dueDate)])
+
+  /* 매월 반복은 제일 가까운 한 건만 남긴다.
+   *
+   * 안 접으면 직원 있는 사장님 화면에서 「원천세 신고·납부 (매월)」이
+   * 열여섯 줄 이어진다. 달력에는 열두 개 점이 그대로 찍힌다 — 목록은
+   * 할 일이고 달력은 지도다.
+   *
+   * 이번 달 것을 완료로 찍으면 다음 달 것으로 넘어간다. 안 넘기면 체크한
+   * 순간 원천세가 목록에서 사라져서 다음 달을 챙길 데가 없어진다. */
+  const upcoming = useMemo(() => {
+    const future = events.filter(e => e.dueDate >= today)
+    const picked = new Set()
+    const out = []
+    for (const e of future) {
+      if (!e.recurring) { out.push(e); continue }
+      if (picked.has(e.groupId)) continue
+      const laterUndone = future.some(
+        x => x.recurring && x.groupId === e.groupId && x.dueDate > e.dueDate && !doneOf(x),
+      )
+      if (doneOf(e) && laterUndone) continue
+      picked.add(e.groupId)
+      out.push(e)
+    }
+    return out
+  }, [events, today, doneMap])
+
   if (upcoming.length === 0) return null
 
-  const dday = (date) => Math.round(
-    (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000,
-  )
+  const left = upcoming.filter(e => !doneOf(e)).length
 
   return (
     <section>
       <div className="flex items-baseline gap-2 mb-1">
         <h3 className="text-base font-bold text-navy">세무 신고기한</h3>
-        <span className="text-sm font-bold text-emerald-600">{upcoming.length}건</span>
+        <span className="text-sm font-bold text-emerald-600">
+          {left > 0 ? `${left}건` : '다 하셨어요'}
+        </span>
       </div>
       <p className="text-sm text-warm-text mb-3 leading-snug">
         기한을 넘기면 가산세가 붙어요. 공휴일·주말이면 다음 날로 밀린 날짜예요.
+        줄을 누르면 무엇을 준비할지 펴져요.
       </p>
 
       {/* 사업자 형태·과세유형을 안 정하면 해당될 수 있는 게 전부 뜬다.
           왜 많은지 말해주고 고칠 길을 준다. */}
       <TaxProfileHint profile={profile} className="mb-3" />
-      <div className="space-y-2 lg:max-h-[62vh] lg:overflow-y-auto lg:pr-1">
+
+      <div className="bg-white border border-warm-gray/30 rounded-xl px-4
+                      lg:max-h-[62vh] lg:overflow-y-auto">
         {upcoming.map((e, i) => {
-          const left = dday(e.dueDate)
-          const soon = left <= 7
-          const [year, month, day] = e.dueDate.split('-')
+          const [year] = e.dueDate.split('-')
           // 해가 바뀌는 자리에 줄을 하나 넣는다. 없으면 10.26 다음에 1.25 가
           // 와서 순서가 틀린 것처럼 읽힌다 — 내년 것인데 그 말이 어디에도 없다.
           const newYear = i > 0 && upcoming[i - 1].dueDate.slice(0, 4) !== year
           return (
             <div key={e.id}>
-            {newYear && (
-              <div className="flex items-center gap-2 pt-2 pb-1">
-                <span className="text-[11px] font-bold text-warm-gray">{year}년</span>
-                <span className="flex-1 h-px bg-warm-gray/30" />
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => onPick?.(e.dueDate)}
-              title="달력에서 이 날 보기"
-              className={[
-                'w-full text-left bg-white border rounded-xl px-4 py-3 flex items-center gap-3',
-                'hover:border-emerald-600/60 transition-colors duration-150',
-                soon ? 'border-emerald-600/40' : 'border-warm-gray/30',
-              ].join(' ')}>
-              <span className="text-sm font-bold text-emerald-700 tabular-nums flex-shrink-0 w-12">
-                {Number(month)}.{Number(day)}
-              </span>
-              <span className="flex-1 text-sm font-medium text-navy leading-snug">
-                {e.title}
-                {/* 법정 기한이 공휴일이라 밀린 날. 달력을 보고 「왜 26일이지」
-                    하는 사장님에게 이유를 준다. */}
-                {e.moved && (
-                  <span className="ml-1.5 text-[11px] font-normal text-warm-gray">밀림</span>
-                )}
-              </span>
-              <span className={[
-                'text-xs font-bold whitespace-nowrap flex-shrink-0',
-                soon ? 'text-emerald-700' : 'text-warm-text',
-              ].join(' ')}>
-                {left === 0 ? '오늘' : `D-${left}`}
-              </span>
-            </button>
+              {newYear && (
+                <div className="flex items-center gap-2 pt-3 pb-1">
+                  <span className="text-[13px] font-bold text-warm-gray">{year}년</span>
+                  <span className="flex-1 h-px bg-warm-gray/30" />
+                </div>
+              )}
+              <TaxRow
+                item={e}
+                done={doneOf(e)}
+                open={openId === e.id}
+                onToggle={() => {
+                  const next = openId === e.id ? null : e.id
+                  setOpenId(next)
+                  // 펼 때만 달력을 옮긴다. 접을 때도 튀면 어지럽다.
+                  if (next) onPick?.(e.dueDate)
+                }}
+              />
             </div>
           )
         })}

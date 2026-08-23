@@ -7,10 +7,15 @@ import Header from '../components/layout/Header'
 import CommercialAnalysisView from '../components/sections/CommercialAnalysisView'
 import { useNavigate } from 'react-router-dom'
 import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
-import { taxSchedule, nextDeadline, holidaysKnown } from '../utils/taxSchedule'
+import { taxSchedule, holidaysKnown } from '../utils/taxSchedule'
+import { nextTaxDeadline } from '../utils/taxCalendar'
 import { todayISO } from '../utils/today'
 import calendar from '../data/tax_calendar.json'
 import TaxProfileHint from '../components/ui/TaxProfileHint'
+// 세무 한 줄과 날짜 표기는 달력 화면과 같은 것을 쓴다. 여기에만 있던
+// 시절에는 /schedule 에서 같은 신고를 봐도 제목과 D-day 뿐이었다.
+import TaxRow, { korDate, dDay, dDayLabel, MovedNote } from '../components/ui/TaxRow'
+import { listTaxDone, subscribeTaxDone, taxDoneKey } from '../utils/taxDone'
 
 /**
  * 내 매장 현황.
@@ -32,42 +37,6 @@ import TaxProfileHint from '../components/ui/TaxProfileHint'
  * components/sections/CommercialAnalysisView.jsx 에 있다.
  */
 
-// ── 날짜 유틸 ────────────────────────────────────────────────────
-
-const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토']
-
-/**
- * 'YYYY-MM-DD' → '1월 26일 (월)'.
- * 올해가 아니면 연도를 붙인다. 안 붙이면 내년 1월 일정이 이번 달 것처럼 보인다.
- */
-function korDate(iso) {
-  if (!iso) return ''
-  const d = new Date(iso + 'T00:00:00')
-  const y = d.getFullYear() === new Date().getFullYear() ? '' : `${d.getFullYear()}년 `
-  return `${y}${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAY[d.getDay()]})`
-}
-
-/** 'MM-DD' → '1/25' */
-function shortLegal(due) {
-  if (!due || !due.includes('-')) return due
-  const [m, d] = due.split('-')
-  return `${Number(m)}/${Number(d)}`
-}
-
-function dDay(iso, today = new Date()) {
-  if (!iso) return null
-  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  const d = new Date(iso + 'T00:00:00')
-  return Math.round((d - t) / 86400000)
-}
-
-function dDayLabel(n) {
-  if (n == null) return ''
-  if (n === 0) return '오늘'
-  if (n < 0) return `${-n}일 지남`
-  return `D-${n}`
-}
-
 // ── 공통 조각 ────────────────────────────────────────────────────
 
 function Card({ children, className = '' }) {
@@ -83,88 +52,6 @@ function SectionTitle({ children, sub }) {
     <div className="mb-3">
       <h2 className="text-sm font-bold text-navy">{children}</h2>
       {sub && <p className="text-[12px] text-warm-text mt-0.5 leading-relaxed">{sub}</p>}
-    </div>
-  )
-}
-
-/** 법정기한이 휴일이라 밀린 경우에만 붙인다. 안 붙이면 사장님이 하루 늦게 안다. */
-function MovedNote({ legal, actual }) {
-  return (
-    <p className="text-[12px] text-sunset-orange mt-1 leading-relaxed">
-      법정기한 {shortLegal(legal)} 이 휴일이라 {korDate(actual)} 로 밀렸어요
-    </p>
-  )
-}
-
-// ── 세무일정 한 줄 ───────────────────────────────────────────────
-
-function TaxRow({ item, open, onToggle }) {
-  const n = dDay(item.dueDate)
-  const urgent = n != null && n >= 0 && n <= 14
-
-  return (
-    <div className="border-b border-warm-gray/10 last:border-0">
-      <button onClick={onToggle} className="w-full flex items-center gap-3 py-3 text-left">
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-navy">{item.title}</p>
-          <p className="text-[12px] text-warm-text mt-0.5">
-            {item.recurrence === 'monthly' ? '매월 10일' : korDate(item.dueDate)}
-            {item.moved && <span className="text-sunset-orange"> · 밀림</span>}
-          </p>
-        </div>
-        {item.recurrence !== 'monthly' && (
-          <span className={`text-[12px] font-bold flex-shrink-0 ${urgent ? 'text-sunset-orange' : 'text-warm-text'}`}>
-            {dDayLabel(n)}
-          </span>
-        )}
-        <ChevronDown
-          size={14}
-          className={`text-warm-gray flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
-        />
-      </button>
-
-      {open && (
-        <div className="pb-3 space-y-2">
-          <p className="text-[13px] text-gray-700 leading-relaxed">{item.easy}</p>
-
-          {item.moved && <MovedNote legal={item.due} actual={item.dueDate} />}
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-primary-bg rounded-lg px-2.5 py-2">
-              <p className="text-[13px] text-warm-text">어디서</p>
-              <p className="text-[13px] font-semibold text-navy mt-0.5">{item.where}</p>
-            </div>
-            <div className="bg-primary-bg rounded-lg px-2.5 py-2">
-              <p className="text-[13px] text-warm-text">기간</p>
-              <p className="text-[13px] font-semibold text-navy mt-0.5 leading-snug">{item.covers}</p>
-            </div>
-          </div>
-
-          {item.docs?.length > 0 && (
-            <div>
-              <p className="text-[13px] text-warm-text mb-1">준비할 것</p>
-              <div className="flex flex-wrap gap-1">
-                {item.docs.map(d => (
-                  <span key={d} className="text-[12px] text-navy bg-navy/5 rounded-full px-2 py-0.5">
-                    {d}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {item.caution && (
-            <p className="text-[12px] text-warm-text leading-relaxed bg-warm-gray/10 rounded-lg px-2.5 py-2">
-              {item.caution}
-            </p>
-          )}
-
-          <p className="text-[12px] text-sunset-orange leading-relaxed">
-            안 하면 — {item.penalty}
-          </p>
-          <p className="text-[13px] text-warm-text/70">근거 {item.source}</p>
-        </div>
-      )}
     </div>
   )
 }
@@ -237,6 +124,9 @@ export default function MyStore() {
   const [openId, setOpenId]   = useState(null)
   const [showIf, setShowIf]     = useState(false)
   const [showPast, setShowPast] = useState(false)
+  const [doneMap, setDoneMap]   = useState(listTaxDone)
+
+  useEffect(() => subscribeTaxDone(() => setDoneMap(listTaxDone())), [])
 
   useEffect(() => {
     const saved = (() => {
@@ -259,17 +149,23 @@ export default function MyStore() {
   const { mustDo, ifApplicable, holidaysKnown: thisYearKnown } = useMemo(
     () => taxSchedule(profile, year), [profile, year],
   )
-  const next = useMemo(() => nextDeadline(profile), [profile])
+  const next = useMemo(() => nextTaxDeadline(profile), [profile])
 
   // 지난 신고와 남은 신고를 나눈다. 섞어 놓으면 건수가 사장님에게 거짓말을
   // 한다. 8월에 열면 「반드시 해야 하는 것 5건」인데 그 중 4건이 이미
   // 지난 것이고 실제로 챙길 건 하나뿐이었다.
-  const past  = useMemo(() => mustDo.filter(e => e.dueDate <  today), [mustDo, today])
-  const left  = useMemo(() => mustDo.filter(e => e.dueDate >= today), [mustDo, today])
+  //
+  // 원천세는 「매월 10일」이라 dueDate 가 없다. 지난 것도 남은 것도 아니고
+  // 늘 다음 달이 온다. undefined 는 두 비교에서 다 false 라, 그냥 두면
+  // 어느 목록에도 안 들어가서 화면에서 통째로 사라진다.
+  const past  = useMemo(() => mustDo.filter(e => e.dueDate && e.dueDate < today), [mustDo, today])
+  const left  = useMemo(() => mustDo.filter(e => !e.dueDate || e.dueDate >= today), [mustDo, today])
 
   // 올해 남은 게 없으면 내년으로 넘긴다. 11월부터는 남은 게 0건인데 지난
   // 5건만 떠 있고, 정작 다음에 할 신고는 목록 어디에도 없었다.
-  const rolled = left.length === 0
+  // 날짜가 있는 게 하나도 안 남았으면 넘긴다. left.length 로 재면 매월
+  // 반복이 늘 하나 들어 있어서 12월에도 안 넘어간다.
+  const rolled = left.every(e => !e.dueDate)
   const nextYr = useMemo(
     () => (rolled ? taxSchedule(profile, year + 1) : null), [rolled, profile, year],
   )
@@ -395,7 +291,7 @@ export default function MyStore() {
               </p>
               <div className="mb-1">
                 {upcoming.map(e => (
-                  <TaxRow key={`u${e.id}`} item={e} open={openId === `u${e.id}`}
+                  <TaxRow key={`u${e.id}`} item={e} done={Boolean(doneMap[taxDoneKey(e.id, e.dueDate)])} open={openId === `u${e.id}`}
                     onToggle={() => setOpenId(openId === `u${e.id}` ? null : `u${e.id}`)} />
                 ))}
               </div>
@@ -421,7 +317,7 @@ export default function MyStore() {
               {showPast && (
                 <div className="mt-1 opacity-70">
                   {past.map(e => (
-                    <TaxRow key={`p${e.id}`} item={e} open={openId === `p${e.id}`}
+                    <TaxRow key={`p${e.id}`} item={e} done={Boolean(doneMap[taxDoneKey(e.id, e.dueDate)])} open={openId === `p${e.id}`}
                       onToggle={() => setOpenId(openId === `p${e.id}` ? null : `p${e.id}`)} />
                   ))}
                 </div>
@@ -451,7 +347,7 @@ export default function MyStore() {
                   {optional.map(e => (
                     <div key={`o${e.id}`}>
                       <p className="text-[10px] text-sunset-orange pt-2">{e.conditional}</p>
-                      <TaxRow item={e} open={openId === `o${e.id}`}
+                      <TaxRow item={e} done={Boolean(doneMap[taxDoneKey(e.id, e.dueDate)])} open={openId === `o${e.id}`}
                         onToggle={() => setOpenId(openId === `o${e.id}` ? null : `o${e.id}`)} />
                     </div>
                   ))}

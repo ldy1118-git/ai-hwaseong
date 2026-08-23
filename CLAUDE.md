@@ -118,6 +118,13 @@ Supabase 에만 둔다. 저장소·로그·API 응답에 절대 싣지 않는다
     알림 설정             utils/notifySettings.js ←→  scripts/notify_kakao.py
     세무 기한 계산        utils/taxCalendar.js    ←→  scripts/notify_kakao.py 의
                                                      tax_events()
+    신고 완료 열쇠        utils/taxDone.js 의      ←→  scripts/notify_kakao.py 의
+                          taxDoneKey()                 pick_tax()
+
+완료 열쇠는 「원본항목번호::기한」이다(`withholding-monthly::2026-09-10`).
+편 뒤의 id 로 맞추면 안 된다 — 파이썬은 `-2026-9`, JS 는 `-2026-9` 로 같아
+보이지만 해가 바뀌면 어긋난다. 한쪽만 고치면 화면에서 지운 신고가 카톡으로
+계속 온다.
 
 연구실 서버 `.env` 에 `SUPABASE_URL` · `SUPABASE_SERVICE_ROLE_KEY` ·
 `KAKAO_CLIENT_ID` 가 있어야 한다. Vercel 에 넣은 것과 같은 값이다.
@@ -131,6 +138,7 @@ Supabase 에만 둔다. 저장소·로그·API 응답에 절대 싣지 않는다
 로그인한 사람은 그 위에 서버 동기화가 얹힌다(`utils/userState.js`).
 
     관심공고 · 달력 메모 · 서류 진행 · 신청 완료   →  user_state 테이블
+    세무 신고 완료 표시                            →  user_state 테이블
     알림 읽음 · 일정 탭 토글 · 본 공고 목록        →  그 기기에만
 
 뒤쪽은 그 기기에서의 습관이라 따라다니면 오히려 이상하다.
@@ -153,6 +161,15 @@ Supabase 에만 둔다. 저장소·로그·API 응답에 절대 싣지 않는다
 다른 날짜를 말한다.**
 
     project/src/utils/taxSchedule.js  ←→  policy_data/tax_schedule.py
+    project/src/data/tax_calendar.json ←→ policy_data/tax_calendar.json
+
+**데이터도 두 벌이다.** 두 파일은 바이트까지 같아야 한다. 맞춰주는 스크립트가
+없어서 손으로 둘 다 쓴다 — 고친 뒤 `md5sum` 으로 확인할 것.
+
+한 `exclusive_group` 안에서는 **기본이 되는 쪽에 `conditional` 을 붙이지
+않는다.** 종합소득세가 그 모양이다(5/31 기본, 6/30 성실신고만 conditional).
+원천세는 셋 다 conditional 이라, 직원 있는 사장님 달력에 원천세가 한 건도
+안 떴다 — 1년에 열두 번 있고 늦으면 가산세가 붙는 신고인데 카톡에도 없었다.
 
 파이썬 쪽이 원본이고 날짜 검증도 거기서 했다. 공휴일 목록(`HOLIDAYS`)은
 음력이라 자동 계산이 안 된다. **연말에 다음 해를 손으로 채울 것.** 현재

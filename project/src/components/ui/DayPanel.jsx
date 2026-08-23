@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Pencil } from 'lucide-react'
 import { getNote, setNote, subscribeNotes } from '../../utils/calendarNotes'
+import TaxRow from './TaxRow'
+import { listTaxDone, subscribeTaxDone, taxDoneKey } from '../../utils/taxDone'
 
 /**
  * 달력에서 고른 날 하나. 오른쪽 단 맨 위에 붙는다.
@@ -20,6 +22,10 @@ export default function DayPanel({ dateKey, matches = [], taxEvents = [] }) {
   const [note, setLocalNote] = useState(() => getNote(dateKey))
   const [draft, setDraft] = useState(note)
   const [saved, setSaved] = useState(false)
+  const [openTax, setOpenTax] = useState(null)
+  const [doneMap, setDoneMap] = useState(listTaxDone)
+
+  useEffect(() => subscribeTaxDone(() => setDoneMap(listTaxDone())), [])
 
   // 다른 날을 누르면 그 날의 메모로 갈아탄다. 안 하면 앞 날짜에 적던 글이
   // 남아서, 저장하면 엉뚱한 날에 붙는다.
@@ -28,6 +34,7 @@ export default function DayPanel({ dateKey, matches = [], taxEvents = [] }) {
     setLocalNote(current)
     setDraft(current)
     setSaved(false)
+    setOpenTax(null)
   }, [dateKey])
 
   useEffect(() => subscribeNotes(() => setLocalNote(getNote(dateKey))), [dateKey])
@@ -50,15 +57,22 @@ export default function DayPanel({ dateKey, matches = [], taxEvents = [] }) {
       <div className="space-y-2">
         {/* 세무 신고기한을 공고보다 위에 둔다. 신청은 안 해도 그만이지만
             신고는 안 하면 가산세가 붙는다. */}
-        {tax.map(e => (
-          <div key={e.id}
-            className="bg-emerald-50 border border-emerald-600/25 rounded-xl px-4 py-3
-                       flex items-center gap-3">
-            <span className="text-emerald-600 text-sm leading-none flex-shrink-0">■</span>
-            <span className="flex-1 text-sm font-medium text-navy leading-snug">{e.title}</span>
-            <span className="text-xs font-bold text-emerald-700 flex-shrink-0">신고기한</span>
+        {/* 제목만 보여주던 자리다. 「부가가치세 2기 확정신고」라고만 적혀
+            있으면 무엇을 준비해야 하는지 알 길이 없어서, 그걸 보려고
+            「내 매장 현황」까지 찾아 들어가야 했다. 여기서 편다. */}
+        {tax.length > 0 && (
+          <div className="bg-emerald-50/70 border border-emerald-600/25 rounded-xl px-4">
+            {tax.map(e => (
+              <TaxRow
+                key={e.id}
+                item={e}
+                done={Boolean(doneMap[taxDoneKey(e.groupId ?? e.id, e.dueDate)])}
+                open={openTax === e.id}
+                onToggle={() => setOpenTax(openTax === e.id ? null : e.id)}
+              />
+            ))}
           </div>
-        ))}
+        )}
 
         {notices.map(m => {
           const urgent = m.dDay !== null && m.dDay <= 14

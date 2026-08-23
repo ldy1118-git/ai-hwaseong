@@ -7,7 +7,7 @@ import OrbitDashboard from '../components/sections/OrbitDashboard'
 import FloatingChatButton from '../components/ui/FloatingChatButton'
 import DeadlineCalendar from '../components/ui/DeadlineCalendar'
 import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
-import { nextDeadline } from '../utils/taxSchedule'
+import { nextTaxDeadline } from '../utils/taxCalendar'
 import FavoriteNotices from '../components/sections/FavoriteNotices'
 import { syncNoticeAlerts } from '../utils/notifications'
 
@@ -250,7 +250,7 @@ function korMD(iso) {
 function BusinessOwnerSection({ profile, matches = [] }) {
   const canApply = matches.filter(m => m.status === '신청가능').length
   const urgent   = matches.filter(m => m.dDay !== null && m.dDay <= 7).length
-  const taxNext  = nextDeadline(profile)
+  const taxNext  = nextTaxDeadline(profile)
   const months   = profile.business_period_months || 0
   const category = profile.category || '업종'
   const region   = profile.region   || '화성시'
