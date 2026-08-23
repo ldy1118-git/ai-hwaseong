@@ -87,4 +87,11 @@ if ! git push -q origin main 2>/dev/null; then
     git push -q origin main || finish "실패" "재시도 푸시도 실패"
 fi
 
+# ── 새 공고를 카톡으로 알린다 ────────────────────────────────────
+# 여기서 실패해도 공고 갱신 자체는 성공이다. 알림이 안 갔다고 그날 수집을
+# 실패로 적으면, 진짜 수집이 깨진 날과 구분이 안 된다.
+if ! python3 scripts/notify_kakao.py; then
+    log "카톡 알림 실패 — 공고 갱신은 됐다"
+fi
+
 finish "성공" "공고 ${changed}건 갱신 후 푸시"

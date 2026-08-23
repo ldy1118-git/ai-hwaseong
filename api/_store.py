@@ -149,3 +149,66 @@ def onboarding_completed(user_id: int) -> bool:
     """길벗이 이동 프로필 존재 여부로 판단한 것과 같은 방식."""
     row = get_profile(user_id)
     return bool(row and row.get("profile"))
+
+
+# --------------------------------------------------------- 카카오톡 알림
+
+def get_kakao_notify(user_id: int) -> dict | None:
+    """켜져 있으면 행, 꺼져 있으면 None."""
+    rows = _call("GET", "kakao_notify", params={
+        "user_id": f"eq.{user_id}",
+        "select": "user_id,refresh_token,refreshed_at",
+        "limit": "1",
+    })
+    return rows[0] if rows else None
+
+
+def set_kakao_notify(user_id: int, refresh_token: str) -> None:
+    """켠다. 이미 켜져 있으면 토큰만 갈아끼운다.
+
+    카카오는 refresh_token 도 2개월이면 만료되고, 갱신할 때 새 것이 딸려
+    오는 경우가 있다. 그때마다 여기로 덮어쓴다.
+
+    refreshed_at 은 안 보낸다. PostgREST 는 본문의 "now()" 를 SQL 함수로
+    실행하지 않고 문자열 그대로 넣으려 해서 400 이 난다. DB 트리거가
+    채운다(docs/supabase_schema.sql).
+    """
+    _call("POST", "kakao_notify",
+          params={"on_conflict": "user_id"},
+          body={"user_id": user_id, "refresh_token": refresh_token},
+          prefer="resolution=merge-duplicates,return=minimal")
+
+
+def clear_kakao_notify(user_id: int) -> None:
+    """끈다. 행을 지운다 — 안 보낼 거면 토큰을 들고 있을 이유가 없다."""
+    _call("DELETE", "kakao_notify", params={"user_id": f"eq.{user_id}"})
+
+
+def list_kakao_notify() -> list[dict]:
+    """켜둔 사람 전부. 연구실 서버의 발송 스크립트가 쓴다."""
+    return _call("GET", "kakao_notify", params={
+        "select": "user_id,refresh_token",
+    })
+
+
+def already_sent(user_id: int, notice_id: str, kind: str) -> bool:
+    rows = _call("GET", "kakao_sent", params={
+        "user_id": f"eq.{user_id}",
+        "notice_id": f"eq.{notice_id}",
+        "kind": f"eq.{kind}",
+        "select": "notice_id",
+        "limit": "1",
+    })
+    return bool(rows)
+
+
+def mark_sent(user_id: int, notice_id: str, kind: str) -> None:
+    """보낸 것을 적어둔다. 이미 있으면 조용히 넘어간다.
+
+    보내기 **전에** 적는 게 아니라 보낸 **뒤에** 적는다. 순서를 바꾸면
+    발송이 실패했는데 보낸 것으로 남아서 영영 안 간다.
+    """
+    _call("POST", "kakao_sent",
+          params={"on_conflict": "user_id,notice_id,kind"},
+          body={"user_id": user_id, "notice_id": notice_id, "kind": kind},
+          prefer="resolution=merge-duplicates,return=minimal")

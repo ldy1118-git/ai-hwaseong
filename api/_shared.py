@@ -34,8 +34,8 @@ def cors(handler: BaseHTTPRequestHandler) -> None:
     배포된 API 를 부르며 개발하는 경우가 있어서 남긴다.
     """
     handler.send_header("Access-Control-Allow-Origin", "*")
-    handler.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-    handler.send_header("Access-Control-Allow-Headers", "Content-Type")
+    handler.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+    handler.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
     handler.send_header("Access-Control-Max-Age", "86400")
 
 

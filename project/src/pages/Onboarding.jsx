@@ -11,6 +11,7 @@ import { generateText } from '../utils/llm/llmProvider'
 import { RotateCcw, LogOut, ChevronRight, ArrowRight, AlertTriangle, Trash2 } from 'lucide-react'
 import Header from '../components/layout/Header'
 import FavoriteNotices from '../components/sections/FavoriteNotices'
+import KakaoNotifyCard from '../components/ui/KakaoNotifyCard'
 
 /**
  * 온보딩 — 성현 기획서(docs/온보딩_기획서.txt) 구조.
@@ -664,6 +665,10 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
           내 지원사업 보러가기
           <ArrowRight size={16} />
         </button>
+
+        {/* ── 카톡 알림 ──
+            로그인 안 했으면 스스로 안 그린다. */}
+        <KakaoNotifyCard className="mt-6" />
 
         {/* ── 관심공고 ──
             담아둔 공고. 없으면 스스로 안 그린다(`sections/FavoriteNotices.jsx`). */}

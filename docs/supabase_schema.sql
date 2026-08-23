@@ -66,3 +66,59 @@ alter table user_profiles enable row level security;
 grant usage on schema public to service_role;
 grant all on public.users, public.user_profiles to service_role;
 grant usage, select on all sequences in schema public to service_role;
+
+-- =====================================================================
+-- 카카오톡 알림 (2026-08-23 추가)
+--
+-- 새벽에 서버가 카톡을 보내려면 그때 쓸 토큰이 있어야 한다. 로그인할 때
+-- 받는 access_token 은 6시간이면 만료되므로 refresh_token 을 둔다.
+--
+-- **refresh_token 은 그 사람 카톡으로 메시지를 보낼 수 있는 자격증명이다.**
+-- 저장소에 절대 넣지 않는다(public 저장소다). 여기와 서버 환경변수에만 둔다.
+-- 알림을 끄면 행을 지운다 — 안 보낼 거면 들고 있을 이유가 없다.
+-- =====================================================================
+
+create table if not exists kakao_notify (
+  user_id       bigint      primary key references users(id) on delete cascade,
+  refresh_token text        not null,
+  -- 카카오는 refresh_token 도 만료된다(2개월). 갱신하면 새 것이 딸려 온다.
+  refreshed_at  timestamptz not null default now(),
+  created_at    timestamptz not null default now()
+);
+
+comment on table kakao_notify is
+  '카카오톡 「나에게 보내기」용 refresh_token. 알림을 끄면 행을 지운다.';
+
+-- 같은 공고를 두 번 보내지 않기 위한 기록.
+--
+-- 이게 없으면 cron 이 매일 같은 공고를 다시 보낸다. 사장님 카톡에 같은
+-- 메시지가 쌓이면 그 순간 알림을 꺼버린다.
+create table if not exists kakao_sent (
+  user_id   bigint      not null references users(id) on delete cascade,
+  notice_id text        not null,
+  kind      text        not null,          -- 'new' | 'deadline-1' | 'deadline-3' ...
+  sent_at   timestamptz not null default now(),
+  primary key (user_id, notice_id, kind)
+);
+
+comment on column kakao_sent.kind is
+  '같은 공고라도 「새로 떴다」와 「내일 마감」은 따로 보낸다. 그래서 기본키에 넣는다.';
+
+-- refreshed_at 은 애플리케이션이 못 채운다. PostgREST 본문에 "now()" 를
+-- 넣으면 SQL 함수가 아니라 문자열로 들어가서 400 이 난다. DB 가 채운다.
+create or replace function touch_refreshed_at() returns trigger as $$
+begin
+  new.refreshed_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists kakao_notify_touch on kakao_notify;
+create trigger kakao_notify_touch
+  before insert or update on kakao_notify
+  for each row execute function touch_refreshed_at();
+
+alter table kakao_notify enable row level security;
+alter table kakao_sent   enable row level security;
+
+grant all on public.kakao_notify, public.kakao_sent to service_role;

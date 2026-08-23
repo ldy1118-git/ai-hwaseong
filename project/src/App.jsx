@@ -11,7 +11,7 @@ import NoticeDetail     from './pages/NoticeDetail'
 import Schedule         from './pages/Schedule'
 import District         from './pages/District'
 import BottomNav        from './components/layout/BottomNav'
-import { consumeKakaoRedirect } from './utils/kakao'
+import { consumeKakaoRedirect, isKakaoNotifyReturn, finishKakaoNotify } from './utils/kakao'
 import { loadOnboarding, saveOnboarding } from './utils/api'
 import DevTools from './components/dev/DevTools'
 
@@ -77,6 +77,17 @@ function KakaoReturn() {
   useEffect(() => {
     let cancelled = false
 
+    // 카톡 알림 동의를 마치고 돌아온 경우. 같은 ?code= 로 오지만 하는 일이
+    // 다르다 — 로그인 처리가 먼저 집어가면 알림은 안 켜진 채 로그인만
+    // 다시 된다. state=notify 로 갈라낸다.
+    if (isKakaoNotifyReturn()) {
+      finishKakaoNotify()
+        .then(() => { if (!cancelled) navigate('/onboarding?notify=on', { replace: true }) })
+        .catch((err) => { if (!cancelled) setError(err.message) })
+        .finally(() => { if (!cancelled) setBusy(false) })
+      return () => { cancelled = true }
+    }
+
     consumeKakaoRedirect()
       .then(async (result) => {
         if (!result || cancelled) return
@@ -116,7 +127,9 @@ function KakaoReturn() {
     return (
       <div className="fixed inset-0 z-50 bg-primary-bg flex flex-col items-center justify-center gap-3">
         <span className="w-9 h-9 rounded-full border-4 border-warm-gray/40 border-t-navy animate-spin" />
-        <p className="text-sm font-semibold text-navy">로그인하고 있어요...</p>
+        <p className="text-sm font-semibold text-navy">
+          {isKakaoNotifyReturn() ? '카톡 알림을 켜고 있어요...' : '로그인하고 있어요...'}
+        </p>
       </div>
     )
   }

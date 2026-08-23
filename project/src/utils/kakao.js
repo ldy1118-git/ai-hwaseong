@@ -14,8 +14,10 @@
  * 라우터가 못 잡는다. 그래서 앱이 뜰 때 location.search 를 직접 본다.
  */
 
-import { apiUrl } from './api'
-import { loginWithKakao } from './api'
+import {
+  apiUrl, loginWithKakao,
+  getKakaoNotifyState, enableKakaoNotify, disableKakaoNotify,
+} from './api'
 
 /** 카카오 로그인 페이지로 이동. 서버가 만들어준 주소를 그대로 쓴다. */
 export async function goToKakaoLogin() {
@@ -52,3 +54,49 @@ export async function consumeKakaoRedirect() {
   }
   return loginWithKakao(code)
 }
+
+
+/* ── 카톡 알림 ────────────────────────────────────────────────
+ *
+ * 로그인과 같은 카카오 인가를 한 번 더 쓴다. 다른 점은 두 가지 —
+ * `scope=talk_message` 를 달고, `state=notify` 를 달아 돌아왔을 때
+ * 로그인 처리와 구분한다.
+ *
+ * 왜 로그인할 때 같이 안 받나 — 「카카오톡 메시지 전송」을 로그인 화면에
+ * 띄우면 처음 온 사람이 광고 오는 줄 알고 체크를 뺀다. 왜 필요한지
+ * 설명할 자리가 없다. 콘솔에서 **이용 중 동의**로 두고 여기서 물어본다.
+ */
+
+/** 돌아온 주소가 알림 동의 결과인가. 로그인 처리가 가로채기 전에 봐야 한다. */
+export function isKakaoNotifyReturn() {
+  return new URLSearchParams(window.location.search).get('state') === 'notify'
+}
+
+/** 지금 켜져 있나 + 켜러 갈 주소. 로그인 안 했으면 던진다. */
+export const getKakaoNotify = getKakaoNotifyState
+
+/** 카카오 동의 화면으로 보낸다. */
+export async function goToKakaoNotifyConsent() {
+  const { authorize_url: url } = await getKakaoNotifyState()
+  if (!url) throw new Error('카카오 설정이 끝나지 않았습니다')
+  window.location.href = url
+}
+
+/** 동의하고 돌아왔을 때. code 를 서버에 넘겨 켠다. */
+export async function finishKakaoNotify() {
+  const params = new URLSearchParams(window.location.search)
+  const code = params.get('code')
+  const error = params.get('error')
+
+  // 주소창을 먼저 치운다. 남겨두면 새로고침할 때 이미 쓴 code 로 또 켜려다
+  // 실패한다. 인가 코드는 한 번만 쓸 수 있다.
+  window.history.replaceState({}, '', window.location.pathname + window.location.hash)
+
+  if (error) throw new Error('카카오톡 알림 동의가 취소되었어요')
+  if (!code) throw new Error('카카오에서 코드를 받지 못했어요')
+
+  return enableKakaoNotify(code)
+}
+
+/** 끈다. 서버에서 refresh_token 행이 지워진다. */
+export const stopKakaoNotify = disableKakaoNotify

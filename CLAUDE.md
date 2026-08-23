@@ -70,6 +70,37 @@ easyocr 는 torch 까지 1.4GB 인데 Vercel 함수는 250MB 까지다. 그래�
 까지만 받는데 base64 는 1.33배가 되어, 줄이지 않으면 요즘 폰 사진은 거의 다
 튕긴다(`Onboarding.jsx` 의 `shrinkImage`).
 
+## 카카오톡 알림
+
+조건에 잘 맞는 공고가 새로 뜨면 사장님 카톡의 「나와의 채팅」으로 간다
+(「나에게 보내기」). 친구에게 보내기는 안 쓴다 — 심사가 걸리고 필요하지도 않다.
+
+    api/notify_kakao.py        켜기·끄기. refresh_token 을 Supabase 에 저장
+    scripts/notify_kakao.py    실제 발송. 연구실 cron 이 공고 갱신 뒤에 부른다
+    docs/supabase_schema.sql   kakao_notify · kakao_sent
+
+**Vercel 이 아니라 연구실 서버가 보낸다.** 서버리스 함수는 요청이 와야
+도는데 알림은 아무도 안 부를 때 나가야 한다.
+
+**refresh_token 은 그 사람 카톡으로 메시지를 보낼 수 있는 자격증명이다.**
+Supabase 에만 둔다. 저장소·로그·API 응답에 절대 싣지 않는다. 알림을 끄면
+행을 지운다.
+
+동의는 **이용 중 동의**다. 로그인 화면에 「카카오톡 메시지 전송」을 같이
+띄우면 처음 온 사람이 광고 오는 줄 알고 체크를 뺀다. 「카톡 알림 받기」를
+눌렀을 때만 `scope=talk_message` 로 한 번 더 물어본다.
+
+돌아올 때 로그인과 같은 `?code=` 로 오므로 `state=notify` 로 갈라낸다.
+**이걸 빼면 로그인 처리가 code 를 먼저 집어가고 알림은 안 켜진다.**
+
+문턱(`신청가능` + 70점)이 화면과 서버 두 곳에 있다. 한쪽만 고치면 카톡은
+왔는데 종에는 없거나 그 반대가 된다.
+
+    project/src/utils/notifications.js  ←→  scripts/notify_kakao.py
+
+연구실 서버 `.env` 에 `SUPABASE_URL` · `SUPABASE_SERVICE_ROLE_KEY` ·
+`KAKAO_CLIENT_ID` 가 있어야 한다. Vercel 에 넣은 것과 같은 값이다.
+
 ## 관심공고와 알림은 아직 브라우저 안에만 있다
 
 로그인이 필수가 아니다 — `/home` 에 가드가 없어서 카카오 로그인 없이도

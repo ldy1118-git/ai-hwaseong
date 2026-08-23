@@ -138,6 +138,20 @@ export const patchOnboarding = (profile) =>
 export const deleteOnboarding = () =>
   authed('/api/users/me/onboarding', 'DELETE')
 
+/* 카톡 알림 — refresh_token 은 서버에만 있다. 여기로 안 내려온다. */
+
+/** { enabled, authorize_url } */
+export const getKakaoNotifyState = () =>
+  authed('/api/notify/kakao', 'GET')
+
+/** 동의하고 받은 code 로 켠다. */
+export const enableKakaoNotify = (code) =>
+  authed('/api/notify/kakao', 'POST', { code })
+
+/** 끈다. 서버에서 토큰 행이 지워진다. */
+export const disableKakaoNotify = () =>
+  authed('/api/notify/kakao', 'DELETE')
+
 /** 이 기기에 남은 것을 전부 지운다.
  *
  *  키를 하나씩 적어두면 새 키가 생겼을 때 빠뜨린다 — 실제로 로그아웃이
