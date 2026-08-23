@@ -1,0 +1,36 @@
+{
+ "notice_id": "PBLN_000000000125315",
+ "title": "[경기] 화성시 2026년 하반기 공급망 확대 사업화 기술컨설팅 참여기업 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000125315",
+ "summary": "및 지원 제외\n❏ 신청자격\nm 공고일 현재 화성시 관내에 본사, 공장 또는 기업부설연구소를 둔 중소기업\nm 반도체·모빌리티·바이오·로봇 분야의 제품·공정·기술문제 해결을\n 위한 컨설팅 수요가 있는 기업\n❏ 지원제외\nm 신청자격을 충족하지 않거나 제출 내용이 허위인 경우\nm 기술문제 해결이 아닌 마케팅, 판로개척, 제품 홍보·판매 등을 주된\n 목적으로 하는 신청\nm 동일한 컨설팅 내용·수행시간·결과물에 대해 타 기관 지원 또는\n 비용을 중복 청구하는 경우\nm 참여기업과 컨설턴트 간 특수관계 또는 컨설팅 외 거래관계를 사실과\n 다르게 기재한 경우\nm 진흥원의 사전 승인 전에 수행한 컨설팅\n\n5 제출서류\n\n구분 제출서류 비고\n\n 1 기술컨설팅 지원 신청서 컨설턴트 정보·수행계획 포함(붙임1)\n\n 2 신청기업 개인",
+ "apply_period": {
+  "start": "2026-08-11",
+  "end": "2026-08-24"
+ },
+ "eligibility": {
+  "requirements_unknown": "공고일 현재 화성시 관내 본사ㆍ공장 또는 기업부설연구소를 둔 중소기업 - 반도체ㆍ모빌리티ㆍ바이오ㆍ로봇 분야의 제품ㆍ공정ㆍ기술문제 해결을 위한 컨설팅 수요가 있는 기업",
+  "regions": [
+   "화성시",
+   "화성특례시"
+  ]
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_url": "https://platform.hsbiz.or.kr/business/detail/N/1286",
+ "apply_method": "온라인 접수(화성시기업지원플랫폼)",
+ "contact": "화성산업진흥원 산업전략본부 공급망지원팀 031-278-4093, ihseo@hsbiz.or.kr",
+ "organizer": "경기도",
+ "operator": "화성산업진흥원"
+}

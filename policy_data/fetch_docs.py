@@ -32,7 +32,7 @@ RAW_DIR = ROOT / "policy_data" / "raw"
 DOCS_DIR = RAW_DIR / "docs"
 
 sys.path.insert(0, str(ROOT / "policy_data"))
-from collect import field, haystack, is_open, scope, SOSANG, USABLE  # noqa: E402
+from collect import field, haystack, is_open, is_sosang, scope, USABLE  # noqa: E402
 
 UA = {"User-Agent": "Mozilla/5.0 (ai-hwaseong hackathon; contact via github.com/ldy1118-git)"}
 PAUSE = 1.0  # 서버에 부담 주지 않기 위한 간격
@@ -47,7 +47,7 @@ def target_rows() -> list[dict]:
         raise SystemExit(1)
     rows = json.loads(snapshots[-1].read_text(encoding="utf-8"))
     return [r for r in rows
-            if SOSANG.search(haystack(r)) and scope(r) in USABLE and is_open(r)]
+            if is_sosang(r) and scope(r) in USABLE and is_open(r) is not False]
 
 
 def candidates(entry: dict) -> list[tuple[str, str]]:

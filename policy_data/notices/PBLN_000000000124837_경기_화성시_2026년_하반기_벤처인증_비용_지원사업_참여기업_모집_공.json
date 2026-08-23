@@ -1,0 +1,52 @@
+{
+ "notice_id": "PBLN_000000000124837",
+ "title": "[경기] 화성시 2026년 하반기 벤처인증 비용 지원사업 참여기업 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000124837",
+ "summary": "벤처기업 인증을 취득한 화성시 소재 중소기업\n❏ 지원내용: 벤처기업인증(벤처투자유형, 연구개발유형, 혁신성장유형) 취득\n 수수료 비용지원\n❏ 지원규모: 총 40개사 내외, 기업당 최대 450천원\n (단위: 원)\n\n 인증 발급비용 정부 보조금 제외 ※ 진흥원 지원금\n 구분 (VAT 포함) 기업부담금 (공급가액)\n 신규 재확인 신규 재확인 신규 재확인\n 벤처투자유형 275,000 275,000 175,000 225,000 159,090 204,550\n\n 연구개발유형 495,000 495,000 345,000 445,000 313,640 404,550\n\n 혁신성장유형 605,000 605,000 455,000 555,000 413,640 450,000\n\n 이노비즈연계 440,000 440,000 290,000 3",
+ "apply_period": {
+  "start": "2026-07-15",
+  "end": "2026-10-15"
+ },
+ "eligibility": {
+  "business_status": [
+   "운영중"
+  ],
+  "regions": [
+   "화성시",
+   "화성특례시"
+  ]
+ },
+ "documents": [
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "건강보험료 납부확인서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 확인서"
+  },
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "지방세 완납 증명서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "인증수수료 증빙서류",
+   "type": "common",
+   "confidence": "confirmed"
+  }
+ ],
+ "apply_url": "https://platform.hsbiz.or.kr/business/detail/N/1251",
+ "apply_method": "온라인 접수 (화성산업진흥원)",
+ "contact": "화성산업진흥원 창업벤처팀 031-377-1536, jsnoh@hsbiz.or.kr",
+ "organizer": "경기도",
+ "operator": "화성산업진흥원"
+}

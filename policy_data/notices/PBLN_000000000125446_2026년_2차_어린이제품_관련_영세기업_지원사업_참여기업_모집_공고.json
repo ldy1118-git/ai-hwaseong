@@ -1,0 +1,59 @@
+{
+ "notice_id": "PBLN_000000000125446",
+ "title": "2026년 2차 어린이제품 관련 영세기업 지원사업 참여기업 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000125446",
+ "summary": ") 국내·외 어린이제품 제조 및 수입업체\n - 자격제한: 국세·지방세 체납기업, 휴·폐업 기업은 신청 불가\n\nㅇ (지원규모) 약 150개 기업 내외(예산 범위 내)\n\n 2. 지원 내용\n\nㅇ 바우처 형식으로 기업당 최대 150만원 상당의 시험비용 지원\n - 지정 시험기관* 어린이제품 시험비용에 한함\n * KCL, KTC, KTR, KATRI, FITI, KOTITI\n 구분 국내 제조기업 그 외 기업\n 지원한도 150만원 100만원\n\n\f ※ 국내 제조기업(국내 OEM·ODM 포함) 지원한도 150만원 적용을 희망하는 기업은 국내 제조를\n 증빙할 수 있는 자료 제출 필요(제출서류 연번 6 참조)\n ※ 해외 OEM 정량평가의 생산 형태 항목(20점) 적용을 희망하는 기업은 해외 OEM을 증빙할 수\n 있는 자료 제출",
+ "apply_period": {
+  "start": "2026-08-12",
+  "end": "2026-08-26"
+ },
+ "eligibility": {
+  "business_status": [
+   "운영중"
+  ],
+  "requirements_unknown": "국내ㆍ외 어린이제품 제조 및 수입업체"
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 사업자등록증명서"
+  },
+  {
+   "name": "지방세 완납 증명서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "수 있는 증빙서류",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "생산형태 증빙서류",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "해외 OEM: OEM계약서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "발주계약서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "인증 증빙서류",
+   "type": "common",
+   "confidence": "confirmed"
+  }
+ ],
+ "apply_url": "https://naver.me/FbVwe7Dx",
+ "apply_method": "온라인 접수 (네이버 폼)",
+ "contact": "한국제품안전관리원 제품안전지원실 070-5223-1388, kids@kips.kr",
+ "organizer": "산업통상부",
+ "operator": "한국제품안전관리원"
+}

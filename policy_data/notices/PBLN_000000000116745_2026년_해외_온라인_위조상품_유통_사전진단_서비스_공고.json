@@ -1,0 +1,33 @@
+{
+ "notice_id": "PBLN_000000000116745",
+ "title": "2026년 해외 온라인 위조상품 유통 사전진단 서비스 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000116745",
+ "summary": "아래 ①·②를 모두 충족해야 함\n ① 국내에 사업자 등록이 되어있는 개인사업자 또는 중소·중견·대기업\n 개인사업자 : 소득세법 제168조 또는 부가가치세법 제8조에 따른 개인 사업자\n 중소기업 : 중소기업기본법 제2조에 따른 기업\n 중견기업 : 중견기업 성장촉진 및 경쟁력 강화에 관한 특별법 제2조에 따른 기업\n 대기업 :「독점규제 및 공정거래에 관한 법률」제14조에 따른 상호출자제한기업집단에 속하는 기업\n\n ② 대상 국가 에 유효 또는 출원한 지식재산권(상표/디자인/특허 등)을\n * **\n\n 보유한 기업\n * 사전진단 분석을 신청한 국가\n ** 사전진단 서비스에 한해 출원중인 지재권도 유효한 지식재산권으로 인정하나\n 유효기간 경과한 권리는 인정하지 않음\n\n ·\n나. 반복 중복참여 제한: 기존 지원내용으로 ",
+ "apply_period": {
+  "note": "매월 1일~20일"
+ },
+ "eligibility": {
+  "entity_types": [
+   "개인"
+  ]
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_url": "https://www.ip-navi.or.kr/kbrands/front/announce/announceList.do?MenuId=4a28571074d74907a9daf1d61700eb00#none",
+ "apply_method": "온라인 접수 (해외 K-브랜드 보호 포털)",
+ "contact": "한국지식재산보호원 K-브랜드보호실 02-6196-2059 / global@koipa.re.kr",
+ "organizer": "지식재산처",
+ "operator": "한국지식재산보호원"
+}

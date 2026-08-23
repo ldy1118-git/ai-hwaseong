@@ -31,7 +31,7 @@ DOCS_DIR = RAW_DIR / "docs"
 OUT_DIR = ROOT / "policy_data" / "notices"
 
 sys.path.insert(0, str(ROOT / "policy_data"))
-from collect import field, haystack, is_open, scope, SOSANG, USABLE  # noqa: E402
+from collect import field, haystack, is_open, is_sosang, scope, SOSANG, USABLE  # noqa: E402
 from terms import find_document  # noqa: E402
 
 # 자격 관련 섹션 제목. 먼저 나오는 순서대로 찾는다.
@@ -130,8 +130,27 @@ def rule_prestartup(text: str):
     return None
 
 
+# 표준산업분류 이름은 자격이 아니다.
+#   「숙박 및 음식점업」  대분류 I
+#   「음식점 및 주점업」  중분류 56
+# 이 말이 나오는 자리는 대개 매출 기준표이거나 지원 제외 업종 목록이다.
+# 그런데 rule_food 가 그걸 「음식점 전용 공고」로 읽어서 이렇게 됐다.
+#
+#   반도체 소부장기업 실증   → 음식점 전용 (음식점 사장님에게 100점으로 1위)
+#   벤처인증 비용 지원       → 음식점 전용 (그 줄에 「(신청 불가)」라고 적혀 있다)
+#   소상공인 고용보험료 지원  → 음식점 전용 (소매업 사장님에게는 대상아님으로 숨었다)
+#
+# 마지막 것이 제일 나쁘다. 진짜 소상공인 공고인데 업종을 잘못 묶어서
+# 음식점이 아닌 사장님에게 통째로 안 보였다.
+KSIC_FOOD = re.compile(r"숙박\s*및\s*음식점업|음식점\s*및\s*주점업")
+FOOD = re.compile(r"식품접객업|음식점|외식업")
+
+
 def rule_food(text: str):
-    if re.search(r"식품접객업|음식점|외식업", text):
+    # 분류표 이름을 지우고 나서 본다. 지운 자리에 진짜 자격 문구가 따로
+    # 있으면 그건 그대로 잡힌다.
+    text = KSIC_FOOD.sub("", text)
+    if FOOD.search(text):
         found = re.search(r"[^\n]{0,40}(?:식품접객업|음식점|외식업)[^\n]{0,40}", text)
         return "categories", ["음식점"], found.group(0).strip()
     return None
@@ -154,6 +173,30 @@ def rule_entity_type(text: str):
     if has_corp and not has_personal:
         return "entity_types", ["법인"], has_corp.group(0)
     return None
+
+
+# 지원대상이 우리 사용자가 될 수 없는 업종을 콕 집은 경우.
+#
+# 아래 `if not eligibility:` 는 **규칙이 하나라도 걸리면 통째로 건너뛴다.**
+# 그래서 반도체 소부장 실증 공고가 「운영중 + 화성시」 두 조건만 달고 나갔고,
+# 카페 사장님 홈 화면 1위에 89점 신청가능으로 떴다. 지원대상에는 「화성시
+# 관내 반도체 소·부·장 중소·중견기업」이라고 똑똑히 적혀 있었는데도.
+#
+# classify_target 을 그대로 쓰면 안 된다. 83건 중 76건이 restricted 로
+# 나와서 거의 전부 확인필요가 된다 — 「소상공인기본법 제2조에 따른
+# 소상공인」도 restricted 로 센다. 그건 제한이 아니라 그냥 소상공인이다.
+#
+# 그래서 업종을 못 박은 말만 본다. 걸리면 대상아님이 아니라 **확인필요**다.
+# 목록에서 지우지 않고 이유를 붙여 내린다 — 제조업 겸업이면 될 수도 있다.
+INDUSTRY_ONLY = re.compile(
+    r"제조업(?:체|자|사)?|제조\s*기업|제조\s*및\s*수입업체|"
+    r"소재[·ㆍ]?\s*부품[·ㆍ]?\s*장비|소[·ㆍ]\s*부[·ㆍ]\s*장|"
+    r"반도체|바이오|로봇|모빌리티|이차전지|뿌리산업|"
+    r"가맹본부|디자이너\s*브랜드|콘텐츠\s*상품|"
+    # 업종은 아니지만 같은 이유로 넣는다 — 조례가 정한 기업 유형이라
+    # 그냥 카페를 하는 사장님은 해당되지 않는다. 협동조합으로 운영하는
+    # 카페면 될 수도 있어서 대상아님이 아니라 확인필요다.
+    r"사회적경제기업|사회적기업|협동조합|마을기업|자활기업")
 
 
 RULES = [
@@ -179,7 +222,8 @@ EXCLUDES_SOSANG = re.compile(
 )
 
 # 소상공인 서비스에 뜨면 안 되는 대상. 업종·신분이 아예 다르다.
-NOT_SOSANG = re.compile(r"여성\s*농업인|농업경영체|농업인|재직자|영농|어업인")
+NOT_SOSANG = re.compile(r"여성\s*농업인|농업경영체|농업인|재직자|영농|어업인|"
+                       r"GAP\s*(?:인증|안정성)|농산물\s*우수관리")
 
 
 # ── 지원대상 표기 ───────────────────────────────────────────────
@@ -457,6 +501,20 @@ def build_notice(entry: dict, doc_text: str) -> tuple[dict, list[str]]:
                 + ("" if doc_text else " (첨부 본문도 없음 — 스캔·HWP)")
             )
 
+    # 규칙이 걸려서 위 블록을 건너뛴 공고도 지원대상은 한 번 본다.
+    # 업종이 못 박혀 있으면 확인필요로 내린다. 자세한 사정은 INDUSTRY_ONLY 에.
+    if not eligibility.get("categories"):
+        target = support_target(summary_api)
+        narrow = INDUSTRY_ONLY.search(target or "")
+        if narrow:
+            # requirements_open 을 걷어낸다. classify_target 이 「사회적경제기업」
+            # 을 open 으로 봤는데, matching 은 open 을 먼저 읽어서 신청가능이
+            # 된다. 업종·기업유형이 못 박힌 것이 더 구체적인 증거다.
+            eligibility.pop("requirements_open", None)
+            eligibility["requirements_unknown"] = shorten_target(target)
+            evidence.append(
+                f'requirements_unknown  ← 지원대상이 「{narrow.group(0)}」 로 대상을 한정')
+
     # 화성시 전용 공고는 지역 조건이 실제로 있다. 전국·경기 공고는 조건을
     # 걸지 않는다 — 우리 사용자는 모두 화성시민이라 걸어봐야 전원 통과다.
     where = scope(entry)
@@ -533,7 +591,7 @@ def main() -> int:
     # 확실히 닫힌 것(False)만 걸러낸다 — 모른다는 이유로 자르면 사장님이
     # 그 공고를 아예 못 본다. 공고 매칭·세무일정과 같은 원칙이다.
     rows = [r for r in rows
-            if SOSANG.search(haystack(r)) and scope(r) in USABLE
+            if is_sosang(r) and scope(r) in USABLE
             and is_open(r) is not False]
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)

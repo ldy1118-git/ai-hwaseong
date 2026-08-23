@@ -7,9 +7,7 @@
   "note": "예산 소진시까지"
  },
  "eligibility": {
-  "categories": [
-   "음식점"
-  ]
+  "requirements_open": "'자영업자 고용보험'에 가입한 소상공인(사업주)"
  },
  "documents": [
   {

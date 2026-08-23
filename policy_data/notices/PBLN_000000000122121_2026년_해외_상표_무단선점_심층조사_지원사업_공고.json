@@ -1,0 +1,33 @@
+{
+ "notice_id": "PBLN_000000000122121",
+ "title": "2026년 해외 상표 무단선점 심층조사 지원사업 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000122121",
+ "summary": "해외에서 국내 상표의 무단선점 피해를 예방하고 피해 발생 시 맞춤형 대응 전략을 제공하는 「해외 상표 무단선점 심층조사 지원사업」을 다음과 같이 공고합니다. ☞ 국내 사업자로 등록된 기업으로 해외에서 상표 무단선점 피해가 발생하였거나 피해가 예상되는 중소(개인사업자 포함)ㆍ중견기업 ☞ 전문수행기관을 통한 해외 상표 무단선점 종합분석 보고서 및 맞춤형 온라인 상담 지원 ※ 자세한 지원내용 공고문 참조",
+ "apply_period": {
+  "note": "차수별 상이"
+ },
+ "eligibility": {
+  "entity_types": [
+   "개인"
+  ]
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_url": "https://ip-navi.or.kr/kbrands/front/user/main.do",
+ "apply_method": "온라인 접수 (K-브랜드보호포털)",
+ "contact": "한국지식재산보호원 K-브랜드보호실 02-6195-2057, 2054 / ipsupport@koipa.re.kr",
+ "organizer": "지식재산처",
+ "operator": "한국지식재산보호원"
+}

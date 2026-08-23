@@ -1,0 +1,49 @@
+{
+ "notice_id": "PBLN_000000000125538",
+ "title": "2026년 6차 관계부처 해외홍보관(UAE) 콘텐츠존 입점기업 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000125538",
+ "summary": "한국콘텐츠진흥원은 중동시장 진출과 수출 활성화를 위해 UAE 두바이 Festival City Mall 내 위치한 UAE 관계부처 해외홍보관(KOREA360)에서 K-콘텐츠 상품을 전시ㆍ판매할 기업을 모집합니다. 많은 관심과 참여 바랍니다. ☞ 관계부처 해외홍보관(UAE) 내 콘텐츠존 입점 및 판매를 희망하는 콘텐츠 상품 사업체(법인 및 개인사업자) - 입점 신청하는 상품은 UAE/GCC 인증·라벨 요건을 충족할 수 있어야 함 - (콘텐츠IP) 캐릭터ㆍ애니메이션ㆍ음악ㆍ게임/이스포츠ㆍ만화/웹툰ㆍ방송ㆍ영화ㆍ패션ㆍ실감콘텐츠 - (콘텐츠상품) 콘텐츠 관련 봉제인형, 완구, 스티커/문구, 팬시상품, 의류 및 악세서리, 생활용품, 소형 전자기기, 음반/CD 및 굿즈, 만화/웹툰 및 영상콘텐츠 굿즈 등 (대한민국 콘텐츠I",
+ "apply_period": {
+  "start": "2026-08-14",
+  "end": "2026-08-28"
+ },
+ "eligibility": {
+  "entity_types": [
+   "개인"
+  ],
+  "requirements_unknown": "관계부처 해외홍보관(UAE) 내 콘텐츠존 입점 및 판매를 희망하는 콘텐츠 상품 사업체(법인 및 개인사업자) - 입점 신청하는 상품은 UAE/GCC 인증·라벨 요건을 충족할 수 있어야 함 - (콘텐츠IP)…"
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 사업자등록증 ●"
+  },
+  {
+   "name": "지방세 체납사실증명서 ●",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "참여확인서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "IP확보 증빙",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "매출 증빙자료",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 증빙자료"
+  }
+ ],
+ "apply_method": "이메일 접수(korea360uae.op@gmail.com)",
+ "contact": "KOREA360 Help Desk +971-4-261-3206(한국시간 기준 14:00 – 20:00 까지), korea360uae.op@gmail.com",
+ "organizer": "문화체육관광부",
+ "operator": "한국콘텐츠진흥원"
+}

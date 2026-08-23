@@ -1,0 +1,53 @@
+{
+ "notice_id": "PBLN_000000000124835",
+ "title": "[경기] 화성시 2026년 반도체 소부장기업 실증(장비사용료) 지원사업  참여기업 추가모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000124835",
+ "summary": "화성시 관내 반도체 소·부·장* 중소·중견기업\n ※본사, 공장, 연구소 중 1개 이상 화성시 소재 필수\n *\n 반도체 소재·부품·장비 분야란 웨이퍼 제조에서부터 노광, 식각, 증착,\n 세정, 패키징 등 전·후공정에 필요한 소재·부품·장비(「소재·부품·장비\n 산업 경쟁력 강화 및 공급망 안정화를 위한 특별조치법 시행령」제2조의\n 소재·부품·장비산업 대상 업종 분야의 제조기업)\n ❏ 지원내용: 반도체 장비 확보가 어려운 관내 소부장기업에 성능평가,\n 검증 등에 소요되는 장비 사용료 지원 ※한국나노기술원 장비 활용 必\n ❏ 지원규모: 5개사, 기업당 최대 9,000천원\n - 상위 구간 적용으로 인해 산정 지원금이 직전 구간의 최대 지원금액보다\n 낮아질 경우, 직전 구간의 최대 지원금액을 보장함(부가가치세 제외)\n",
+ "apply_period": {
+  "start": "2026-07-21",
+  "end": "2026-09-30"
+ },
+ "eligibility": {
+  "business_status": [
+   "운영중"
+  ],
+  "requirements_unknown": "화성시 관내 반도체 소ㆍ부ㆍ장 중소ㆍ중견기업",
+  "regions": [
+   "화성시",
+   "화성특례시"
+  ]
+ },
+ "documents": [
+  {
+   "name": "계획서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 지정 양식 계획서"
+  },
+  {
+   "name": "제공 동의서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "중견기업 확인서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "장비 전문기업확인서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "한국나노기술원 이용료 납부 확인서",
+   "type": "common",
+   "confidence": "confirmed"
+  }
+ ],
+ "apply_url": "https://platform.hsbiz.or.kr/business/detail/N/1252",
+ "apply_method": "온라인 접수(화성시 기업지원플랫폼)",
+ "contact": "화성산업진흥원 공급망지원팀 031-278-4388, se20@hsbiz.or.kr",
+ "organizer": "경기도",
+ "operator": "화성산업진흥원"
+}

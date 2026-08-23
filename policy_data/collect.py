@@ -37,7 +37,13 @@ FIELDS = {
 }
 
 HWASEONG = re.compile(r"화성")
-SOSANG = re.compile(r"소상공인|자영업|점포|소공인|골목|상점가")
+# 「영세」에 부정형 lookahead 를 둔 이유는 영세율(수출 부가세 0%)이다.
+# 그건 소상공인과 아무 상관이 없는데 세무·수출 공고에 흔하게 나온다.
+#
+# 소기업·중소기업·창업기업은 일부러 안 넣었다. 재봤더니 각각 346·346·37건이
+# 새로 걸리는데 「중소기업(소기업 포함)」 같은 상투구라 거의 다 해외전시회·
+# 원전·레미콘이었다. 공고가 58건에서 400건을 넘어가면 사장님이 목록을 못 읽는다.
+SOSANG = re.compile(r"소상공인|자영업|점포|소공인|골목|상점가|개인사업자|영세(?!율)")
 
 
 def load_key() -> str:
@@ -279,6 +285,25 @@ def scope(entry: dict) -> str:
     return f"타시도({tag})"
 
 
+def is_sosang(entry: dict) -> bool:
+    """이 공고를 우리 서비스에 실을 것인가.
+
+    **화성시 공고는 낱말을 안 따진다.** 기업마당에 올라온 화성시 공고 17건
+    중 「소상공인」 계열 낱말이 든 것은 3건뿐이었다. 나머지는 「중소기업
+    운전자금」, 「중소기업 특례보증」처럼 적혀 있는데, 시가 직접 하는
+    자금·보증 사업은 관내 소상공인이 주 대상이다. 실제로 최종 58건에
+    자금·보증 공고가 한 건도 없었다 — 사장님에게 제일 급한 것이 돈인데.
+
+    무관한 것이 같이 들어오는 건 감수한다. 반도체 소부장이나 GAP 같은 것은
+    extract.py 의 NOT_SOSANG 과 매칭 엔진이 「대상아님」으로 내려서 목록
+    아래로 간다. 모른다는 이유로 자르면 사장님이 그 공고를 아예 못 본다 —
+    is_open 이 None 을 살려두는 것과 같은 원칙이다.
+    """
+    if scope(entry) == "화성":
+        return True
+    return bool(SOSANG.search(haystack(entry)))
+
+
 def run_coverage() -> int:
     print("전체 공고를 받는 중… (건수가 많으면 시간이 걸립니다)")
     rows = items_of(fetch())
@@ -286,7 +311,7 @@ def run_coverage() -> int:
         print("공고를 하나도 받지 못했습니다. --peek 으로 응답 구조를 확인하세요.")
         return 1
 
-    sosang = [r for r in rows if SOSANG.search(haystack(r))]
+    sosang = [r for r in rows if is_sosang(r)]
     usable = [r for r in sosang if scope(r) in USABLE]
     open_now = [r for r in usable if is_open(r)]
     hwaseong_only = [r for r in sosang if scope(r) == "화성"]
