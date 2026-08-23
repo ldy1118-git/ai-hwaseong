@@ -5,7 +5,9 @@ export default function Card({
   padding = 'md',
   tone = 'plain',
 }) {
-  const paddings = { sm: 'p-3', md: 'p-5', lg: 'p-7', none: '' }
+  // md(20px)와 sm(12px) 사이가 비어 있었다. 공고 카드는 md 가 커서 목록에
+  // 세 장만 들어가는데 sm 은 글자가 벽에 붙는다.
+  const paddings = { sm: 'p-3', compact: 'p-4', md: 'p-5', lg: 'p-7', none: '' }
 
   // 톤은 className 으로 덮지 않고 여기서 고른다. Tailwind 는 클래스를
   // 쓴 순서가 아니라 스타일시트 순서로 이기기 때문에, bg-white 를

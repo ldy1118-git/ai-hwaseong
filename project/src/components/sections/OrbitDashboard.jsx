@@ -118,7 +118,7 @@ const STATUS_STYLE = {
 function ScoreTag({ score }) {
   if (score === undefined || score === null) return null
   return (
-    <span className="text-sm font-bold text-warm-text tabular-nums">
+    <span className="text-[13px] font-bold text-warm-text tabular-nums">
       매칭 {score}
       <span className="text-xs font-semibold text-warm-gray">점</span>
     </span>
@@ -141,12 +141,12 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
   // 눈에 안 남는다. 급한 것은 D-day 색과 「긴급 마감」 묶음이 이미
   // 말해주고 있어서 막대가 없어도 구분된다.
   return (
-    <Card padding="md" tone={isUrgent ? 'urgent' : 'plain'}>
+    <Card padding="compact" tone={isUrgent ? 'urgent' : 'plain'}>
 
       {/* 상단: 상태 배지 + 매칭 점수 + D-Day */}
-      <div className="flex items-center justify-between gap-3 mb-1.5">
+      <div className="flex items-center justify-between gap-3 mb-1">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className={`text-sm font-medium rounded-full px-2.5 py-0.5 flex-shrink-0 ${STATUS_STYLE[item.status] ?? 'text-warm-text bg-warm-gray/20'}`}>
+          <span className={`text-[13px] font-medium rounded-full px-2.5 py-0.5 flex-shrink-0 ${STATUS_STYLE[item.status] ?? 'text-warm-text bg-warm-gray/20'}`}>
             {item.status}
           </span>
           <ScoreTag score={item.score} />
@@ -157,11 +157,11 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
             문구가 있으면 그걸 그대로 보여준다 — 사장님에게 필요한 정보다. */}
         <div className="flex items-center gap-1 min-w-0">
         {item.dDay !== null ? (
-          <span className={`text-base font-bold ${isUrgent ? 'text-sunset-orange' : 'text-navy'}`}>
+          <span className={`text-[15px] font-bold ${isUrgent ? 'text-sunset-orange' : 'text-navy'}`}>
             D-{item.dDay}
           </span>
         ) : item.raw?.apply_period?.note ? (
-          <span className="text-sm font-bold text-warm-text text-right min-w-0">
+          <span className="text-[13px] font-bold text-warm-text text-right min-w-0">
             {item.raw.apply_period.note}
           </span>
         ) : null}
@@ -171,11 +171,11 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
       </div>
 
       {/* 정책명 */}
-      <p className="text-base font-bold text-navy leading-snug line-clamp-2">{item.title}</p>
+      <p className="text-[15px] font-bold text-navy leading-snug line-clamp-2">{item.title}</p>
 
       {/* 공고 요약 — AI 요약 우선, 없으면 첫 문장 fallback. 어려운 단어는 툴팁 */}
       {(aiDesc || briefDesc(item.summary)) && (
-        <p className="mt-1.5 text-sm text-warm-text leading-relaxed">
+        <p className="mt-1 text-[13px] text-warm-text leading-relaxed">
           <AnnotatedText text={aiDesc || briefDesc(item.summary)} termDefs={termDefs} />
         </p>
       )}
@@ -183,25 +183,25 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
       {/* 주관기관 — 연한 색으로 채운 상자였는데, 값 하나 담자고 상자를
           두면 카드 안에 상자가 또 생긴다. 괘선 한 줄로 편다. */}
       {item.organizer && (
-        <div className="mt-3 pt-2.5 border-t border-warm-gray/25 flex items-baseline gap-3">
+        <div className="mt-2.5 pt-2 border-t border-warm-gray/25 flex items-baseline gap-3">
           <span className="text-xs font-bold text-warm-text flex-shrink-0">주관기관</span>
-          <span className="text-sm text-navy truncate">{item.organizer}</span>
+          <span className="text-[13px] text-navy truncate">{item.organizer}</span>
         </div>
       )}
 
       {/* 하단 액션 바 */}
-      <div className="mt-2 pt-2 border-t border-warm-gray/30 flex items-center justify-between">
+      <div className="mt-2 pt-1.5 border-t border-warm-gray/30 flex items-center justify-between">
         {conditions.length > 0 ? (
           <button
             onClick={() => setShowReason(v => !v)}
-            className={`text-sm font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
+            className={`text-[13px] font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
           >
             매칭이유 {showReason ? '▲' : '▼'}
           </button>
         ) : <span />}
         <button
           onClick={onDetail}
-          className={`text-sm font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
+          className={`text-[13px] font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
         >
           자세히 →
         </button>
@@ -230,10 +230,10 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
                 <div className="flex-1 min-w-0">
                   {/* 매칭이 돌려주는 condition 은 business_status 같은 영문 키다.
                       label 이 있으면 그걸 쓴다 — 없으면 화면에 영문이 그대로 나온다.
-                      글씨 크기는 서희가 키운 text-sm 을 그대로 쓴다. */}
-                  <span className={`text-sm font-bold ${s.text}`}>{c.label || c.condition}</span>
+                      글씨 크기는 서희가 키운 text-[13px] 을 그대로 쓴다. */}
+                  <span className={`text-[13px] font-bold ${s.text}`}>{c.label || c.condition}</span>
                   {c.detail && (
-                    <p className="text-sm text-warm-text leading-snug mt-0.5">{c.detail}</p>
+                    <p className="text-[13px] text-warm-text leading-snug mt-0.5">{c.detail}</p>
                   )}
                 </div>
               </div>
@@ -499,7 +499,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             ))}
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-2.5">
           {[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}
         </div>
       </section>
@@ -517,7 +517,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             <h2 className="text-base font-bold text-sunset-orange tracking-wide uppercase">긴급 마감</h2>
           </div>
           <div ref={urgentRef} style={capStyle(wide, urgentCap)}
-               className="grid grid-cols-1 gap-3 mb-6 lg:pr-1.5">
+               className="grid grid-cols-1 gap-2.5 mb-6 lg:pr-1.5">
             {loading
               ? [1, 2].map(i => <SkeletonCard key={i} />)
               : urgent.map(item => (
@@ -534,7 +534,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
         <h2 className="text-base font-bold text-navy tracking-wide uppercase">지원사업 탐색</h2>
       </div>
       <div ref={regularRef} style={capStyle(wide, regularCap)}
-           className="grid grid-cols-1 gap-3 lg:pr-1.5">
+           className="grid grid-cols-1 gap-2.5 lg:pr-1.5">
         {loading
           ? [1, 2, 3, 4].map(i => <SkeletonCard key={i} />)
           : regular.map(item => (
