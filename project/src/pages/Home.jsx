@@ -8,6 +8,7 @@ import FloatingChatButton from '../components/ui/FloatingChatButton'
 import DeadlineCalendar from '../components/ui/DeadlineCalendar'
 import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
 import { nextDeadline } from '../utils/taxSchedule'
+import FavoriteNotices from '../components/sections/FavoriteNotices'
 
 /* ── 유틸 ───────────────────────────────────────── */
 
@@ -683,6 +684,9 @@ export default function Home() {
               ? <AppliedProgramsSection programs={appliedPrograms} />
               : <DeadlineCalendar matches={allMatches} loading={matchLoading} />
             }
+
+            {/* 관심공고. 담긴 게 없으면 스스로 안 그린다 */}
+            <FavoriteNotices className="mx-5 mb-3" />
 
             {role === 1 && <BusinessOwnerSection profile={profile} matches={allMatches} />}
             {role === 2 && <StartupPlannerSection profile={profile} matches={allMatches} navigate={navigate} />}

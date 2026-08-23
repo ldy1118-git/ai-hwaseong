@@ -10,6 +10,7 @@ import { cleanDocName } from '../utils/docName'
 import termsData from '../data/terms.json'
 import searchImg from '../../design/search.png'
 import marsImg from '../../design/mars.png'
+import { addFavorite } from '../utils/favorites'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
 // 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
@@ -319,6 +320,11 @@ export default function ApplicationGuide() {
       // 항상 최신 API 데이터로 갱신
       setProgram(matched)
       localStorage.setItem('mars-fit-selected-match', JSON.stringify(matched))
+
+      // 서류를 준비하기 시작했으면 관심공고에 자동으로 담는다. 여기까지 온
+      // 사람은 이 공고를 신청할 생각이 있는 것이고, 마감 전에 알림을 받아야
+      // 하는 것도 이 공고다. auto 라서 목록에 「서류 준비 중」으로 표시된다.
+      addFavorite(matched, { auto: true })
 
       setStatusMsg('마이다가 필요한 서류 목록을 탐구 중...')
 

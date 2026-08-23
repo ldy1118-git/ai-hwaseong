@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Home, BarChart2, CalendarDays, MessageCircle, UserCircle2 } from 'lucide-react'
 import logoImg from '../../../design/logo.png'
 import MarsAvatar from '../ui/MarsAvatar'
+import NotificationBell from '../ui/NotificationBell'
 
 const BASE_TABS = [
   { icon: Home,          label: '홈',      path: '/home' },
@@ -78,6 +79,9 @@ export default function Header({ onAvatarClick, className = '' }) {
           )
         })}
       </nav>
+
+      {/* 알림 — 담아둔 관심공고의 마감이 다가오면 뜬다. 없으면 안 그린다. */}
+      <NotificationBell className="lg:ml-auto" />
 
       {/* 마이다 아바타 — 넓은 화면에서는 오른쪽 끝에 붙는다 */}
       <MarsAvatar size="md" alt="내 프로필" onClick={onAvatarClick} className="flex-shrink-0 lg:ml-auto" />

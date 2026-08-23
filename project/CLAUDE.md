@@ -53,13 +53,35 @@ React 18 + Vite 6 + Tailwind. Vercel 이 이 폴더를 빌드해서 배포한다
 | `pages/Onboarding.jsx` · `pages/NoticeDetail.jsx` · `pages/MissionControl.jsx` | 서희 |
 | `components/ui/DeadlineCalendar.jsx` · `pages/Schedule.jsx` | 성현 |
 | `pages/ApplicationGuide.jsx` | **서희·성현 둘 다.** 의존관계는 없고 그냥 같은 파일이다 |
-| `pages/Home.jsx` · `components/sections/OrbitDashboard.jsx` | 성현 관심공고 먼저 → 메인 UI 개선 나중 |
+| `pages/Home.jsx` · `components/sections/OrbitDashboard.jsx` | 성현 — 메인 UI 개선 |
+| `utils/favorites.js` · `utils/notifications.js` · `utils/openNotice.js` | 대윤 — 관심공고·알림 |
+| `ui/FavoriteButton.jsx` · `ui/NotificationBell.jsx` · `sections/FavoriteNotices.jsx` | 대윤 |
 
 `District.jsx` 는 원래 1,005 줄에 세무와 상권이 같이 있었다. 두 사람이 같은
 파일을 동시에 고치게 돼서 갈랐다(`ae28205`). 다시 합치지 말 것.
 
 `DeadlineCalendar` 는 `Schedule.jsx` 와 `Home.jsx` 두 곳에서 불린다. props
 를 바꿀 때 기본값을 채워두면 옛 호출부가 그냥 돌아서 서로 기다릴 일이 없다.
+
+## 관심공고를 화면에 붙일 때
+
+★ 버튼과 알림 종은 **한 줄로 붙게** 만들어놨다. 로직을 복사하지 말 것.
+
+    <FavoriteButton notice={m} />     // API 원본이든 Home 카드든 둘 다 받는다
+    <NotificationBell />              // 알림이 없으면 스스로 안 그린다
+    <FavoriteNotices />               // 담긴 게 없으면 스스로 안 그린다
+
+목록만 필요하면 `listFavorites()`. 달력에서 「관심공고만 표시」를 할 때
+이걸 쓰면 된다.
+
+공고 상세로 갈 때는 `openNoticeById(id, navigate)` 를 쓴다. 관심공고에는
+공고 원본을 안 담았다 — 원본에는 「신청가능/대상아님」 판정이 들어 있는데
+담을 때의 프로필 기준이라 며칠 지나면 틀린 말이 된다. 그래서 열 때 매칭을
+다시 돌린다. 마감돼서 사라진 공고면 false 를 돌려준다.
+
+**마감일이 없는 공고가 절반이다.** 58건 중 30건은 `apply_period` 에 `end` 가
+없고 `note` 문자열만 있다(「세부사업별 상이」). 거기서 날짜를 뽑아내지 말 것.
+알림은 안 띄우고 목록에는 「마감일 미정」으로 적는다.
 
 ## 세무일정을 고칠 때
 

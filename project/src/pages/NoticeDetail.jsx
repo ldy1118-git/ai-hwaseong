@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import Header from '../components/layout/Header'
 import Button from '../components/ui/Button'
 import { fetchMatches, lookupTerms, DEFAULT_PROFILE } from '../utils/api'
+import FavoriteButton from '../components/ui/FavoriteButton'
 
 /**
  * 공고 상세.
@@ -211,6 +212,8 @@ export default function NoticeDetail() {
             </span>
           )}
           <span className="text-xs text-warm-text">{item.application_status}</span>
+          {/* ★ 관심공고. 담아두면 마감 전에 알림이 온다 */}
+          <FavoriteButton notice={item} className="ml-auto" />
         </div>
 
         <h1 className="text-lg font-bold text-navy leading-snug">{annotate(item.notice_title, terms)}</h1>
