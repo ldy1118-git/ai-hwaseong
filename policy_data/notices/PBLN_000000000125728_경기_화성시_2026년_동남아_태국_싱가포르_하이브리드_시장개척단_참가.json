@@ -1,0 +1,73 @@
+{
+ "notice_id": "PBLN_000000000125728",
+ "title": "[경기] 화성시 2026년 동남아(태국ㆍ싱가포르) 하이브리드 시장개척단 참가 기업 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000125728",
+ "summary": "화성시에서는 관내 중소기업의 판로 확대를 증진하고자 「화성시 기업지원 및 기업활동 촉진등에 관한 조례」 제4조에 따라 [2026년 화성시 동남아(태국, 싱가포르) 하이브리드 시장개척단]에 참가할 유망 중소 기업을 다음과 같이 모집하오니 관심 있는 기업들의 많은 신청 바랍니다. ☞ 화성시 관내 본사 또는 공장이 소재하고 전년도 수출액 2,000만불 이하인 중소기업 ☞ 왕복 항공료 50%, 1:1 바이어 상담 주선 및 통역, 상담장 임차료, 현지 교통비 및 바이어 기업 방문, 바이어 업무교신 및 사후관리 지원",
+ "apply_period": {
+  "start": "2026-08-21",
+  "end": "2026-09-04"
+ },
+ "eligibility": {
+  "business_status": [
+   "운영중"
+  ],
+  "regions": [
+   "화성시",
+   "화성특례시"
+  ]
+ },
+ "documents": [
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 참가 신청서"
+  },
+  {
+   "name": "정보 제공 동의서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 사업자등록증명("
+  },
+  {
+   "name": "국세․지방세 완납 증명",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "전년도 수출실적 증빙자료",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "공장등록증",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "건축물대장",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 건축물 대장"
+  },
+  {
+   "name": "경우 상표등록증",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "(고유 제품 제조업체 증빙자료",
+   "type": "common",
+   "confidence": "confirmed"
+  }
+ ],
+ "apply_method": "이메일 접수 (info@hstrade.or.kr)",
+ "contact": "화성시 수출업무지원센터 031-350-7953 / info@hstrade.or.kr",
+ "organizer": "경기도",
+ "operator": "기초자치단체"
+}
