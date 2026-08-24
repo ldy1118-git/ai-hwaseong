@@ -206,7 +206,7 @@ export default function App() {
           import.meta.env.DEV 는 빌드할 때 false 로 치환되고, 그러면 이
           가지가 통째로 사라지면서 DevTools 모듈 자체가 번들에서 빠진다.
           npm run dev 로 띄우면 예전처럼 그대로 쓸 수 있다. */}
-      {import.meta.env.DEV && <DevTools />}
+      {(import.meta.env.DEV || import.meta.env.VITE_DEVTOOLS === 'true') && <DevTools />}
       <AnimatedRoutes />
       <BottomNav />
     </>

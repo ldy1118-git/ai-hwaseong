@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { apiUrl } from '../../utils/api'
+import { getSiteInfo } from './SiteLaunchSheet'
 
 function findDoc(name, termsData) {
   if (!name || !termsData?.documents) return null
@@ -12,16 +13,22 @@ function findDoc(name, termsData) {
   ) ?? null
 }
 
-async function fetchLlmSteps(docName) {
+async function fetchLlmSteps(docName, issueUrl) {
+  const site = issueUrl ? getSiteInfo(issueUrl) : null
+  const siteContext = site
+    ? `\n준비 사이트: ${site.name} (${issueUrl})\n화면 오른쪽에 이미 이 사이트가 열려 있어요. 별도로 사이트를 찾아갈 필요 없이, 오른쪽 화면 기준으로 단계를 안내해주세요.`
+    : ''
+
   const res = await fetch(apiUrl('/api/llm'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       system: `당신은 마이다(Mar-DA)입니다. 화성시 소상공인을 돕는 든든한 동료예요.
-서류 발급 방법을 사장님이 바로 따라할 수 있도록 구체적인 단계로 설명해주세요.
+서류를 준비하는 방법을 사장님이 바로 따라할 수 있도록 구체적인 단계로 설명해주세요.
+준비 사이트가 주어진 경우, 그 사이트 기준으로 어디서 무엇을 눌러야 하는지 구체적으로 안내해주세요. "사이트에 접속해요" 같은 단계는 쓰지 마세요 — 이미 열려 있으니까요.
 말투는 "~해요", "~하세요" 처럼 친근하게.
-JSON 형식으로만 응답: {"steps":["1단계","2단계",...],"fee":"비용","time":"소요시간","tip":"팁(없으면 null)"}`,
-      prompt: `"${docName}" 서류를 발급받는 방법을 단계별로 알려주세요.`,
+JSON 형식으로만 응답: {"steps":["1단계","2단계",...],"fee":"비용(없으면 null)","time":"소요시간(없으면 null)","tip":"팁(없으면 null)"}`,
+      prompt: `"${docName}" 서류를 준비하는 방법을 단계별로 알려주세요.${siteContext}`,
       json: true,
     }),
   })
@@ -29,94 +36,77 @@ JSON 형식으로만 응답: {"steps":["1단계","2단계",...],"fee":"비용","
   return JSON.parse(data.text)
 }
 
-// ── 단계 체크 목록 ─────────────────────────────────────────────
-function StepChecklist({ steps, checked, onToggle, color = 'navy' }) {
-  if (!steps?.length) return null
-  return (
-    <ol className="space-y-3">
-      {steps.map((step, i) => (
-        <li
-          key={i}
-          onClick={() => onToggle(i)}
-          className="flex gap-3 cursor-pointer group"
-        >
-          {/* 번호 / 체크 */}
-          <span className={[
-            'shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all',
-            checked[i]
-              ? 'bg-navy border-navy text-white'
-              : `border-${color}/30 text-${color}/60 group-hover:border-${color}/60`,
-          ].join(' ')}>
-            {checked[i] ? '✓' : i + 1}
-          </span>
-          {/* 내용 */}
-          <p className={[
-            'text-sm pt-1 leading-relaxed transition-colors',
-            checked[i] ? 'text-warm-text line-through' : 'text-gray-700',
-          ].join(' ')}>
-            {step}
-          </p>
-        </li>
-      ))}
-    </ol>
-  )
+// 신청서·양식 계열 서류 — 공고 신청 페이지에서 다운받아야 하는 것들
+const FORM_KEYWORDS = ['신청서', '사업계획서', '개인정보', '동의서', '계획서', '견적서']
+
+function isFormDoc(label) {
+  return FORM_KEYWORDS.some(k => label?.includes(k))
 }
 
-// ── 메인 드로어 ────────────────────────────────────────────────
-export default function DocumentStepDrawer({ item, termsData, onClose, onComplete }) {
-  const [tab, setTab]             = useState('online')
-  const [stepChecked, setStepChecked] = useState([])   // 현재 탭의 단계 체크 여부
-  const [llmData, setLlmData]     = useState(null)
-  const [llmLoading, setLlmLoading] = useState(false)
-  const [llmError, setLlmError]   = useState('')
+export default function DocumentStepDrawer({ item, termsData, applyUrl, onClose, onComplete }) {
+  const [stepChecked, setStepChecked] = useState([])
+  const [llmData, setLlmData]         = useState(null)
+  const [llmLoading, setLlmLoading]   = useState(false)
+  const [llmError, setLlmError]       = useState('')
+  const [iframeState, setIframeState] = useState('loading') // 'loading' | 'loaded' | 'blocked'
 
-  const doc = findDoc(item?.label, termsData)
+  const doc      = findDoc(item?.label, termsData)
+  const issueUrl = doc?.issue?.url ?? (isFormDoc(item?.label) ? (applyUrl ?? null) : null)
+  const fee      = doc?.issue?.fee  || llmData?.fee  || null
+  const time     = doc?.issue?.time || llmData?.time || null
 
-  const hasOnline  = (doc?.issue?.online?.length  ?? 0) > 0
-  const hasOffline = (doc?.issue?.offline?.length ?? 0) > 0
-
-  // 드로어 열릴 때마다 초기화
   useEffect(() => {
     if (!item) return
-    const firstTab = hasOnline ? 'online' : hasOffline ? 'offline' : 'llm'
-    setTab(firstTab)
     setLlmData(null)
     setLlmError('')
+    setStepChecked([])
+    setIframeState('loading')
+    loadLlm()
   }, [item?.label])
 
-  // 탭이 바뀌면 단계 체크 초기화
+  function handleIframeLoad(e) {
+    try {
+      const href = e.target.contentWindow.location.href
+      // X-Frame-Options 차단 시 about:blank 또는 chrome-error:// 로 남는다
+      if (!href || href === 'about:blank' || href.startsWith('chrome-error://')) {
+        setIframeState('blocked')
+      } else {
+        setIframeState('loaded')
+      }
+    } catch {
+      // SecurityError = 크로스오리진이지만 정상적으로 로드됨
+      setIframeState('loaded')
+    }
+  }
+
+  function openNewWindow(url) {
+    const sidebarW = Math.max(window.innerWidth * 0.25, 200)
+    const w    = window.innerWidth - sidebarW
+    const h    = window.innerHeight
+    const left = window.screenX + sidebarW
+    const top  = window.screenY
+    window.open(url, '_blank', `width=${w},height=${h},left=${left},top=${top},noopener,noreferrer`)
+  }
+
   useEffect(() => {
-    const steps = currentSteps()
-    setStepChecked(new Array(steps.length).fill(false))
-    if (tab === 'llm' && !llmData && !llmLoading) loadLlm()
-  }, [tab, llmData])
-
-  function currentSteps() {
-    if (tab === 'online')  return doc?.issue?.online  ?? []
-    if (tab === 'offline') return doc?.issue?.offline ?? []
-    if (tab === 'llm')     return llmData?.steps       ?? []
-    return []
-  }
-
-  function toggleStep(i) {
-    setStepChecked(prev => prev.map((v, idx) => idx === i ? !v : v))
-  }
-
-  const steps      = currentSteps()
-  const allDone    = steps.length > 0 && stepChecked.length === steps.length && stepChecked.every(Boolean)
-  const doneCount  = stepChecked.filter(Boolean).length
+    setStepChecked(new Array(llmData?.steps?.length ?? 0).fill(false))
+  }, [llmData?.steps?.length])
 
   async function loadLlm() {
     setLlmLoading(true)
     setLlmError('')
     try {
-      const result = await fetchLlmSteps(item.label)
+      const result = await fetchLlmSteps(item.label, issueUrl)
       setLlmData(result)
     } catch {
-      setLlmError('마이다가 잠깐 연결이 끊겼어요. 다시 시도해주세요.')
+      setLlmError('마이다가 잠깐 연결이 끊겼어요.')
     } finally {
       setLlmLoading(false)
     }
+  }
+
+  function toggleStep(i) {
+    setStepChecked(prev => prev.map((v, idx) => idx === i ? !v : v))
   }
 
   function handleComplete() {
@@ -126,178 +116,190 @@ export default function DocumentStepDrawer({ item, termsData, onClose, onComplet
 
   if (!item) return null
 
-  const TABS = [
-    hasOnline  && { key: 'online',  label: '🖥 온라인' },
-    hasOffline && { key: 'offline', label: '🏢 오프라인' },
-    { key: 'llm', label: '🌟 마이다 안내' },
-  ].filter(Boolean)
+  const steps     = llmData?.steps ?? []
+  const doneCount = stepChecked.filter(Boolean).length
+  const allDone   = steps.length > 0 && doneCount === steps.length
+  const site      = issueUrl ? getSiteInfo(issueUrl) : null
 
   return (
-    <>
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex">
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl
-                      max-h-[85vh] flex flex-col max-w-2xl mx-auto">
+      {/* LEFT: 마이다 안내 사이드바 (1/4) */}
+      <div
+        className="w-1/4 min-w-[200px] h-full bg-white shadow-2xl flex flex-col"
+        style={{ animation: 'slideInLeft 0.25s ease' }}
+      >
+        <style>{`
+          @keyframes slideInLeft { from { transform: translateX(-100%) } to { transform: translateX(0) } }
+          @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        `}</style>
 
-        {/* 헤더 */}
-        <div className="px-5 pt-3 pb-4 border-b border-warm-gray/20">
-          <div className="w-10 h-1 bg-warm-gray/40 rounded-full mx-auto mb-4" />
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1">
-              <p className="text-xs text-warm-text font-semibold mb-0.5">서류 발급 절차</p>
-              <h2 className="text-lg font-bold text-navy">{item.label}</h2>
-              {doc?.easy && (
-                <p className="text-sm text-warm-text mt-1 leading-relaxed">{doc.easy}</p>
-              )}
-            </div>
-            <button
-              onClick={onClose}
-              className="shrink-0 w-8 h-8 rounded-full bg-warm-gray/20 flex items-center
-                         justify-center text-warm-text hover:bg-warm-gray/40 transition-colors"
-            >✕</button>
-          </div>
-
-          {/* 비용·시간 배지 */}
-          {doc?.issue && (
-            <div className="flex gap-2 mt-3 flex-wrap">
-              {doc.issue.fee  && <span className="text-xs bg-star-yellow/20 text-navy px-2.5 py-1 rounded-full font-medium">💰 {doc.issue.fee}</span>}
-              {doc.issue.time && <span className="text-xs bg-navy/10 text-navy px-2.5 py-1 rounded-full font-medium">⏱ {doc.issue.time}</span>}
+        {/* 사이드바 헤더 */}
+        <div className="bg-navy px-4 py-4 flex-shrink-0">
+          <p className="text-white/70 text-[10px] font-semibold uppercase tracking-wider mb-1">✨ 마이다 안내</p>
+          <h2 className="text-white text-sm font-bold leading-snug">{item.label}</h2>
+          {(fee || time) && (
+            <div className="flex gap-1.5 mt-2 flex-wrap">
+              {fee  && <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full">💰 {fee}</span>}
+              {time && <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full">⏱ {time}</span>}
             </div>
           )}
         </div>
 
-        {/* 탭 + 진행률 */}
-        <div className="px-5 border-b border-warm-gray/20">
-          <div className="flex">
-            {TABS.map(t => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`py-2.5 px-3 text-xs font-semibold transition-colors border-b-2 -mb-px
-                  ${tab === t.key ? 'border-navy text-navy' : 'border-transparent text-warm-text hover:text-navy'}`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-          {/* 단계 진행 바 */}
+        {/* 체크리스트 */}
+        <div className="flex-1 overflow-y-auto px-4 py-4">
+          {llmLoading && (
+            <div className="space-y-4 animate-pulse">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="flex gap-2.5">
+                  <div className="w-6 h-6 rounded-full bg-warm-gray/30 flex-shrink-0" />
+                  <div className="flex-1 space-y-1.5 pt-1">
+                    <div className="h-2 bg-warm-gray/30 rounded-full" />
+                    <div className="h-2 bg-warm-gray/20 rounded-full w-4/5" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {llmError && (
+            <div className="text-center py-6">
+              <p className="text-xs text-warm-text mb-2">{llmError}</p>
+              <button onClick={loadLlm} className="text-xs text-navy underline">다시 시도</button>
+            </div>
+          )}
+
+          {!llmLoading && !llmError && steps.length > 0 && (
+            <ol className="space-y-3.5">
+              {steps.map((step, i) => (
+                <li key={i} onClick={() => toggleStep(i)} className="flex gap-2.5 cursor-pointer group">
+                  <span className={[
+                    'shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all mt-0.5',
+                    stepChecked[i]
+                      ? 'bg-navy border-navy text-white'
+                      : 'border-navy/30 text-navy/50 group-hover:border-navy/70',
+                  ].join(' ')}>
+                    {stepChecked[i] ? '✓' : i + 1}
+                  </span>
+                  <p className={[
+                    'text-xs leading-relaxed transition-colors pt-0.5',
+                    stepChecked[i] ? 'text-warm-text/60 line-through' : 'text-gray-700',
+                  ].join(' ')}>
+                    {step}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+
+        {/* 진행바 + 완료 버튼 */}
+        <div className="px-4 py-4 border-t border-warm-gray/20 flex-shrink-0 space-y-3">
           {steps.length > 0 && (
-            <div className="py-2 flex items-center gap-2">
-              <div className="flex-1 h-1.5 bg-warm-gray/20 rounded-full overflow-hidden">
+            <div>
+              <div className="h-1.5 bg-warm-gray/20 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-navy rounded-full transition-all duration-300"
-                  style={{ width: `${steps.length ? (doneCount / steps.length) * 100 : 0}%` }}
+                  style={{ width: `${(doneCount / steps.length) * 100}%` }}
                 />
               </div>
-              <span className="text-xs text-warm-text font-medium shrink-0">
-                {doneCount}/{steps.length} 완료
-              </span>
+              <p className="text-[11px] text-warm-text text-right mt-1">{doneCount}/{steps.length} 완료</p>
             </div>
           )}
-        </div>
-
-        {/* 콘텐츠 */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
-
-          {/* 온라인 / 오프라인 탭 */}
-          {(tab === 'online' || tab === 'offline') && (
-            <>
-              <StepChecklist
-                steps={steps}
-                checked={stepChecked}
-                onToggle={toggleStep}
-                color="navy"
-              />
-              {tab === 'online' && doc?.issue?.url && (
-                <a
-                  href={doc.issue.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl
-                             bg-navy/10 text-navy text-sm font-semibold hover:bg-navy/20 transition-colors"
-                >
-                  사이트 바로가기 →
-                </a>
-              )}
-            </>
-          )}
-
-          {/* 마이다 LLM 안내 탭 */}
-          {tab === 'llm' && (
-            <>
-              {llmLoading && (
-                <div className="flex flex-col items-center py-8 gap-3">
-                  <div className="flex gap-1">
-                    {[0, 0.15, 0.3].map((d, i) => (
-                      <span key={i} className="w-2 h-2 rounded-full bg-navy animate-bounce"
-                        style={{ animationDelay: `${d}s` }} />
-                    ))}
-                  </div>
-                  <p className="text-sm text-warm-text">마이다가 발급 방법을 찾고 있어요...</p>
-                </div>
-              )}
-              {llmError && (
-                <div className="text-center py-6">
-                  <p className="text-sm text-warm-text mb-3">{llmError}</p>
-                  <button onClick={loadLlm} className="text-xs text-navy underline underline-offset-2">다시 시도</button>
-                </div>
-              )}
-              {llmData && !llmLoading && (
-                <>
-                  <StepChecklist steps={llmData.steps} checked={stepChecked} onToggle={toggleStep} />
-                  {(llmData.fee || llmData.time) && (
-                    <div className="flex gap-2 flex-wrap">
-                      {llmData.fee  && <span className="text-xs bg-star-yellow/20 text-navy px-2.5 py-1 rounded-full font-medium">💰 {llmData.fee}</span>}
-                      {llmData.time && <span className="text-xs bg-navy/10 text-navy px-2.5 py-1 rounded-full font-medium">⏱ {llmData.time}</span>}
-                    </div>
-                  )}
-                  {llmData.tip && (
-                    <div className="bg-star-yellow/15 border border-star-yellow/40 rounded-xl p-3">
-                      <p className="text-xs font-bold text-navy mb-1">💡 마이다 팁</p>
-                      <p className="text-sm text-gray-700">{llmData.tip}</p>
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
-
-          {/* 주의·혼동 */}
-          {doc?.caution && (
-            <div className="bg-sunset-orange/10 border border-sunset-orange/30 rounded-xl p-3">
-              <p className="text-xs font-bold text-sunset-orange mb-1">⚠ 주의</p>
-              <p className="text-sm text-gray-700">{doc.caution}</p>
-            </div>
-          )}
-          {doc?.confused_with && (
-            <div className="bg-warm-gray/10 border border-warm-gray/30 rounded-xl p-3">
-              <p className="text-xs font-bold text-warm-text mb-1">⚡ "{doc.confused_with.name}"과 헷갈리지 마세요</p>
-              <p className="text-sm text-gray-700">{doc.confused_with.why}</p>
-            </div>
-          )}
-
-          {/* 여백 (완료 버튼이 가리지 않도록) */}
-          <div className="h-4" />
-        </div>
-
-        {/* 완료 버튼 — 항상 하단 고정 */}
-        <div className="px-5 py-4 border-t border-warm-gray/20 bg-white">
           <button
             onClick={handleComplete}
             disabled={!allDone}
             className={[
-              'w-full py-3.5 rounded-2xl text-sm font-bold transition-all duration-300',
+              'w-full py-2.5 rounded-xl text-xs font-bold transition-all',
               allDone
-                ? 'bg-navy text-white shadow-lg shadow-navy/30 scale-100'
+                ? 'bg-navy text-white shadow-md'
                 : 'bg-warm-gray/20 text-warm-text cursor-not-allowed',
             ].join(' ')}
           >
-            {allDone
-              ? '✅ 서류 준비 완료! 체크리스트에 표시할게요'
-              : `단계를 순서대로 완료해주세요 (${doneCount}/${steps.length})`}
+            {allDone ? '✅ 준비 완료!' : '단계를 완료해주세요'}
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full py-2 rounded-xl bg-warm-gray/15 text-warm-text text-xs font-medium"
+          >
+            닫기
           </button>
         </div>
       </div>
-    </>
+
+      {/* RIGHT: iframe 영역 (3/4) */}
+      <div className="flex-1 flex flex-col bg-gray-50" style={{ animation: 'fadeIn 0.25s ease' }}>
+        {site ? (
+          <>
+            {/* 상단 바 */}
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-b border-warm-gray/20 flex-shrink-0 shadow-sm">
+              <span className="text-lg">{site.emoji}</span>
+              <span className="text-sm font-bold text-navy">{site.name}</span>
+              <span className="text-xs text-warm-text truncate hidden sm:block">— {item.label}</span>
+              <button
+                onClick={() => openNewWindow(issueUrl)}
+                className="ml-auto text-xs text-navy font-semibold px-3 py-1.5 rounded-lg bg-navy/8 hover:bg-navy/15 transition-colors flex-shrink-0"
+              >
+                새 창으로 열기 ↗
+              </button>
+            </div>
+
+            {/* iframe + 상태 오버레이 */}
+            <div className="flex-1 relative overflow-hidden">
+
+              {/* iframe — blocked일 때는 렌더 안 함 */}
+              {iframeState !== 'blocked' && (
+                <iframe
+                  key={issueUrl}
+                  src={issueUrl}
+                  title={site.name}
+                  className="absolute inset-0 w-full h-full border-none"
+                  onLoad={handleIframeLoad}
+                  onError={() => setIframeState('blocked')}
+                />
+              )}
+
+              {/* 로딩 중 */}
+              {iframeState === 'loading' && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white">
+                  <span className="w-9 h-9 rounded-full border-4 border-warm-gray/30 border-t-navy animate-spin" />
+                  <p className="text-xs text-warm-text">{site.name} 불러오는 중...</p>
+                </div>
+              )}
+
+              {/* 차단됨 — 폴백 */}
+              {iframeState === 'blocked' && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 bg-white">
+                  <span className="text-5xl">🔒</span>
+                  <p className="text-sm font-bold text-navy text-center leading-relaxed">
+                    {site.name}에서<br />이 화면 안에서 열기를 허용하지 않아요
+                  </p>
+                  <p className="text-xs text-warm-text text-center leading-relaxed">
+                    보안 정책 때문이에요.<br />
+                    왼쪽 체크리스트를 확인하고 새 창에서 진행해주세요.
+                  </p>
+                  <button
+                    onClick={() => openNewWindow(issueUrl)}
+                    className="px-6 py-3 rounded-2xl bg-navy text-white text-sm font-bold
+                               hover:bg-navy/90 active:scale-[0.98] transition-all shadow-lg"
+                  >
+                    {site.name} 새 창으로 열기 →
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 bg-white">
+            <span className="text-5xl">📍</span>
+            <p className="text-sm font-bold text-navy mt-2">직접 준비가 필요한 서류예요</p>
+            <p className="text-xs text-warm-text text-center leading-relaxed">
+              온라인 발급 링크가 없어요.<br />왼쪽 절차를 따라 준비해주세요.
+            </p>
+          </div>
+        )}
+      </div>
+
+    </div>
   )
 }

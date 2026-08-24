@@ -11,6 +11,7 @@ import termsData from '../data/terms.json'
 import searchImg from '../../design/search.png'
 import marsImg from '../../design/mars.png'
 import { addFavorite } from '../utils/favorites'
+import SiteLaunchSheet from '../components/ui/SiteLaunchSheet'
 import {
   saveProgress as storeProgress, getProgress,
 } from '../utils/checklistProgress'
@@ -103,7 +104,18 @@ function MarsGuide({ message }) {
 
 /* ── 서류 발급 바텀시트 ────────────────────────────── */
 function PrepSheet({ items, onClose }) {
+  const [siteTarget, setSiteTarget] = useState(null)  // { url, docName }
   const linkItems = items.filter(it => it.issueUrl)
+
+  if (siteTarget) {
+    return (
+      <SiteLaunchSheet
+        url={siteTarget.url}
+        docName={siteTarget.docName}
+        onClose={() => setSiteTarget(null)}
+      />
+    )
+  }
 
   return (
     <>
@@ -117,28 +129,24 @@ function PrepSheet({ items, onClose }) {
         <div className="px-5 pt-4 pb-4 border-b border-warm-gray/20">
           <div className="w-10 h-1 bg-warm-gray/40 rounded-full mx-auto mb-4" />
           <p className="text-base font-bold text-navy">서류 발급 바로가기</p>
-          <p className="text-xs text-warm-text mt-0.5">탭하면 해당 발급 페이지로 이동해요</p>
+          <p className="text-xs text-warm-text mt-0.5">탭하면 해당 발급 사이트 안내를 먼저 보여드려요</p>
         </div>
 
         <div className="px-5 py-4 space-y-2 max-h-64 overflow-y-auto">
           {linkItems.map(it => (
-            <a
+            <button
               key={it.id}
-              href={it.issueUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-navy/5 hover:bg-navy/10 transition-colors"
+              onClick={() => setSiteTarget({ url: it.issueUrl, docName: it.label })}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-navy/5 hover:bg-navy/10 transition-colors text-left"
             >
               <span className="text-xl flex-shrink-0">📄</span>
               <p className="flex-1 text-sm font-semibold text-navy">{it.label}</p>
               <span className="text-navy/40 text-sm flex-shrink-0">→</span>
-            </a>
+            </button>
           ))}
-          <a
-            href="https://www.gov.kr"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-sunset-orange/10 hover:bg-sunset-orange/20 transition-colors"
+          <button
+            onClick={() => setSiteTarget({ url: 'https://www.gov.kr', docName: null })}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-sunset-orange/10 hover:bg-sunset-orange/20 transition-colors text-left"
           >
             <span className="text-xl flex-shrink-0">🏛</span>
             <div className="flex-1">
@@ -146,7 +154,7 @@ function PrepSheet({ items, onClose }) {
               <p className="text-xs text-warm-text">공공서류 원스톱 발급 포털</p>
             </div>
             <span className="text-sunset-orange text-sm flex-shrink-0">→</span>
-          </a>
+          </button>
         </div>
 
         <div className="px-5 pb-7">
@@ -620,6 +628,7 @@ export default function ApplicationGuide() {
       <DocumentStepDrawer
         item={drawerItem}
         termsData={termsData}
+        applyUrl={program?.apply_url}
         onClose={() => setDrawerItem(null)}
         onComplete={handleComplete}
       />

@@ -5,6 +5,7 @@ import Header from '../components/layout/Header'
 import Button from '../components/ui/Button'
 import { fetchMatches, lookupTerms, DEFAULT_PROFILE } from '../utils/api'
 import FavoriteButton from '../components/ui/FavoriteButton'
+import { summarizeNoticeEasy } from '../utils/llm/summarizeNoticeEasy'
 
 /**
  * 공고 상세.
@@ -106,6 +107,21 @@ function annotate(text, terms) {
   })
 }
 
+
+// terms.json의 easy 텍스트가 사전체("~있다.", "~서류." 등)라
+// 화면에서만 친근한 말투로 바꿔준다. 원본 데이터는 건드리지 않는다.
+function toFriendly(text) {
+  if (!text) return text
+  return text
+    .replace(/쓴다\./g, '써요.')
+    .replace(/있다\./g, '있어요.')
+    .replace(/된다\./g, '돼요.')
+    .replace(/한다\./g, '해요.')
+    .replace(/받는다\./g, '받아요.')
+    .replace(/(서류|종이|증서|자료|문서|계약서|장부|용도)\./g, '$1예요.')
+    .replace(/(사진|서식|증명|양식)\./g, '$1이에요.')
+}
+
 function Section({ title, children }) {
   return (
     <section className="mt-6">
@@ -122,19 +138,21 @@ const BOX = 'bg-white border border-warm-gray/40 rounded-2xl p-4'
 
 export default function NoticeDetail() {
   const navigate = useNavigate()
-  const [item, setItem]     = useState(null)
-  const [terms, setTerms]   = useState([])
-  const [docs, setDocs]     = useState([])
-  const [loading, setLoad]  = useState(true)
-  const [error, setError]   = useState('')
+  const [item, setItem]         = useState(null)
+  const [terms, setTerms]       = useState([])
+  const [docs, setDocs]         = useState([])
+  const [loading, setLoad]      = useState(true)
+  const [error, setError]       = useState('')
+  const [easyInfo, setEasyInfo] = useState(null)
+  const [easyLoading, setEasyLoading] = useState(true)
 
   useEffect(() => {
     let dead = false
 
     async function load() {
+      let picked = null
       try {
         // 대시보드에서 고른 공고. 새로고침 등으로 없으면 매칭을 다시 돌린다.
-        let picked = null
         const saved = localStorage.getItem('mars-fit-selected-match')
         if (saved) picked = JSON.parse(saved)
 
@@ -158,6 +176,17 @@ export default function NoticeDetail() {
         if (!dead) setError(err.message)
       } finally {
         if (!dead) setLoad(false)
+      }
+
+      // LLM 쉬운 요약 — phase 1 완료 후 별도로 실행. 실패해도 카드만 안 뜬다.
+      if (!picked || dead) { if (!dead) setEasyLoading(false); return }
+      try {
+        const easy = await summarizeNoticeEasy(picked)
+        if (!dead) setEasyInfo(easy)
+      } catch {
+        // silent
+      } finally {
+        if (!dead) setEasyLoading(false)
       }
     }
     load()
@@ -218,11 +247,55 @@ export default function NoticeDetail() {
 
         <h1 className="text-lg font-bold text-navy leading-snug">{annotate(item.notice_title, terms)}</h1>
 
-        {item.summary && (
-          <p className="mt-2 text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">
-            {annotate(item.summary, terms)}
-          </p>
-        )}
+        {/* 마이다 쉬운 설명 카드 */}
+        <div className="mt-3 rounded-2xl overflow-hidden border border-navy/10 shadow-sm">
+          <div className="bg-navy px-4 py-2.5 flex items-center gap-2">
+            <span className="text-base">✨</span>
+            <span className="text-white text-sm font-bold">마이다가 쉽게 정리했어요</span>
+          </div>
+          <div className="bg-white px-4 py-4">
+            {easyLoading ? (
+              <div className="space-y-2.5 animate-pulse">
+                <div className="h-3 bg-warm-gray/30 rounded-full w-full" />
+                <div className="h-3 bg-warm-gray/30 rounded-full w-11/12" />
+                <div className="h-3 bg-warm-gray/30 rounded-full w-4/6" />
+                <div className="mt-4 h-3 bg-warm-gray/20 rounded-full w-2/5" />
+                <div className="h-8 bg-warm-gray/20 rounded-xl w-full" />
+                <div className="h-8 bg-warm-gray/20 rounded-xl w-full" />
+              </div>
+            ) : easyInfo ? (
+              <>
+                <p className="text-sm text-gray-700 leading-relaxed">{easyInfo.what}</p>
+
+                {easyInfo.benefits?.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-xs font-bold text-navy uppercase tracking-wider mb-2.5">
+                      내가 받을 수 있는 혜택
+                    </p>
+                    <div className="space-y-2">
+                      {easyInfo.benefits.map((b, i) => (
+                        <div key={i} className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2.5">
+                          <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 text-white text-xs font-bold">
+                            ✓
+                          </span>
+                          <span className="text-sm font-semibold text-gray-800">{b}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {easyInfo.caution && (
+                  <div className="mt-3 flex items-start gap-2 bg-sunset-orange/8 border border-sunset-orange/20 rounded-xl px-3 py-2.5">
+                    <span className="text-sunset-orange text-sm flex-shrink-0 mt-px">⚠</span>
+                    <p className="text-xs text-gray-700 leading-relaxed">{easyInfo.caution}</p>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        </div>
+
 
         {/* 조건 판정 — 왜 이 공고가 나에게 떴는지 */}
         <Section title="내 조건과 맞춰본 결과">
@@ -257,7 +330,7 @@ export default function NoticeDetail() {
               {docs.map((d, i) => (
                 <div key={d.name} className={`py-2.5 ${i > 0 ? 'border-t border-warm-gray/20' : ''}`}>
                   <p className="text-sm font-semibold text-navy">{cleanDocName(d.name).name}</p>
-                  {d.easy && <p className="text-xs text-warm-text mt-0.5 leading-relaxed">{d.easy}</p>}
+                  {d.easy && <p className="text-xs text-warm-text mt-0.5 leading-relaxed">{toFriendly(d.easy)}</p>}
                   {d.issue && (
                     <p className="text-xs text-gray-700 mt-1 leading-relaxed">
                       {(d.issue.online ?? []).join(' / ')}
