@@ -1,7 +1,7 @@
 {
-  "version": "2026-08-24b",
+  "version": "2026-08-25",
   "note": "소상공인이 1년에 치르는 신고·납부 일정. 사람마다 해당되는 게 달라서 항목마다 applies_to 로 대상을 적어둔다. 화면은 프로필과 대조해서 해당되는 것만 보여주면 된다.",
-  "verified_note": "2026-08-18 국세청 원문으로 대조했다. verified=true 는 아래 출처에서 직접 확인한 것이다. 세무 일정은 틀리면 사장님이 가산세를 문다. 확인 못 한 건 넣지 않는다.",
+  "verified_note": "2026-08-18 국세청 원문으로 대조했다. 직원 관련 4건은 2026-08-25 에 국세청·고용노동부 원문으로 대조했다. verified=true 는 아래 출처에서 직접 확인한 것이다. 세무 일정은 틀리면 사장님이 가산세를 문다. 확인 못 한 건 넣지 않는다.",
   "applies_to_note": "값이 null 이면 '따지지 않는다'는 뜻이다. 예를 들어 has_employee 가 null 이면 직원이 있든 없든 해당된다. has_employee 와 withholding_half 는 참/거짓이라 목록이 아니라 값으로 견준다.",
   "enums": {
     "entity_type": [
@@ -355,6 +355,91 @@
       "caution": "직원이 상시 20명 이하면 반기납부를 신청할 수 있습니다. 승인받으면 1월·7월 두 번만 내면 됩니다.",
       "exclusive_group": "withholding",
       "conditional_resolved_by": "withholding_half"
+    },
+    {
+      "id": "simple-payment-statement-1st",
+      "title": "간이지급명세서 (근로소득) 상반기분",
+      "due": "07-31",
+      "covers": "1월 ~ 6월 지급분",
+      "applies_to": {
+        "entity_type": null,
+        "vat_type": null,
+        "has_employee": true
+      },
+      "easy": "직원에게 준 월급을 반년치 묶어서 알려주는 서류입니다. 세금을 더 내는 건 아니고 얼마를 줬는지만 냅니다.",
+      "where": "홈택스",
+      "docs": [
+        "급여대장",
+        "직원 인적사항(주민등록번호)"
+      ],
+      "penalty": "미제출 가산세 0.25% (기한 후 1개월 내 제출 시 0.125%)",
+      "source": "소득세법 제164조의3",
+      "verified": true,
+      "caution": "2027년 1월 지급분부터는 매월 내야 합니다. 2026년까지는 반기별입니다."
+    },
+    {
+      "id": "simple-payment-statement-2nd",
+      "title": "간이지급명세서 (근로소득) 하반기분",
+      "due": "01-31",
+      "covers": "전년 7월 ~ 12월 지급분",
+      "applies_to": {
+        "entity_type": null,
+        "vat_type": null,
+        "has_employee": true
+      },
+      "easy": "작년 하반기에 직원에게 준 월급을 알려주는 서류입니다. 상반기분은 7월에 냈던 그것입니다.",
+      "where": "홈택스",
+      "docs": [
+        "급여대장",
+        "직원 인적사항(주민등록번호)"
+      ],
+      "penalty": "미제출 가산세 0.25% (기한 후 1개월 내 제출 시 0.125%)",
+      "source": "소득세법 제164조의3",
+      "verified": true,
+      "caution": "2027년 1월 지급분부터는 매월 내야 합니다."
+    },
+    {
+      "id": "payment-statement-annual",
+      "title": "지급명세서 (근로소득) · 연말정산 반영",
+      "due": "03-10",
+      "covers": "전년 1월 ~ 12월 지급분",
+      "applies_to": {
+        "entity_type": null,
+        "vat_type": null,
+        "has_employee": true
+      },
+      "easy": "직원 1년치 월급과 떼어둔 세금을 정리해서 냅니다. 2월 월급 줄 때 연말정산을 하고, 그 결과를 여기에 담습니다.",
+      "where": "홈택스",
+      "docs": [
+        "급여대장",
+        "연말정산 결과",
+        "원천징수이행상황신고서"
+      ],
+      "penalty": "미제출 가산세 1% (기한 후 3개월 내 제출 시 0.5%)",
+      "source": "소득세법 제164조",
+      "verified": true,
+      "caution": "연말정산 자체는 2월분 월급을 줄 때 합니다(소득세법 제137조). 날짜가 정해져 있지 않아 여기에 같이 적어둡니다."
+    },
+    {
+      "id": "insurance-total-wage",
+      "title": "고용·산재보험 보수총액신고",
+      "due": "03-15",
+      "covers": "전년 1월 ~ 12월 보수총액",
+      "applies_to": {
+        "entity_type": null,
+        "vat_type": null,
+        "has_employee": true
+      },
+      "easy": "작년에 직원에게 준 월급 총액을 근로복지공단에 알려줍니다. 이걸로 작년 보험료를 정산하고 올해 낼 보험료를 정합니다.",
+      "where": "고용·산재보험 토탈서비스 (total.comwel.or.kr)",
+      "docs": [
+        "급여대장",
+        "직원별 보수총액"
+      ],
+      "penalty": "과태료 최대 300만원",
+      "source": "고용보험 및 산업재해보상보험의 보험료징수 등에 관한 법률 제16조의10 제1항",
+      "verified": true,
+      "caution": "건설업·벌목업은 따로 신고합니다. 건강보험 보수총액신고는 2025년부터, 국세청에 간이지급명세서를 냈으면 안 해도 됩니다."
     }
   ],
   "conditional_note": "conditional 이 붙은 항목은 '해당되는 사람만' 하는 것이다. 프로필만으로는 해당 여부를 알 수 없다. 기본 목록에 섞어서 보여주면 안 된다 — 종합소득세가 5월·6월 두 번 뜨거나 원천세가 매월·반기 둘 다 떠서 사장님이 헷갈린다. '해당되면 이것도' 같은 별도 묶음으로 내보낼 것.\n\n한 exclusive_group 안에서는 **기본이 되는 쪽에 conditional 을 붙이지 않는다.** 종합소득세가 그 모양이다 — 5/31 은 조건 없이 기본 목록에, 6/30 성실신고확인대상만 conditional 이다. 원천세도 매월 10일이 기본이고 반기납부는 신청해서 승인받아야 한다. 셋 다 conditional 이면 직원 있는 사장님에게 원천세가 한 건도 안 뜬다 — 1년에 열두 번 있고 늦으면 납부지연가산세가 붙는 신고인데 달력에도 카톡에도 없었다.\n\n`conditional_resolved_by` 는 「이 답을 들으면 조건이 풀린다」는 뜻이다. 원천세 반기납부가 그렇다 — 승인을 받았는지 안 받았는지는 사장님만 안다. 온보딩에서 물어보면 셋 중 하나만 남길 수 있다. 안 물어봤으면(값이 없으면) 지금처럼 매월이 기본 목록에, 반기가 「해당되면 이것도」에 남는다.",
@@ -365,7 +450,10 @@
     "사업장현황신고 — 국세청 https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7699&mi=2283",
     "법인세 신고납부기한 — 국세청 https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?mi=2371&cntntsId=7745",
     "원천징수이행상황신고 — 국세청 https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?mi=2414&cntntsId=7702",
-    "월별 세무일정 — 국세청 https://www.nts.go.kr/nts/ad/taxSchdul/selectList.do"
+    "월별 세무일정 — 국세청 https://www.nts.go.kr/nts/ad/taxSchdul/selectList.do",
+    "간이지급명세서(근로소득) 제출기한 — 국세청 https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?mi=40678&cntntsId=239032",
+    "지급명세서 제출 — 국세청 https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?mi=12309&cntntsId=8631",
+    "고용·산재보험 보수총액신고 — 고용노동부 https://www.moel.go.kr/news/enews/report/enewsView.do?news_seq=19013"
   ],
   "due_note": "due 는 **법정기한**이다. 그대로 화면에 띄우면 틀린다.\n국세청 규정: \"신고기한이 공휴일·토요일인 경우 그 다음 날을 신고기한으로 한다.\"\n2026년만 봐도 법정기한 10개 중 6개가 밀린다 — 1/10→1/12, 1/25→1/26, 4/25→4/27, 5/31→6/1, 7/25→7/27, 10/25→10/26.\n국세청 세무일정 페이지도 밀린 날짜로 표기한다(1/12·1/26 확인). 화면은 반드시 실제 기한을 계산해서 보여줄 것. 주말뿐 아니라 공휴일도 밀린다."
 }
