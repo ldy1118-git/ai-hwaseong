@@ -13,7 +13,7 @@ from threading import RLock
 from typing import Any
 from urllib.parse import unquote, urlparse
 
-from OCR import extract_business_registration
+from OCR import extract_from_bytes
 
 
 KST = timezone(timedelta(hours=9))
@@ -1046,33 +1046,37 @@ def save_match_history(device_id: Any, user_profile: dict[str, Any], results: li
 
 
 def save_business_registration_upload(device_id: Any, filename: str, data_url: str) -> dict[str, Any]:
+    """사업자등록증을 메모리에서만 읽고, 뽑아낸 값만 프로필에 합친다.
+
+    **사진을 디스크에 쓰지 않는다.** 등록증에는 대표자 이름과 사업장 주소,
+    사업자등록번호가 다 적혀 있다. 한 번 파일로 떨어뜨리면 그때부터 지울
+    사람이 필요해지는데, 아무도 그 일을 맡고 있지 않았다.
+
+    전에는 users/<기기>/uploads/ 에 원본을 쌓고, 등록증 전문(raw_text)까지
+    기기 기록에 넣은 뒤 그대로 브라우저에 돌려줬다. 실제로 넉 달치 사진이
+    남아 있었다.
+
+    같은 규칙이 backend/ocr_server.py 에도 있다. 배포에서 도는 것은 그쪽
+    (api/ocr.py → ocr_server.py)이고 여기는 로컬 서버다. **두 곳 다 안
+    남겨야 규칙이 지켜진다** — 한쪽만 고치면 로컬로 시연한 날 사진이 쌓인다.
+
+    raw_text 도 돌려주지 않는다. 화면이 쓰는 것은 뽑아낸 필드뿐이다.
+    """
     record = load_user_record(device_id)
-    uploads_dir = USERS_DIR / _safe_device_id(device_id) / "uploads"
-    uploads_dir.mkdir(parents=True, exist_ok=True)
 
-    if "," in data_url:
-        header, encoded = data_url.split(",", 1)
-    else:
-        header, encoded = "", data_url
+    encoded = data_url.split(",", 1)[1] if "," in data_url else data_url
+    data = base64.b64decode(encoded)
+    try:
+        ocr_result = extract_from_bytes(data)
+    finally:
+        del data                       # 사진을 오래 들고 있지 않는다
 
-    extension = Path(filename or "business_registration").suffix or ".bin"
-    saved_name = f"business_registration_{datetime.now(KST).strftime('%Y%m%d_%H%M%S')}{extension}"
-    saved_path = uploads_dir / saved_name
-    saved_path.write_bytes(base64.b64decode(encoded))
-
-    ocr_result = extract_business_registration(saved_path)
-    extracted_profile = ocr_result.get("extracted_profile", {})
+    extracted_profile = ocr_result.get("profile", {})
 
     upload_record = {
         "filename": filename,
-        "saved_path": str(saved_path.relative_to(BASE_DIR)),
-        "content_header": header,
         "uploaded_at": _now_iso(),
-        "ocr_status": ocr_result.get("ocr_status"),
-        "ocr_engine": ocr_result.get("ocr_engine"),
-        "ocr_message": ocr_result.get("ocr_message"),
-        "raw_text": ocr_result.get("raw_text", ""),
-        "extracted_fields": ocr_result.get("extracted_fields", {}),
+        "fields": ocr_result.get("result", {}),
         "extracted_profile": extracted_profile,
     }
 

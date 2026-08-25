@@ -92,7 +92,7 @@ OCR은 CPU로만 돌리므로(`gpu=False`) CPU 빌드 torch면 충분하다.
 | POST | `/api/match` | 프로필로 공고 매칭, 점수순 정렬 |
 | POST | `/api/user/load` | 기기별 프로필·채팅기록 조회 |
 | POST | `/api/user/save` | 프로필·채팅기록 저장 |
-| POST | `/api/business-registration` | 사업자등록증 업로드 → OCR → 프로필 자동 반영 |
+| POST | `/api/business-registration` | 사업자등록증 → OCR → 프로필 자동 반영 (로컬 서버 전용. 사진을 저장하지 않는다) |
 | GET | `/api/terms` | 행정용어 사전 원본 (용어 31 + 서류 26) |
 | POST | `/api/terms/lookup` | 공고문에 나온 용어만 + 서류 발급 방법 |
 

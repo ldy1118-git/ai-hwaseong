@@ -38,7 +38,7 @@ if _env_file.exists():
 
 # ── OCR 모듈 모킹 (easyocr 없이 매칭만 돌린다) ──────────────────────────
 _ocr_stub = types.ModuleType("OCR")
-_ocr_stub.extract_business_registration = lambda *a, **kw: {}  # type: ignore
+_ocr_stub.extract_from_bytes = lambda *a, **kw: {"result": {}, "profile": {}}  # type: ignore
 sys.modules["OCR"] = _ocr_stub
 
 sys.path.insert(0, str(ROOT / "backend"))

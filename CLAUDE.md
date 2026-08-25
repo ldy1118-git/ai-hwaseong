@@ -113,6 +113,19 @@ easyocr 는 torch 까지 1.4GB 인데 Vercel 함수는 250MB 까지다. 그래�
 **사진을 저장하지 않는다.** 메모리에서 읽고 필드만 돌려준다. 등록증 전문
 (`raw_text`)도 안 돌려준다. 이 부분을 바꾸지 말 것.
 
+**등록증을 읽는 길이 둘이라 두 곳 다 지켜야 한다.**
+
+    api/ocr.py → backend/ocr_server.py    배포에서 도는 길
+    backend/matching.py                    로컬 서버 (/api/business-registration)
+
+뒤쪽이 원칙 밖에 있었다. `users/<기기>/uploads/` 에 원본을 쌓고, 등록증
+전문을 기기 기록에 넣은 뒤 그대로 브라우저에 돌려줬다. 실제로 넉 달치
+사진 넉 장이 연구실 서버에 남아 있었다. 지금은 `extract_from_bytes()` 로
+메모리에서만 읽는다.
+
+프론트는 `/api/ocr` 만 부르므로 이 길로는 아무도 안 들어온다. 그래도
+고친 이유는 로컬 서버로 시연하는 날이 있어서다 — 그날 하루치가 쌓인다.
+
 사진은 브라우저에서 긴 변 1600px 으로 줄여 보낸다. Vercel 이 본문을 4.5MB
 까지만 받는데 base64 는 1.33배가 되어, 줄이지 않으면 요즘 폰 사진은 거의 다
 튕긴다(`Onboarding.jsx` 의 `shrinkImage`).
