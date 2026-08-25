@@ -143,6 +143,10 @@ class handler(Base):  # noqa: N801
                 "GEMINI_API_KEY": count_keys("GEMINI_API_KEY"),
                 "JWT_SECRET": bool(os.environ.get("JWT_SECRET", "").strip()),
                 "KAKAO_CLIENT_ID": bool(os.environ.get("KAKAO_CLIENT_ID", "").strip()),
+                # 사진 읽는 서버와 나눠 갖는 비밀번호. 값은 안 내보낸다.
+                # 주소(OCR_BACKEND_URL)와 따로 넣게 되어 있어서, 둘 중 하나만
+                # 넣고 「왜 안 되지」 하는 일이 생긴다. 아래 ocr.ready 와 같이 볼 것.
+                "OCR_SHARED_SECRET": bool(os.environ.get("OCR_SHARED_SECRET", "").strip()),
                 "KAKAO_REDIRECT_URI": os.environ.get("KAKAO_REDIRECT_URI", "") or None,
             },
             "ocr": ocr_status(),
