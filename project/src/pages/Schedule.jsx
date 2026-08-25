@@ -11,6 +11,7 @@ import { todayISO } from '../utils/today'
 import TaxProfileHint from '../components/ui/TaxProfileHint'
 import DayPanel from '../components/ui/DayPanel'
 import TaxRow from '../components/ui/TaxRow'
+import FavoriteButton from '../components/ui/FavoriteButton'
 import { listTaxDone, subscribeTaxDone, taxDoneKey } from '../utils/taxDone'
 
 const LAYERS_KEY = 'mars-fit-schedule-layers'
@@ -148,22 +149,33 @@ function AlwaysOpen({ matches, open, onToggle }) {
       </p>
       {/* 30건이 그대로 늘어서면 달력 옆에서 화면을 한참 넘긴다.
           넓은 화면에서만 높이를 재고 안에서 스크롤한다. */}
+      {/* 한 줄 안에 누를 데가 둘이다 — ★ 와 제목. 줄 전체를 <button> 으로
+          두고 그 안에 별을 넣으면 버튼 안의 버튼이라 잘못된 마크업이 된다.
+          바깥을 <div> 로 바꾸고 둘을 나란히 놓는다.
+
+          ★ 를 제목 앞에 둔 이유는, 마감일이 없는 공고라 「지금 신청할까」
+          보다 「일단 담아두자」가 먼저 나오기 때문이다. 예산이 떨어지면
+          닫히는데 그게 언제인지는 아무도 안 알려준다. */}
       <div className="space-y-2 lg:max-h-[58vh] lg:overflow-y-auto lg:pr-1">
         {list.map(m => (
-          <button key={m.id}
-            onClick={() => {
-              localStorage.setItem('mars-fit-selected-match', JSON.stringify(m.raw))
-              navigate('/notice')
-            }}
-            className="w-full text-left bg-primary-bg border border-warm-gray/25 rounded-xl px-4 py-3
-                       hover:border-navy/40 hover:bg-primary-bg/60 transition flex items-start gap-3">
-            <span className="flex-1 text-sm font-medium text-navy leading-snug line-clamp-2">
-              {m.title}
-            </span>
-            <span className="text-xs font-bold text-warm-text whitespace-nowrap mt-0.5">
-              {m.raw.apply_period.note}
-            </span>
-          </button>
+          <div key={m.id}
+            className="bg-primary-bg border border-warm-gray/25 rounded-xl pl-1.5 pr-4 py-2.5
+                       hover:border-navy/40 transition flex items-start gap-1.5">
+            <FavoriteButton notice={m} size={18} className="mt-0.5" />
+            <button
+              onClick={() => {
+                localStorage.setItem('mars-fit-selected-match', JSON.stringify(m.raw))
+                navigate('/notice')
+              }}
+              className="flex-1 min-w-0 text-left flex items-start gap-3 py-0.5">
+              <span className="flex-1 text-sm font-medium text-navy leading-snug line-clamp-2">
+                {m.title}
+              </span>
+              <span className="text-xs font-bold text-warm-text whitespace-nowrap mt-0.5">
+                {m.raw.apply_period.note}
+              </span>
+            </button>
+          </div>
         ))}
       </div>
     </CollapsibleSection>
