@@ -47,17 +47,6 @@ function mockMarkerPositions(centerLat, centerLng, radiusMeters, count) {
   })
 }
 
-// ── Haversine 거리 (m) ────────────────────────────────────────────
-
-function haversine(lat1, lng1, lat2, lng2) {
-  const R = 6371000
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLng = (lng2 - lng1) * Math.PI / 180
-  const a = Math.sin(dLat / 2) ** 2
-          + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
-  return R * 2 * Math.asin(Math.sqrt(a))
-}
-
 // ── 순수 Leaflet 지도 컴포넌트 ───────────────────────────────────
 
 function LeafletMap({ position, onMove, radii, markers }) {
@@ -180,98 +169,67 @@ const AMENITY_CONFIG = [
 
 const DEFAULT_RADII = { schools: 500, restaurants: 500, academies: 500, cafes: 500, apartments: 500, stations: 500 }
 
-const CAT_KEY = { r: 'restaurants', c: 'cafes', a: 'academies' }
-
 export default function CommercialAnalysisView() {
   const [position, setPosition]   = useState(HWS_CENTER)
   const [address, setAddress]     = useState('')
   const [searching, setSearching] = useState(false)
   const [radii, setRadii]         = useState(DEFAULT_RADII)
   const [expanded, setExpanded]   = useState(false)
-  const [storeData, setStoreData]     = useState(null)
-  const [stationData, setStationData] = useState(null)
-  const [schoolData, setSchoolData]   = useState(null)
+  const [apiData, setApiData] = useState(null)
+  const debounceRef = useRef(null)
 
-  // 실제 데이터 로드 (1회)
+  // 위치·반경이 바뀔 때마다 외부 서버에서 필터링된 데이터를 받아온다
   useEffect(() => {
-    fetch('./data/hwaseong_stores.json').then(r => r.json()).then(setStoreData).catch(() => {})
-    fetch('./data/hwaseong_stations.json').then(r => r.json()).then(setStationData).catch(() => {})
-    fetch('./data/hwaseong_schools.json').then(r => r.json()).then(setSchoolData).catch(() => {})
-  }, [])
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      fetch('/api/commercial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat: position.lat, lng: position.lng, radii }),
+      })
+        .then(r => r.json())
+        .then(setApiData)
+        .catch(() => {})
+    }, 300)
+  }, [position.lat, position.lng, radii])
 
-  // 반경 내 실제 데이터 필터링 (학교·역·음식점·카페·학원 모두 실제, 아파트만 mock)
   const { amenities, displayMarkers, stationPassengersTotal } = useMemo(() => {
-    // 아파트 (mock)
     const aptCount = getMockApartmentCount(position.lat, position.lng, radii.apartments)
+    const counts   = apiData?.counts  || {}
+    const markers  = apiData?.markers || {}
 
-    // 역 필터
-    const nearbyStations = stationData
-      ? stationData.filter(s => haversine(position.lat, position.lng, s.lat, s.lng) <= radii.stations)
-      : null
-    const stationPassengersTotal = nearbyStations
-      ? nearbyStations.reduce((sum, s) => sum + s.passengers, 0)
-      : null
-
-    // 학교 필터
-    const nearbySchools = schoolData
-      ? schoolData.filter(s => haversine(position.lat, position.lng, s.lat, s.lng) <= radii.schools)
-      : null
-
-    // 아직 데이터 미로드 시 단순 카운트 0 (마커도 없이 로딩 상태)
     const amenities = {
-      schools:     nearbySchools  ? nearbySchools.length  : 0,
-      restaurants: 0,
-      academies:   0,
-      cafes:       0,
+      schools:     counts.schools     ?? 0,
+      restaurants: counts.restaurants ?? 0,
+      academies:   counts.academies   ?? 0,
+      cafes:       counts.cafes       ?? 0,
       apartments:  aptCount,
-      stations:    nearbyStations ? nearbyStations.length : 0,
+      stations:    counts.stations    ?? 0,
     }
-    const buckets = { restaurants: [], cafes: [], academies: [] }
 
-    if (storeData) {
-      const latDelta = Math.max(radii.restaurants, radii.cafes, radii.academies) / 111320 * 1.1
-      const lngDelta = latDelta / Math.cos(position.lat * Math.PI / 180)
-      for (const s of storeData) {
-        const key = CAT_KEY[s.cat]
-        if (!key) continue
-        if (Math.abs(s.lat - position.lat) > latDelta) continue
-        if (Math.abs(s.lng - position.lng) > lngDelta) continue
-        const dist = haversine(position.lat, position.lng, s.lat, s.lng)
-        if (dist <= radii[key]) { amenities[key]++; buckets[key].push(s) }
-      }
-    }
+    const stationPassengersTotal = markers.stations
+      ? markers.stations.reduce((sum, s) => sum + (s.passengers || 0), 0)
+      : null
 
     const displayMarkers = []
 
-    // 실제 마커: 학교 (팝업: 학교명)
-    if (nearbySchools) {
-      nearbySchools.forEach(s =>
-        displayMarkers.push({ lat: s.lat, lng: s.lng, key: 'schools', popup: `<b>${s.name}</b><br>${s.level}` })
-      )
-    }
-
-    // 실제 마커: 역 (팝업: 역명·승객수)
-    if (nearbyStations) {
-      nearbyStations.forEach(s =>
-        displayMarkers.push({
-          lat: s.lat, lng: s.lng, key: 'stations',
-          popup: `<b>${s.name}역</b> (${s.line})${s.passengers > 0 ? `<br>일 평균 ${s.passengers.toLocaleString()}명 이용` : ''}`,
-        })
-      )
-    }
-
-    // mock 마커: 아파트
+    ;(markers.schools || []).forEach(s =>
+      displayMarkers.push({ lat: s.lat, lng: s.lng, key: 'schools', popup: `<b>${s.name}</b><br>${s.level}` })
+    )
+    ;(markers.stations || []).forEach(s =>
+      displayMarkers.push({
+        lat: s.lat, lng: s.lng, key: 'stations',
+        popup: `<b>${s.name}역</b> (${s.line})${s.passengers > 0 ? `<br>일 평균 ${s.passengers.toLocaleString()}명 이용` : ''}`,
+      })
+    )
     mockMarkerPositions(position.lat, position.lng, radii.apartments, aptCount)
       .forEach(pos => displayMarkers.push({ lat: pos.lat, lng: pos.lng, key: 'apartments' }))
-
-    // 실제 마커: 음식점·카페·학원 (최대 40개씩 균등 샘플)
-    for (const [key, stores] of Object.entries(buckets)) {
-      const step = stores.length <= 40 ? 1 : Math.ceil(stores.length / 40)
-      stores.forEach((s, i) => { if (i % step === 0) displayMarkers.push({ lat: s.lat, lng: s.lng, key }) })
-    }
+    ;['restaurants', 'cafes', 'academies'].forEach(key => {
+      ;(markers[key] || []).forEach(s => displayMarkers.push({ lat: s.lat, lng: s.lng, key }))
+    })
 
     return { amenities, displayMarkers, stationPassengersTotal }
-  }, [storeData, stationData, schoolData, position.lat, position.lng, radii])
+  }, [apiData, position.lat, position.lng, radii.apartments])
 
   const footTraffic = useMemo(() => getFootTrafficText(amenities, stationPassengersTotal), [amenities, stationPassengersTotal])
 

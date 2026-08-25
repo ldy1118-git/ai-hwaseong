@@ -1,0 +1,17 @@
+# Caddy 설정 — HTTPS 자동 처리 + Python 서버 역방향 프록시
+#
+# 준비:
+#   1. https://caddyserver.com/download 에서 Windows 용 caddy.exe 받기
+#   2. caddy.exe 를 이 폴더(backend/) 또는 PATH 에 넣기
+#   3. your-domain.com 을 실제 도메인으로 바꾸기
+#   4. 포트 443·80 이 방화벽에 열려 있는지 확인
+#
+# 실행:
+#   caddy run --config Caddyfile
+#
+# 처음 뜰 때 Let's Encrypt 인증서를 자동으로 받는다.
+# 인증서 갱신도 자동이다.
+
+pjrx.kr {
+    reverse_proxy localhost:8001
+}
