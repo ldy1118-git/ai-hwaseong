@@ -43,7 +43,12 @@ class handler(Base):  # noqa: N801  Vercel 이 이 이름을 찾는다
         except Exception as error:  # 공고 한 건이 깨져도 화면 전체가 죽지 않게
             return send_json(self, {"error": f"매칭 실패: {error}"}, 500)
 
-        return send_json(self, {"count": len(results), "results": results})
+        # 프로필은 여기 한 번만 싣는다. 전에는 결과 80건에 똑같이 들어 있었다.
+        return send_json(self, {
+            "user_profile": profile,
+            "count": len(results),
+            "results": results,
+        })
 
     def do_GET(self) -> None:  # noqa: N802
         # 브라우저로 직접 열어봤을 때 뭐가 잘못됐는지 알려준다.

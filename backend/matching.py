@@ -5,7 +5,6 @@ import base64
 import json
 import mimetypes
 import re
-from copy import deepcopy
 from datetime import datetime, timezone, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -840,9 +839,12 @@ def match_policy(policy: dict[str, Any], user_profile: dict[str, Any]) -> dict[s
 
     application_period = _application_period_status(policy.get("apply_period"))
 
+    # user_profile 을 건마다 넣지 않는다. 80건이면 똑같은 프로필이 80번
+    # 실려서 응답의 4%(9.9KB)가 되고, deepcopy 도 80번 돈다. 읽는 화면은
+    # 한 곳도 없다. 응답 맨 위에 한 번만 싣는다 — 로컬 서버는 원래 그랬고
+    # api/match.py 도 그렇게 맞췄다.
     result.update(
         {
-            "user_profile": deepcopy(user_profile),
             "condition_results": condition_results,
             "match_score": _match_score(condition_results),
             "overall_status": _overall_status(condition_results, documents),

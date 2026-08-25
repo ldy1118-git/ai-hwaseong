@@ -55,17 +55,56 @@ export const DEFAULT_PROFILE = {
   living_with_parents: false,
 }
 
+/* 매칭 결과를 잠깐 들고 있는다.
+ *
+ * 이 함수를 부르는 화면이 일곱이다 — 홈·일정·내 매장·공고상세·서류준비·
+ * 대시보드·openNotice. 캐시가 없을 때 시연 동선을 한 바퀴 돌면
+ * **245KB 를 다섯 번 받고 2.96초를 기다린다.** 다섯 번 다 같은 내용이다.
+ *
+ * 공고는 하루에 한 번, 새벽 6시 11분 cron 때만 바뀐다. 3분은 아주 넉넉히
+ * 짧게 잡은 것이다.
+ *
+ * **결과가 아니라 약속을 들고 있는다.** 그래야 두 화면이 동시에 뜰 때도
+ * 요청이 한 번만 나간다. 결과만 캐시하면 첫 응답이 오기 전에 부른 쪽은
+ * 그냥 또 부른다.
+ *
+ * 열쇠에 프로필을 통째로 넣는다. 내 정보에서 업종을 고치면 열쇠가 달라져
+ * 저절로 다시 받는다 — 따로 지우는 손이 필요 없다.
+ *
+ * 실패한 약속은 버린다. 안 그러면 잠깐 끊겼을 때 3분 동안 다시 열어도
+ * 계속 같은 실패를 돌려준다.
+ *
+ * 받은 배열을 그 자리에서 바꾸면 안 된다. 부르는 쪽이 전부 filter/map 으로
+ * 새로 만들고 있어서 지금은 괜찮다. **sort() 를 결과에 바로 걸지 말 것** —
+ * 한 화면에서 정렬하면 다른 화면의 순서까지 같이 바뀐다.
+ */
+const MATCH_TTL = 3 * 60 * 1000
+let matchCache = null      // { key, at, promise }
+
 /**
  * 조건에 맞는 지원사업을 받아온다.
  *
  * notices_folder 를 넘기지 않는다. 넘기면 backend/notices/ 의 **샘플 19건**
  * (형식 참고용 가짜 데이터)을 읽는다. 기본값이 policy_data/notices/ 의
- * 실제 공고 25건이므로 그냥 두면 된다.
+ * 실제 공고이므로 그냥 두면 된다.
  */
 export function fetchMatches(userProfile = DEFAULT_PROFILE, deviceId = 'guest') {
   if (MOCK) return delay().then(() => MOCK_MATCHES)
-  return post('/api/match', { user_profile: userProfile, device_id: deviceId })
+
+  const key = JSON.stringify([userProfile, deviceId])
+  const now = Date.now()
+  if (matchCache && matchCache.key === key && now - matchCache.at < MATCH_TTL) {
+    return matchCache.promise
+  }
+
+  const promise = post('/api/match', { user_profile: userProfile, device_id: deviceId })
+  matchCache = { key, at: now, promise }
+  promise.catch(() => {
+    if (matchCache && matchCache.promise === promise) matchCache = null
+  })
+  return promise
 }
+
 
 /** 행정용어 사전 전체. 프론트에 복사본을 두지 말 것 — 원본이 바뀌면 낡는다. */
 export async function fetchTerms() {
