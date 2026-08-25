@@ -29,16 +29,19 @@ import urllib.request
 BASE = (sys.argv[1] if len(sys.argv) > 1 else "https://ai-hwaseong-ten.vercel.app").rstrip("/")
 TIMEOUT = 60
 
-# 발표 자료에 박아둔 값. 여기서 어긋나면 슬라이드가 틀린 숫자를 말하게 된다.
-EXPECT_NOTICES = 59
-EXPECT_TERMS = 31
-
-# 8장 시연 표에 적힌 값 (2026-08-19 기준)
-EXPECT_MATCH = {
-    "예비창업 카페": 11,
-    "운영중 음식점": 30,
-    "운영중 소매업": 27,
-}
+# **정확한 숫자를 기대하지 않는다.** 전에는 발표 자료에 박아둔 값과 대조했는데
+# (공고 59건·용어 31개·음식점 30건·소매업 27건), 공고는 매일 새벽 cron 이
+# 갱신해서 하루만 지나도 어긋난다. 실제로 넉 달 만에 59 → 80건이 됐다.
+#
+# 그러면 돌릴 때마다 노란불이 네 개씩 뜬다. 시연 20분 전에 보는 화면이
+# 늘 노란불이면 **진짜 문제가 그 사이에 섞여도 안 보인다.** 경고는 드물어야
+# 경고다.
+#
+# 그래서 「슬라이드랑 같나」가 아니라 「말이 되나」만 본다. 공고가 76건이든
+# 84건이든 시연은 똑같이 된다. 3건이면 수집이 깨진 것이고, 0건이면 매칭이
+# 아무것도 못 돌려준다. 그 차이만 잡으면 된다.
+MIN_NOTICES = 20        # 이 아래면 수집이 깨졌다고 본다 (평소 80건 안팎)
+MIN_MATCH = 1           # 신청가능이 0건이면 보여줄 화면이 없다
 
 PROFILES = {
     "예비창업 카페": {"business_status": "예비창업자", "category": "카페",
@@ -124,9 +127,10 @@ def check_health() -> None:
     if n == 0:
         fatal.append("공고가 0건이다 — 매칭이 아무것도 못 돌려준다")
         line("❌", "공고", "0건")
-    elif n != EXPECT_NOTICES:
-        warn.append(f"공고가 {n}건이다 (슬라이드는 {EXPECT_NOTICES}건). 자동 갱신으로 늘었을 수 있다")
-        line("⚠️ ", "공고", f"{n}건 — 슬라이드는 {EXPECT_NOTICES}건")
+    elif n < MIN_NOTICES:
+        warn.append(f"공고가 {n}건뿐이다 (평소 80건 안팎). 수집이 깨졌는지 볼 것 — "
+                    f"mars-fit-cron-logs/last-run.txt")
+        line("⚠️ ", "공고", f"{n}건 — 너무 적다")
     else:
         line("✅", "공고", f"{n}건")
 
@@ -157,17 +161,26 @@ def check_terms() -> None:
         line("❌", "용어", f"HTTP {code}")
         return
     n = len(d) if isinstance(d, list) else len(d.get("terms", d))
-    mark = "✅" if n == EXPECT_TERMS else "⚠️ "
-    if n != EXPECT_TERMS:
-        warn.append(f"용어가 {n}개다 (슬라이드는 {EXPECT_TERMS}개)")
-    line(mark, "용어", f"{n}개")
+    if n == 0:
+        fatal.append("용어가 0개다 — 어려운 말에 밑줄이 안 그어진다")
+        line("❌", "용어", "0개")
+    else:
+        line("✅", "용어", f"{n}개")
 
 
 # ── 4. 매칭 ─────────────────────────────────────────────────
-# 시연의 심장이다. 세 프로필을 그대로 돌려서 슬라이드 숫자와 맞는지 본다.
+# 시연의 심장이다. 세 프로필을 그대로 돌린다.
+#
+# **건수를 기대값과 맞추지 않는다.** 공고가 매일 바뀌니 신청가능도 매일
+# 바뀐다. 시연이 안 되는 경우는 하나뿐이다 — 신청가능이 0건이라 보여줄
+# 카드가 없는 것. 나머지는 숫자만 찍어주고 넘어간다.
+#
+# 1위를 같이 찍는 이유는 따로 있다. 엉뚱한 공고가 1위로 올라오는 사고가
+# 실제로 났다(카페 사장님 홈 1위에 반도체 소부장 실증 공고가 89점으로).
+# 건수는 멀쩡한데 1위만 이상한 경우라 숫자로는 안 잡힌다. 눈으로 볼 것.
 
 def check_match() -> None:
-    print("\n[4] 매칭 — 8장 시연 표와 대조")
+    print("\n[4] 매칭 — 세 프로필을 그대로 돌린다")
     for name, prof in PROFILES.items():
         code, d = post("/api/match", {"user_profile": prof})
         if code != 200 or not d:
@@ -176,15 +189,15 @@ def check_match() -> None:
             continue
         results = d.get("results", [])
         ok = sum(1 for r in results if r["overall_status"] == "신청가능")
-        want = EXPECT_MATCH[name]
         top = next((r for r in results if r["overall_status"] != "대상아님"), None)
         detail = f"신청가능 {ok}건"
-        if ok != want:
-            warn.append(f"{name} 신청가능이 {ok}건이다 (슬라이드는 {want}건)")
-            detail += f" — 슬라이드는 {want}건"
         if top:
             detail += f"  |  1위 {top['match_score']}점 {top.get('notice_title', '')[:24]}"
-        line("✅" if ok == want else "⚠️ ", name, detail)
+        if ok < MIN_MATCH:
+            fatal.append(f"{name} 신청가능이 0건이다 — 홈에 보여줄 공고가 없다")
+            line("❌", name, detail)
+            continue
+        line("✅", name, detail)
 
         scores = {r["match_score"] for r in results}
         if len(scores) < 8:

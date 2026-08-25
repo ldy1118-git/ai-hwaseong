@@ -31,9 +31,10 @@ ai-hwaseong/
 │   ├── scripts/           모델 비교·평가 스크립트
 │   └── report/            벤치마크 결과
 ├── policy_data/         공고 수집·요건 추출·용어 사전 (담당: 대윤)
-│   ├── notices/           실제 공고 25건 ← 서버가 기본으로 읽는 곳
-│   └── terms.json         행정용어 31개 + 서류 26종
+│   ├── notices/           실제 공고 ← 서버가 기본으로 읽는 곳. 매일 새벽 갱신된다
+│   └── terms.json         행정용어 + 서류 (건수는 늘어난다. 여기 적지 않는다)
 ├── scripts/
+│   ├── preflight.py       시연 20분 전 점검. 실제로 누르는 경로를 그대로 밟는다
 │   ├── run_server.sh      리눅스 서버 실행
 │   └── test.bat           윈도우 실행
 ├── docs/
