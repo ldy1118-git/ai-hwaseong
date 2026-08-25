@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ChevronDown } from 'lucide-react'
 import Header from '../components/layout/Header'
 import DeadlineCalendar from '../components/ui/DeadlineCalendar'
 import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
@@ -31,6 +32,56 @@ function writeLayers(value) {
   try { localStorage.setItem(LAYERS_KEY, JSON.stringify(value)) } catch {}
 }
 
+/* 오른쪽 단의 두 묶음을 접어둘 수 있게 한다.
+ *
+ * 셋을 다 켜면 오른쪽에 「세무 신고기한」과 「상시 접수」가 세로로 쌓인다.
+ * 넓은 화면에서는 각각 62vh 까지 차서 둘을 합치면 화면 한 장을 넘고,
+ * 좁은 화면에서는 상한이 없어서 더 길다. 아래 있는 상시 접수를 보려면
+ * 세무 목록을 통째로 지나가야 했다.
+ *
+ * 무엇을 접어뒀는지는 **그 기기에만** 남긴다. 층 토글(LAYERS_KEY)과 같은
+ * 성격이다 — 이 화면을 어떻게 보고 싶은지는 그 기기에서의 습관이지
+ * 사장님의 자료가 아니다. 따라다니면 오히려 이상하다. */
+const SECTIONS_KEY = 'mars-fit-schedule-sections'
+const SECTIONS_DEFAULT = { tax: true, always: true }   // true 가 펼침
+
+function readSections() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SECTIONS_KEY) ?? 'null')
+    if (!saved || typeof saved !== 'object') return SECTIONS_DEFAULT
+    return { ...SECTIONS_DEFAULT, ...saved }
+  } catch {
+    return SECTIONS_DEFAULT
+  }
+}
+
+function writeSections(value) {
+  try { localStorage.setItem(SECTIONS_KEY, JSON.stringify(value)) } catch {}
+}
+
+/* 접었다 펴는 묶음 제목.
+ *
+ * 건수는 접어도 계속 보인다. 접은 목적이 「안 볼 것을 치우는 것」이지
+ * 「없는 셈 치는 것」이 아니라서다. 남은 신고가 세 건인지 없는지는
+ * 접어둔 채로도 알아야 한다. */
+function SectionHead({ title, count, tone, open, onToggle }) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-expanded={open}
+      className="w-full flex items-baseline gap-2 mb-1 text-left group"
+    >
+      <h3 className="text-base font-bold text-navy">{title}</h3>
+      <span className={`text-sm font-bold ${tone}`}>{count}</span>
+      <ChevronDown
+        size={18}
+        className={`ml-auto self-center flex-shrink-0 text-warm-gray transition-transform
+                    group-hover:text-navy ${open ? 'rotate-180' : ''}`}
+      />
+    </button>
+  )
+}
+
 function calcDDay(end) {
   if (!end) return null
   return Math.ceil((new Date(end) - new Date()) / 86400000)
@@ -52,17 +103,18 @@ function mapMatch(r) {
  * 조용히 버린다. 그런데 지금 공고 59건 중 30건이 「예산 소진시까지」
  * 처럼 문구로만 적혀 있다. 절반이 넘는 공고가 이 화면에서 통째로
  * 사라지는데 화면에는 그런 티가 안 났다. 아래에 따로 세운다. */
-function AlwaysOpen({ matches }) {
+function AlwaysOpen({ matches, open, onToggle }) {
   const navigate = useNavigate()
   const list = matches.filter(m => m.dDay === null && m.raw?.apply_period?.note)
   if (list.length === 0) return null
 
   return (
     <section>
-      <div className="flex items-baseline gap-2 mb-1">
-        <h3 className="text-base font-bold text-navy">상시 접수</h3>
-        <span className="text-sm font-bold text-sunset-orange">{list.length}건</span>
-      </div>
+      <SectionHead
+        title="상시 접수" count={`${list.length}건`} tone="text-sunset-orange"
+        open={open} onToggle={onToggle}
+      />
+      {!open ? null : <>
       <p className="text-sm text-warm-text mb-3 leading-snug">
         마감일이 정해져 있지 않아 달력에는 없어요. 예산이 떨어지면 닫히니 서두르는 게 좋아요.
       </p>
@@ -86,6 +138,7 @@ function AlwaysOpen({ matches }) {
           </button>
         ))}
       </div>
+      </>}
     </section>
   )
 }
@@ -126,7 +179,7 @@ function LayerChip({ on, onClick, dot, label, count }) {
  *
  * 줄을 누르면 펴지면서 달력도 그 날로 옮겨간다. 무엇을 준비해야 하는지와
  * 그게 언제인지를 한 번에 본다. */
-function TaxSchedule({ events, profile, onPick }) {
+function TaxSchedule({ events, profile, onPick, open, onToggle }) {
   const today = todayISO()
   const [openId, setOpenId]   = useState(null)
   const [doneMap, setDoneMap] = useState(listTaxDone)
@@ -166,12 +219,13 @@ function TaxSchedule({ events, profile, onPick }) {
 
   return (
     <section>
-      <div className="flex items-baseline gap-2 mb-1">
-        <h3 className="text-base font-bold text-navy">세무 신고기한</h3>
-        <span className="text-sm font-bold text-emerald-600">
-          {left > 0 ? `${left}건` : '다 하셨어요'}
-        </span>
-      </div>
+      <SectionHead
+        title="세무 신고기한"
+        count={left > 0 ? `${left}건` : '다 하셨어요'}
+        tone="text-emerald-600"
+        open={open} onToggle={onToggle}
+      />
+      {!open ? null : <>
       <p className="text-sm text-warm-text mb-3 leading-snug">
         기한을 넘기면 가산세가 붙어요. 공휴일·주말이면 다음 날로 밀린 날짜예요.
         줄을 누르면 무엇을 준비할지 펴져요.
@@ -211,6 +265,7 @@ function TaxSchedule({ events, profile, onPick }) {
           )
         })}
       </div>
+      </>}
     </section>
   )
 }
@@ -289,6 +344,14 @@ export default function Schedule() {
   const toggle = key => setLayers(v => {
     const next = { ...v, [key]: !v[key] }
     writeLayers(next)
+    return next
+  })
+
+  // 오른쪽 단의 두 묶음이 접혀 있는지. 층 토글과 같이 그 기기에만 남는다.
+  const [sections, setSections] = useState(readSections)
+  const toggleSection = key => setSections(v => {
+    const next = { ...v, [key]: !v[key] }
+    writeSections(next)
     return next
   })
 
@@ -407,8 +470,14 @@ export default function Schedule() {
             {selectedDay && (
               <DayPanel dateKey={selectedDay} matches={shown} taxEvents={shownTax} />
             )}
-            <TaxSchedule events={shownTax} profile={profile} onPick={pickDate} />
-            <AlwaysOpen matches={shown} />
+            <TaxSchedule
+              events={shownTax} profile={profile} onPick={pickDate}
+              open={sections.tax} onToggle={() => toggleSection('tax')}
+            />
+            <AlwaysOpen
+              matches={shown}
+              open={sections.always} onToggle={() => toggleSection('always')}
+            />
           </div>
         </div>
       </div>
