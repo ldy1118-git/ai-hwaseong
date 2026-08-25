@@ -96,6 +96,32 @@
 `classify_target()` 을 그대로 쓰면 안 된다. 83건 중 76건이 restricted 로 나온다 —
 「소상공인기본법 제2조에 따른 소상공인」까지 restricted 로 세기 때문이다.
 
+## Vercel 함수는 12개까지다
+
+Hobby 요금제 한도다. **13개가 되는 순간 빌드가 통째로 실패해서 셋 다 배포를
+못 한다.** 한 사람이 함수를 하나 더 만들면 남의 화면까지 멈춘다.
+
+    Build Failed
+    No more than 12 Serverless Functions can be added to a Deployment
+    on the Hobby plan.
+
+실제로 한 번 막혔다. 상권분석을 외부 서버로 옮기면서 `api/commercial.py` 와
+`api/foottraffic.py` 가 붙어 11 → 13이 됐다.
+
+**함수를 새로 만들기 전에 세어볼 것.**
+
+    ls api/*.py | grep -v '/_' | wc -l
+
+**밑줄로 시작하는 파일은 함수로 안 센다.** `_shared.py`·`_store.py`·`_auth.py`
+가 그래서 밑줄이고, 진단용 `_ping.py` 도 그렇게 내려두었다. 쓸 일이 생기면
+이름만 되돌린다.
+
+줄이는 길은 **같은 자원을 다루는 둘을 한 파일에서 메서드로 가르는 것**이다.
+`/api/terms`(GET)와 `/api/terms/lookup`(POST)이 `api/glossary.py` 하나에
+들어 있다. `vercel.json` 의 rewrites 가 둘 다 그리로 넘긴다.
+
+팀을 만들면(Pro) 풀리지만 돈이 든다.
+
 ## OCR 은 Vercel 밖에서 돈다
 
 easyocr 는 torch 까지 1.4GB 인데 Vercel 함수는 250MB 까지다. 그래서 사진을

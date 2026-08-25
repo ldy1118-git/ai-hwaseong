@@ -20,7 +20,7 @@
     },
     {
       "source": "/api/terms/lookup",
-      "destination": "/api/glossary_lookup"
+      "destination": "/api/glossary"
     },
     {
       "source": "/api/terms",

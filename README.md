@@ -131,9 +131,19 @@ const { terms, documents, glossary } = await res.json()
 |---|---|---|
 | `/api/health` | `api/health.py` | 배포 직후 여기부터 열어볼 것 |
 | `/api/match` | `api/match.py` | 매칭. 외부 패키지 0개 |
-| `/api/terms` | `api/glossary.py` | 사전 원본 |
-| `/api/terms/lookup` | `api/glossary_lookup.py` | 공고에 나온 용어만 |
+| `/api/terms` | `api/glossary.py` | 사전 원본 (GET) |
+| `/api/terms/lookup` | `api/glossary.py` | 공고에 나온 용어만 (POST). 같은 파일이다 |
 | `/api/llm` | `api/llm.py` | LLM 대리 호출 |
+
+**Vercel Hobby 요금제는 함수를 12개까지만 배포한다.** 13개가 되는 순간
+빌드가 통째로 실패해서 아무도 배포를 못 한다. 실제로 한 번 막혔다 —
+그래서 `/api/terms` 와 `/api/terms/lookup` 이 한 파일에 들어 있고,
+진단용 `ping` 은 `api/_ping.py` 로 내려두었다(밑줄로 시작하면 함수로 안
+센다. 쓸 일이 생기면 이름만 되돌린다).
+
+**함수를 새로 만들기 전에 세어볼 것.**
+
+    ls api/*.py | grep -v '/_' | wc -l      # 12를 넘기면 안 된다
 
 파일 이름이 `glossary` 인 이유는 `api/terms.py` 로 두면 `policy_data/terms.py`
 를 가려서 `import terms` 가 자기 자신을 불러오기 때문이다. `vercel.json` 의
