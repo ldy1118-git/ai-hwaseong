@@ -6,7 +6,7 @@ import logoImg from '../../design/logo.png'
 import marsImg from '../../design/mars.png'
 import findImg from '../../design/find.png'
 import { getToken, clearToken, saveOnboarding, patchOnboarding, apiUrl, mockOcrResult,
-         deleteOnboarding, clearLocalData } from '../utils/api'
+         deleteOnboarding, clearLocalData, fetchOcrReady} from '../utils/api'
 import { generateText } from '../utils/llm/llmProvider'
 import { RotateCcw, LogOut, ChevronRight, AlertTriangle, Trash2 } from 'lucide-react'
 import Header from '../components/layout/Header'
@@ -961,11 +961,27 @@ export default function Onboarding() {
   const [done, setDone]       = useState(false)
   // Path C — OCR
   const [bizMode, setBizMode]     = useState('upload')   // 'upload'|'loading'|'review'|'manual'
+  // null = 아직 모름. 모르는 동안에는 사진 쪽을 그대로 둔다.
+  const [ocrReady, setOcrReady]   = useState(null)
   const [ocrResult, setOcrResult] = useState(null)
   const [ocrError, setOcrError]   = useState('')
   const [openDate, setOpenDate]   = useState('')         // 개업일 수정용 (YYYYMMDD)
 
   const set = (key, value) => setData(prev => ({ ...prev, [key]: value }))
+
+  /* 사진 읽는 서버가 붙어 있는지 **온보딩을 열자마자** 물어본다.
+     사업자등록증 화면은 몇 걸음 뒤라, 도착할 즈음이면 답이 와 있다.
+     화면에 닿아서 묻기 시작하면 그 사이에 사진 버튼이 먼저 보인다. */
+  useEffect(() => { fetchOcrReady().then(setOcrReady) }, [])
+
+  /* 서버가 「안 붙어 있다」고 하면 사진 화면을 아예 안 낸다.
+     사진을 고르고 줄이고 올린 다음에야 안 된다는 말을 듣는 것보다,
+     처음부터 직접 입력으로 안내하는 편이 낫다.
+     모르는 동안(null)에는 그대로 둔다 — 점검이 안 됐다고 되는 기능을
+     감추면 성현이가 서버를 올린 날 아무도 사진을 못 쓴다. */
+  useEffect(() => {
+    if (ocrReady === false) setBizMode(m => (m === 'upload' ? 'manual' : m))
+  }, [ocrReady, bizMode])
 
   // 운영중이면 세무 질문 3개가 붙는다
   // 원천세 반기납부는 **직원이 있다고 답한 사람에게만** 묻는다. 혼자

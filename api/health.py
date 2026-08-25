@@ -93,6 +93,28 @@ def count_keys(env: str) -> int:
     return len(seen)
 
 
+def ocr_status() -> dict[str, Any]:
+    """사진 읽는 서버가 붙어 있는지.
+
+    easyocr 는 torch 까지 1.4GB 라 Vercel 함수(250MB)에 안 들어간다. 그래서
+    별도 서버가 맡고 `api/ocr.py` 는 중계만 한다. 그 서버 주소가
+    OCR_BACKEND_URL 이다 — 무료 터널이라 켤 때마다 바뀐다.
+
+    **여기서 실제로 환경변수를 본다.** 전에는 「미지원」이라고 박아둔 문자열
+    이라, 주소를 넣고 재배포해도 계속 미지원이라고 답했다. 온보딩이 이 값을
+    보고 사진과 직접 입력 중 무엇을 앞에 낼지 정하므로, 틀리면 사장님이
+    안 되는 버튼을 먼저 누르게 된다.
+
+    주소 자체는 안 내보낸다. 켜져 있는지만 알려준다.
+    """
+    if os.environ.get("OCR_BACKEND_URL", "").strip():
+        return {"ready": True, "detail": "사진 읽는 서버가 연결되어 있어요"}
+    return {
+        "ready": False,
+        "detail": "사진 읽는 서버가 연결되지 않았어요. 온보딩에서 직접 입력으로 안내합니다.",
+    }
+
+
 class handler(Base):  # noqa: N801
     def do_GET(self) -> None:  # noqa: N802
         deep = "deep=1" in (self.path or "")
@@ -123,5 +145,5 @@ class handler(Base):  # noqa: N801
                 "KAKAO_CLIENT_ID": bool(os.environ.get("KAKAO_CLIENT_ID", "").strip()),
                 "KAKAO_REDIRECT_URI": os.environ.get("KAKAO_REDIRECT_URI", "") or None,
             },
-            "ocr": "미지원 — torch 가 Vercel 용량 한도를 넘는다. 로컬 서버에서 시연할 것",
+            "ocr": ocr_status(),
         })

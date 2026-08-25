@@ -106,6 +106,28 @@ export function fetchMatches(userProfile = DEFAULT_PROFILE, deviceId = 'guest') 
 }
 
 
+/* 사진 읽는 서버가 붙어 있는지 서버에 물어본다.
+ *
+ * 온보딩이 이걸 보고 「사진으로 올리기」와 「직접 입력」 중 무엇을 앞에
+ * 낼지 정한다. 꺼져 있는데 사진을 앞에 내면, 사장님이 사진을 고르고
+ * 올린 다음에야 안 된다는 말을 듣는다.
+ *
+ * 한 번만 물어보고 그 답을 들고 있는다. 온보딩 안에서 화면을 오갈 때마다
+ * 다시 물으면 안 된다. 실패하면 null 로 두고 **사진 쪽을 그대로 둔다** —
+ * 점검이 안 됐다고 되는 기능을 감추는 게 더 나쁘다.
+ */
+let ocrReadyPromise = null
+
+export function fetchOcrReady() {
+  if (MOCK) return Promise.resolve(true)
+  if (ocrReadyPromise) return ocrReadyPromise
+  ocrReadyPromise = fetch(apiUrl('/api/health'), { signal: AbortSignal.timeout(6000) })
+    .then(r => (r.ok ? r.json() : null))
+    .then(d => (d?.ocr?.ready === undefined ? null : Boolean(d.ocr.ready)))
+    .catch(() => null)
+  return ocrReadyPromise
+}
+
 /** 행정용어 사전 전체. 프론트에 복사본을 두지 말 것 — 원본이 바뀌면 낡는다. */
 export async function fetchTerms() {
   if (MOCK) return delay().then(() => ({ terms: [], documents: [] }))
