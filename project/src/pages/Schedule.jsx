@@ -59,26 +59,56 @@ function writeSections(value) {
   try { localStorage.setItem(SECTIONS_KEY, JSON.stringify(value)) } catch {}
 }
 
-/* 접었다 펴는 묶음 제목.
+/* 접었다 펴는 묶음.
+ *
+ * 테두리로 한 덩어리라는 걸 보여준다. 전에는 제목과 목록이 배경 위에
+ * 그냥 떠 있어서, 두 묶음이 세로로 이어지면 어디까지가 세무이고 어디부터
+ * 상시 접수인지가 안 갈렸다.
  *
  * 건수는 접어도 계속 보인다. 접은 목적이 「안 볼 것을 치우는 것」이지
  * 「없는 셈 치는 것」이 아니라서다. 남은 신고가 세 건인지 없는지는
- * 접어둔 채로도 알아야 한다. */
-function SectionHead({ title, count, tone, open, onToggle }) {
+ * 접어둔 채로도 알아야 한다.
+ *
+ * **높이는 grid-template-rows 로 움직인다.** 0fr → 1fr 로 가면 브라우저가
+ * 내용 높이를 알아서 잡아준다. max-height 로 하면 실제보다 넉넉한 값을
+ * 박아야 하는데, 그러면 짧은 묶음은 다 펴진 뒤에도 한참 더 기다린다.
+ *
+ * 접힌 동안에도 내용은 DOM 에 남는다(그래야 높이가 움직인다). 그대로 두면
+ * Tab 키가 안 보이는 버튼 서른 개를 지나간다. `inert` 로 통째로 뺀다.
+ *
+ * inert 는 **빈 문자열로 넘긴다.** React 18 은 참/거짓을 모르는 속성으로
+ * 보고 조용히 버린다(`inert={true}` 는 아무것도 안 붙는다). 19 에서 바뀌므로
+ * 올릴 때 같이 볼 것. */
+function CollapsibleSection({ title, count, tone, open, onToggle, children }) {
   return (
-    <button
-      onClick={onToggle}
-      aria-expanded={open}
-      className="w-full flex items-baseline gap-2 mb-1 text-left group"
-    >
-      <h3 className="text-base font-bold text-navy">{title}</h3>
-      <span className={`text-sm font-bold ${tone}`}>{count}</span>
-      <ChevronDown
-        size={18}
-        className={`ml-auto self-center flex-shrink-0 text-warm-gray transition-transform
-                    group-hover:text-navy ${open ? 'rotate-180' : ''}`}
-      />
-    </button>
+    <section className="rounded-2xl border border-warm-gray/30 bg-white shadow-sm overflow-hidden">
+      <button
+        onClick={onToggle}
+        aria-expanded={open}
+        className="w-full flex items-baseline gap-2 px-4 py-3.5 text-left group
+                   hover:bg-warm-gray/5 transition-colors"
+      >
+        <h3 className="text-base font-bold text-navy">{title}</h3>
+        <span className={`text-sm font-bold ${tone}`}>{count}</span>
+        <ChevronDown
+          size={18}
+          className={`ml-auto self-center flex-shrink-0 text-warm-gray
+                      transition-transform duration-300 group-hover:text-navy
+                      motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      <div
+        className={`grid transition-[grid-template-rows] duration-300 ease-out
+                    motion-reduce:transition-none ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+      >
+        <div className="overflow-hidden" inert={open ? undefined : ''}>
+          {/* 제목과 내용 사이 실선. 접힐 때 같이 사라져야 해서 안쪽에 둔다. */}
+          <div className="h-px bg-warm-gray/20" />
+          <div className="px-4 pt-3 pb-4">{children}</div>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -109,26 +139,24 @@ function AlwaysOpen({ matches, open, onToggle }) {
   if (list.length === 0) return null
 
   return (
-    <section>
-      <SectionHead
-        title="상시 접수" count={`${list.length}건`} tone="text-sunset-orange"
-        open={open} onToggle={onToggle}
-      />
-      {!open ? null : <>
+    <CollapsibleSection
+      title="상시 접수" count={`${list.length}건`} tone="text-sunset-orange"
+      open={open} onToggle={onToggle}
+    >
       <p className="text-sm text-warm-text mb-3 leading-snug">
         마감일이 정해져 있지 않아 달력에는 없어요. 예산이 떨어지면 닫히니 서두르는 게 좋아요.
       </p>
       {/* 30건이 그대로 늘어서면 달력 옆에서 화면을 한참 넘긴다.
           넓은 화면에서만 높이를 재고 안에서 스크롤한다. */}
-      <div className="space-y-2 lg:max-h-[62vh] lg:overflow-y-auto lg:pr-1">
+      <div className="space-y-2 lg:max-h-[58vh] lg:overflow-y-auto lg:pr-1">
         {list.map(m => (
           <button key={m.id}
             onClick={() => {
               localStorage.setItem('mars-fit-selected-match', JSON.stringify(m.raw))
               navigate('/notice')
             }}
-            className="w-full text-left bg-white border border-warm-gray/30 rounded-xl px-4 py-3
-                       hover:border-navy/40 transition flex items-start gap-3">
+            className="w-full text-left bg-primary-bg border border-warm-gray/25 rounded-xl px-4 py-3
+                       hover:border-navy/40 hover:bg-primary-bg/60 transition flex items-start gap-3">
             <span className="flex-1 text-sm font-medium text-navy leading-snug line-clamp-2">
               {m.title}
             </span>
@@ -138,8 +166,7 @@ function AlwaysOpen({ matches, open, onToggle }) {
           </button>
         ))}
       </div>
-      </>}
-    </section>
+    </CollapsibleSection>
   )
 }
 
@@ -218,14 +245,12 @@ function TaxSchedule({ events, profile, onPick, open, onToggle }) {
   const left = upcoming.filter(e => !doneOf(e)).length
 
   return (
-    <section>
-      <SectionHead
-        title="세무 신고기한"
-        count={left > 0 ? `${left}건` : '다 하셨어요'}
-        tone="text-emerald-600"
-        open={open} onToggle={onToggle}
-      />
-      {!open ? null : <>
+    <CollapsibleSection
+      title="세무 신고기한"
+      count={left > 0 ? `${left}건` : '다 하셨어요'}
+      tone="text-emerald-600"
+      open={open} onToggle={onToggle}
+    >
       <p className="text-sm text-warm-text mb-3 leading-snug">
         기한을 넘기면 가산세가 붙어요. 공휴일·주말이면 다음 날로 밀린 날짜예요.
         줄을 누르면 무엇을 준비할지 펴져요.
@@ -235,8 +260,7 @@ function TaxSchedule({ events, profile, onPick, open, onToggle }) {
           왜 많은지 말해주고 고칠 길을 준다. */}
       <TaxProfileHint profile={profile} className="mb-3" />
 
-      <div className="bg-white border border-warm-gray/30 rounded-xl px-4
-                      lg:max-h-[62vh] lg:overflow-y-auto">
+      <div className="lg:max-h-[58vh] lg:overflow-y-auto">
         {upcoming.map((e, i) => {
           const [year] = e.dueDate.split('-')
           // 해가 바뀌는 자리에 줄을 하나 넣는다. 없으면 10.26 다음에 1.25 가
@@ -265,8 +289,7 @@ function TaxSchedule({ events, profile, onPick, open, onToggle }) {
           )
         })}
       </div>
-      </>}
-    </section>
+    </CollapsibleSection>
   )
 }
 
