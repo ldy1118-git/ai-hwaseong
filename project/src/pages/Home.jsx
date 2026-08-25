@@ -7,6 +7,7 @@ import OrbitDashboard from '../components/sections/OrbitDashboard'
 import FloatingChatButton from '../components/ui/FloatingChatButton'
 import DeadlineCalendar from '../components/ui/DeadlineCalendar'
 import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
+import { listApplied } from '../utils/appliedPrograms'
 import { nextTaxDeadline } from '../utils/taxCalendar'
 import FavoriteNotices from '../components/sections/FavoriteNotices'
 import { syncNoticeAlerts } from '../utils/notifications'
@@ -595,7 +596,7 @@ export default function Home() {
     catch { navigate('/onboarding', { replace: true }) }
 
     try {
-      const applied = JSON.parse(localStorage.getItem('mars-fit-applied-programs') ?? '[]')
+      const applied = listApplied()
       setAppliedPrograms(applied)
     } catch {}
   }, [navigate])

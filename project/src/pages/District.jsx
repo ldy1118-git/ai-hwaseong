@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   CalendarClock, FileText, MapPin, ChevronRight, ChevronDown,
-  AlertTriangle, ExternalLink, Pencil, Lock,
+  AlertTriangle, ExternalLink, Pencil, Lock, Check,
 } from 'lucide-react'
 import Header from '../components/layout/Header'
 import CommercialAnalysisView from '../components/sections/CommercialAnalysisView'
 import { useNavigate } from 'react-router-dom'
 import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
+import { listApplied, subscribeApplied } from '../utils/appliedPrograms'
+import { openNoticeById } from '../utils/openNotice'
 import { taxSchedule, holidaysKnown } from '../utils/taxSchedule'
 import { nextTaxDeadline } from '../utils/taxCalendar'
 import { todayISO } from '../utils/today'
@@ -123,25 +125,32 @@ function ProfileCard({ profile, onEdit }) {
 export default function MyStore() {
   const navigate = useNavigate()
 
-  const [profile, setProfile] = useState(null)
+  /* 프로필은 **첫 그림에서 바로 읽는다.** useEffect 로 미루면 첫 렌더에
+     profile 이 null 이라 isOwner 가 false 가 되고, 그 한 프레임 동안
+     상권분석 화면이 뜬다. 지도(Leaflet)가 올라오고 상가 데이터 764KB 를
+     받기 시작한 뒤에야 내 매장으로 바뀐다 — 받은 건 그대로 버려진다.
+     운영중 사장님이 이 화면을 열 때마다 그랬다. */
+  const [profile] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('mars-fit-profile')) } catch { return null }
+  })
   const [matches, setMatches] = useState(null)   // null = 아직 안 옴
   const [failed, setFailed]   = useState(false)
   const [openId, setOpenId]   = useState(null)
   const [showIf, setShowIf]     = useState(false)
   const [showPast, setShowPast] = useState(false)
   const [doneMap, setDoneMap]   = useState(listTaxDone)
+  const [applied, setApplied]   = useState(listApplied)
 
   useEffect(() => subscribeTaxDone(() => setDoneMap(listTaxDone())), [])
+  // 서류준비 창에서 「신청 완료」를 누르면 이 화면 목록도 같이 늘어난다.
+  useEffect(() => subscribeApplied(setApplied), [])
 
   useEffect(() => {
-    const saved = (() => {
-      try { return JSON.parse(localStorage.getItem('mars-fit-profile')) } catch { return null }
-    })()
-    setProfile(saved)
-
-    fetchMatches(saved ?? DEFAULT_PROFILE)
+    fetchMatches(profile ?? DEFAULT_PROFILE)
       .then(r => setMatches(r?.results ?? []))
       .catch(() => setFailed(true))
+    // profile 은 한 번 읽고 안 바뀐다(내 정보를 고치면 화면을 다시 연다).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // 브라우저 시간대가 아니라 한국 날짜로 자른다. 자정 근처에 하루가
@@ -446,7 +455,45 @@ export default function MyStore() {
           )}
         </Card>
 
-        {/* ⑤ 아직 못 채운 것.
+        {/* ⑤ 신청한 지원사업.
+            서류준비 창에서 「신청 완료」를 누르면 여기에 쌓인다. 전에는
+            이 화면에 그 목록이 없고 「받은 지원금 이력 — 신청 기록 기능이
+            열리면 자동으로 쌓여요」라고 잠금 목록에 적혀 있었다. 기능은
+            진작 열려 있었고 홈에는 이미 뜨고 있었다. */}
+        {applied.length > 0 && (
+          <Card className="p-4">
+            <SectionTitle sub="서류준비에서 「신청 완료」를 누른 것들이에요">
+              신청한 지원사업 {applied.length}건
+            </SectionTitle>
+
+            <div className="space-y-2">
+              {applied.slice(0, 5).map(p => (
+                <button
+                  key={p.notice_id}
+                  onClick={() => openNoticeById(p.notice_id, navigate)}
+                  className="w-full text-left bg-primary-bg rounded-xl px-3 py-2.5
+                             hover:bg-warm-gray/20 transition-colors flex items-start gap-2.5"
+                >
+                  <Check size={14} className="text-emerald-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold text-navy line-clamp-2 leading-snug">
+                      {p.notice_title}
+                    </p>
+                    <p className="text-[12px] text-warm-text mt-0.5">{p.applied_at} 신청</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {applied.length > 5 && (
+              <p className="text-[12px] text-warm-text mt-2">
+                외 {applied.length - 5}건은 홈에서 볼 수 있어요
+              </p>
+            )}
+          </Card>
+        )}
+
+        {/* ⑥ 아직 못 채운 것.
             비워둔 자리를 숨기면 "기능이 없다" 로 보이고, 가짜 숫자로 채우면
             나머지 숫자까지 의심받는다. 그래서 이름만 걸어두고 무엇이 있어야
             열리는지 적는다. 여기에는 숫자를 한 개도 쓰지 않는다. */}
@@ -459,11 +506,11 @@ export default function MyStore() {
             {[
               { name: '매출 · 방문자 · 객단가 추이', need: 'POS 또는 카드매출을 연결해야 알 수 있어요. 사업자등록증에는 매출이 적혀 있지 않아요.' },
               { name: '재방문율 · 단골 비중',        need: 'POS 연결이 필요해요' },
-              { name: '별점 · 리뷰',                 need: '네이버·카카오 플레이스 연결이 필요해요' },
-              { name: '주변 동종업체 · 신규개업 · 폐업', need: '지자체 인허가 공공데이터를 붙이면 열려요' },
+              { name: '별점 · 리뷰',                 need: '네이버·카카오가 평점을 API 로 내주지 않아요. 화면을 긁어오는 건 약관 위반이라 안 해요.' },
+              { name: '주변 동종업체',               need: '화성시 상가 17,073곳은 이미 받아뒀어요. 매장 주소를 알려주시면 반경 안 동종업체를 셀 수 있어요.' },
+              { name: '신규개업 · 폐업',             need: '받아둔 상가정보에는 개업일이 없어요. 지자체 인허가 공공데이터를 따로 붙여야 해요.' },
               { name: '업종 내 내 매출 위치',        need: '업종별 매출 통계가 있어야 계산돼요' },
-              { name: '받은 지원금 이력',            need: '신청 기록 기능이 열리면 자동으로 쌓여요' },
-              { name: '사업자등록증으로 자동 입력',  need: 'OCR 등록 시 과세유형·개업일을 자동으로 채워요. 지금은 온보딩에서 직접 여쭤보고 있어요.' },
+              { name: '사업자등록증으로 자동 입력',  need: '사진에서 과세유형·개업일을 읽는 것까지는 되어 있어요. 지금 배포에는 사진 읽는 서버가 안 붙어 있어서 온보딩에서 직접 여쭤보고 있어요.' },
             ].map(f => (
               <div key={f.name} className="flex items-start gap-2.5">
                 <Lock size={13} className="text-warm-gray mt-0.5 flex-shrink-0" />
