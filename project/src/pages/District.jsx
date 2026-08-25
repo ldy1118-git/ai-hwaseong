@@ -85,7 +85,7 @@ function ProfileCard({ profile, onEdit }) {
         <SectionTitle sub="온보딩에서 답해주신 내용이에요">내 정보</SectionTitle>
         <button onClick={onEdit}
           className="flex items-center gap-1 text-[12px] text-navy font-semibold flex-shrink-0">
-          <Pencil size={10} /> 고치기
+          <Pencil size={13} /> 고치기
         </button>
       </div>
 
@@ -103,7 +103,7 @@ function ProfileCard({ profile, onEdit }) {
 
       {missing > 0 && (
         <div className="mt-3 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
-          <AlertTriangle size={12} className="text-sunset-orange mt-0.5 flex-shrink-0" />
+          <AlertTriangle size={14} className="text-sunset-orange mt-0.5 flex-shrink-0" />
           <p className="text-[12px] text-warm-text leading-relaxed">
             세무 질문 {missing}개를 아직 안 하셨어요. 모른다고 빼버리면 해야 할 신고를
             통째로 놓칠 수 있어서, <b className="text-navy">일단 다 보여드리고 있어요.</b>{' '}
@@ -262,7 +262,7 @@ export default function MyStore() {
               </div>
             </div>
 
-            <p className="text-[11px] text-gray-700 leading-relaxed mt-3 bg-primary-bg rounded-xl px-3 py-2.5">
+            <p className="text-[13px] text-gray-700 leading-relaxed mt-3 bg-primary-bg rounded-xl px-3 py-2.5">
               {next.easy}
             </p>
 
@@ -270,8 +270,8 @@ export default function MyStore() {
                 주말만 반영된 날짜다. 틀린 날을 확정처럼 보여주면 안 된다. */}
             {next.dueDate && !holidaysKnown(Number(next.dueDate.slice(0, 4))) && (
               <div className="mt-2 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
-                <AlertTriangle size={12} className="text-sunset-orange mt-0.5 flex-shrink-0" />
-                <p className="text-[10px] text-warm-text leading-relaxed">
+                <AlertTriangle size={14} className="text-sunset-orange mt-0.5 flex-shrink-0" />
+                <p className="text-[13px] text-warm-text leading-relaxed">
                   {next.dueDate.slice(0, 4)}년 공휴일이 아직 등록되지 않아 주말만 반영된
                   날짜예요. 연말에 확인해 주세요.
                 </p>
@@ -288,7 +288,7 @@ export default function MyStore() {
 
           {upcoming.length > 0 ? (
             <>
-              <p className="text-[10px] font-bold text-navy mb-1">
+              <p className="text-[12px] font-bold text-navy mb-1">
                 반드시 해야 하는 것 {upcoming.length}건
                 {rolled && (
                   <span className="font-normal text-warm-text"> · {year}년 것은 다 지났어요</span>
@@ -302,7 +302,7 @@ export default function MyStore() {
               </div>
             </>
           ) : (
-            <p className="text-[11px] text-warm-text py-2">해당되는 신고가 없어요.</p>
+            <p className="text-[13px] text-warm-text py-2">해당되는 신고가 없어요.</p>
           )}
 
           {/* 올해 지난 것 — 접어서 남긴다. 아예 지우면 「내가 저걸 했던가」를
@@ -312,7 +312,7 @@ export default function MyStore() {
             <div className="mt-3 pt-3 border-t border-warm-gray/15">
               <button onClick={() => setShowPast(v => !v)}
                 className="w-full flex items-center justify-between text-left">
-                <span className="text-[10px] font-bold text-warm-text">
+                <span className="text-[12px] font-bold text-warm-text">
                   {year}년에 지난 것 {past.length}건
                 </span>
                 <ChevronDown size={14}
@@ -336,7 +336,7 @@ export default function MyStore() {
             <div className="mt-3 pt-3 border-t border-warm-gray/15">
               <button onClick={() => setShowIf(v => !v)}
                 className="w-full flex items-center justify-between text-left">
-                <span className="text-[10px] font-bold text-warm-text">
+                <span className="text-[12px] font-bold text-warm-text">
                   해당되면 이것도 {optional.length}건
                 </span>
                 <ChevronDown size={14}
@@ -345,13 +345,13 @@ export default function MyStore() {
 
               {showIf && (
                 <div className="mt-1">
-                  <p className="text-[10px] text-warm-text leading-relaxed mb-2">
+                  <p className="text-[13px] text-warm-text leading-relaxed mb-2">
                     답해주신 것만으로는 해당되는지 알 수 없는 신고예요. 조건을 읽어보고
                     본인 얘기면 챙기세요.
                   </p>
                   {optional.map(e => (
                     <div key={`o${e.id}`}>
-                      <p className="text-[10px] text-sunset-orange pt-2">{e.conditional}</p>
+                      <p className="text-[13px] text-sunset-orange pt-2">{e.conditional}</p>
                       <TaxRow item={e} done={Boolean(doneMap[taxDoneKey(e.id, e.dueDate)])} open={openId === `o${e.id}`}
                         onToggle={() => setOpenId(openId === `o${e.id}` ? null : `o${e.id}`)} />
                     </div>
@@ -363,8 +363,8 @@ export default function MyStore() {
 
           {!listKnown && (
             <div className="mt-3 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
-              <AlertTriangle size={12} className="text-sunset-orange mt-0.5 flex-shrink-0" />
-              <p className="text-[10px] text-warm-text leading-relaxed">
+              <AlertTriangle size={14} className="text-sunset-orange mt-0.5 flex-shrink-0" />
+              <p className="text-[13px] text-warm-text leading-relaxed">
                 {listYear}년 공휴일이 아직 등록되지 않아 주말만 반영된 날짜예요.
                 설·추석은 음력이라 자동 계산이 안 됩니다.
               </p>
@@ -384,7 +384,7 @@ export default function MyStore() {
           </SectionTitle>
 
           {failed ? (
-            <p className="text-[11px] text-warm-text py-2">
+            <p className="text-[13px] text-warm-text py-2">
               공고를 불러오지 못했어요. 잠시 뒤 다시 열어주세요.
             </p>
           ) : !counts ? (
@@ -401,7 +401,7 @@ export default function MyStore() {
                 ].map(d => (
                   <div key={d.label} className="bg-primary-bg rounded-xl py-3 text-center">
                     <p className={`text-xl font-extrabold leading-none ${d.color}`}>{d.value}</p>
-                    <p className="text-[10px] text-warm-text mt-1">{d.label}</p>
+                    <p className="text-[12px] text-warm-text mt-1">{d.label}</p>
                   </div>
                 ))}
               </div>
@@ -416,12 +416,12 @@ export default function MyStore() {
                              rounded-xl px-3 py-2.5 hover:bg-warm-gray/20 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-warm-text">가장 먼저 마감돼요</p>
+                    <p className="text-[12px] text-warm-text">가장 먼저 마감돼요</p>
                     <p className="text-xs font-semibold text-navy truncate mt-0.5">
                       {counts.nearest.notice_title}
                     </p>
                   </div>
-                  <span className="text-[11px] font-bold text-sunset-orange flex-shrink-0">
+                  <span className="text-[12px] font-bold text-sunset-orange flex-shrink-0">
                     {dDayLabel(dDay(counts.nearest.apply_period?.end))}
                   </span>
                   <ChevronRight size={14} className="text-warm-gray flex-shrink-0" />
@@ -429,7 +429,7 @@ export default function MyStore() {
               )}
 
               {counts.soon > 0 && (
-                <p className="text-[11px] text-sunset-orange font-semibold mt-2">
+                <p className="text-[13px] text-sunset-orange font-semibold mt-2">
                   2주 안에 마감되는 공고가 {counts.soon}건 있어요
                 </p>
               )}
@@ -466,10 +466,10 @@ export default function MyStore() {
               { name: '사업자등록증으로 자동 입력',  need: 'OCR 등록 시 과세유형·개업일을 자동으로 채워요. 지금은 온보딩에서 직접 여쭤보고 있어요.' },
             ].map(f => (
               <div key={f.name} className="flex items-start gap-2.5">
-                <Lock size={11} className="text-warm-gray mt-1 flex-shrink-0" />
+                <Lock size={13} className="text-warm-gray mt-0.5 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold text-warm-text">{f.name}</p>
-                  <p className="text-[10px] text-warm-text/70 leading-relaxed mt-0.5">{f.need}</p>
+                  <p className="text-[13px] font-semibold text-navy">{f.name}</p>
+                  <p className="text-[12px] text-warm-text leading-relaxed mt-0.5">{f.need}</p>
                 </div>
               </div>
             ))}
@@ -479,17 +479,17 @@ export default function MyStore() {
         {/* ⑥ 출처 */}
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-2">
-            <FileText size={12} className="text-warm-text" />
-            <h2 className="text-[11px] font-bold text-navy">이 화면의 숫자는 어디서 왔나</h2>
+            <FileText size={14} className="text-warm-text" />
+            <h2 className="text-[13px] font-bold text-navy">이 화면의 숫자는 어디서 왔나</h2>
           </div>
 
-          <ul className="space-y-1.5 text-[10px] text-warm-text leading-relaxed">
+          <ul className="space-y-2 text-[12px] text-warm-text leading-relaxed">
             <li className="flex gap-1.5">
-              <MapPin size={10} className="mt-0.5 flex-shrink-0" />
+              <MapPin size={13} className="mt-0.5 flex-shrink-0" />
               <span>내 정보 — 온보딩에서 직접 답해주신 내용</span>
             </li>
             <li className="flex gap-1.5">
-              <CalendarClock size={10} className="mt-0.5 flex-shrink-0" />
+              <CalendarClock size={13} className="mt-0.5 flex-shrink-0" />
               <span>
                 세무일정 {calendar.events.length}건 — 국세청 원문으로 전부 대조했어요
                 (기준 {calendar.version}). 신고기한이 공휴일·토요일이면 다음 날로
@@ -497,7 +497,7 @@ export default function MyStore() {
               </span>
             </li>
             <li className="flex gap-1.5">
-              <FileText size={10} className="mt-0.5 flex-shrink-0" />
+              <FileText size={13} className="mt-0.5 flex-shrink-0" />
               <span>지원사업 — 기업마당 공고 원문을 매일 새벽에 새로 받아옵니다</span>
             </li>
           </ul>
@@ -505,10 +505,10 @@ export default function MyStore() {
           <a
             href="https://www.nts.go.kr/nts/ad/taxSchdul/selectList.do"
             target="_blank" rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1 text-[10px] text-navy font-semibold
+            className="mt-3 inline-flex items-center gap-1 text-[13px] text-navy font-semibold
                        underline underline-offset-2"
           >
-            국세청 세무일정 원문 확인 <ExternalLink size={9} />
+            국세청 세무일정 원문 확인 <ExternalLink size={12} />
           </a>
         </Card>
 
