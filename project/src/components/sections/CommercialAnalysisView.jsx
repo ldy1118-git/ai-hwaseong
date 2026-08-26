@@ -121,11 +121,11 @@ const TZ_LABELS = {
 }
 
 async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPassengersTotal, radii }) {
-  const schoolCount    = amenities.schools
+  const schoolCount     = amenities.schools
   const restaurantCount = amenities.restaurants
-  const cafeCount      = amenities.cafes
-  const academyCount   = amenities.academies
-  const stationCount   = amenities.stations
+  const cafeCount       = amenities.cafes
+  const academyCount    = amenities.academies
+  const stationCount    = amenities.stations
 
   const aptLine = aptDong && aptDong.total_units > 0
     ? `아파트: ${aptDong.dong} 내 ${aptDong.complexes}개 단지, ${aptDong.total_units.toLocaleString()}세대`
@@ -139,7 +139,7 @@ async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPa
   if (cardSales) {
     const billionSales = Math.round(cardSales.total_sales / 100_000_000)
     const peakLabel    = TZ_LABELS[cardSales.peak_tz] || cardSales.peak_tz
-    salesLine = `카드매출 (2020년 3월, ${cardSales.area_name} 기준): 월 약 ${billionSales}억원 / 가장 바쁜 시간대: ${peakLabel} (${cardSales.peak_pct.toFixed(1)}%)`
+    salesLine = `이 지역 카드매출: 월 약 ${billionSales}억원 / 가장 바쁜 시간대: ${peakLabel} (${cardSales.peak_pct.toFixed(1)}%)`
   }
 
   const prompt = [
@@ -157,8 +157,7 @@ async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPa
       system: `당신은 마이다(Mar-DA)입니다. 화성시 소상공인을 응원하는 상권 분석 도우미예요.
 창업 예정 위치의 데이터를 바탕으로 상권의 특징을 3~4문장으로 요약해주세요.
 강점을 먼저 말하고 창업 시 참고할 점을 친근하게 조언해요.
-"~해요", "~거든요" 같은 말투로, 구체적인 숫자를 활용해 주세요.
-카드매출 데이터는 2020년 기준임을 한 번만 간단히 언급해도 돼요.`,
+"~해요", "~거든요" 같은 말투로, 구체적인 숫자를 활용해 주세요.`,
       prompt,
     }),
   })
