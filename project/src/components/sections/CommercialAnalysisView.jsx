@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import {
   School, Utensils, BookOpen, Coffee, Building2, Search, Train,
   Maximize2, X as XIcon, Sparkles, Users, CreditCard, MapPin,
@@ -69,12 +70,13 @@ function LeafletMap({ position, onMove, radii, markers, sizeKey }) {
       }).addTo(overlayRef.current)
     })
     markers.forEach(({ lat, lng, key, popup }) => {
-      const { color, char } = cfgMap[key] || {}
-      if (!color) return
+      const { color, Icon } = cfgMap[key] || {}
+      if (!color || !Icon) return
+      const svgHtml = renderToStaticMarkup(createElement(Icon, { size: 11, color: 'white', strokeWidth: 2.5 }))
       const m = L.marker([lat, lng], {
         icon: L.divIcon({
-          html: `<div style="width:16px;height:16px;background:${color};border:2px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:white;box-shadow:0 1px 4px rgba(0,0,0,.35)">${char}</div>`,
-          className: '', iconSize: [16, 16], iconAnchor: [8, 8],
+          html: `<div style="width:22px;height:22px;background:${color};border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.4)">${svgHtml}</div>`,
+          className: '', iconSize: [22, 22], iconAnchor: [11, 11],
         }),
       }).addTo(overlayRef.current)
       if (popup) m.bindPopup(popup)
@@ -186,14 +188,22 @@ async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPa
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       system: `당신은 마이다(Mar-DA)입니다. 화성시 소상공인을 응원하는 상권 분석 도우미예요.
-창업 예정 위치 데이터를 바탕으로 유동인구 규모, 카드매출 수준, 업종 분포, 경쟁 현황을 짧게 분석해주세요.
-마지막에 창업 시 핵심 조언 한 문장을 덧붙여주세요.
-"~해요" 처럼 친근한 말투로, 구체적인 숫자를 활용해 주세요.`,
+아래 JSON 형식으로만 답하세요. 다른 텍스트 없이 JSON만:
+{"bullets":["특징1","특징2","특징3"],"advice":"핵심 조언 한 줄"}
+• bullets: 3개 이내, 각 항목 30자 이내, 구체적 숫자 포함
+• advice: 30자 이내, "~해요" 말투
+• 불필요한 수식어 없이 핵심만`,
       prompt,
+      json: true,
     }),
   })
   const data = await res.json()
-  return data.text || ''
+  try {
+    const parsed = JSON.parse(data.text)
+    return { bullets: parsed.bullets || [], advice: parsed.advice || '' }
+  } catch {
+    return { bullets: [data.text || '분석 결과를 가져오지 못했어요.'], advice: '' }
+  }
 }
 
 // ── 단계 번호 뱃지 ────────────────────────────────────────────────
@@ -216,7 +226,7 @@ export default function CommercialAnalysisView() {
   const [showDetailSliders, setShowDetailSliders] = useState(false)
   const [expanded, setExpanded]           = useState(false)
   const [apiData, setApiData]             = useState(null)
-  const [llmSummary, setLlmSummary]       = useState('')
+  const [llmSummary, setLlmSummary]       = useState(null)
   const [llmLoading, setLlmLoading]       = useState(false)
   const [llmAsked, setLlmAsked]           = useState(false)
   const [enabledFacilities, setEnabledFacilities] = useState(
@@ -243,7 +253,7 @@ export default function CommercialAnalysisView() {
   }, [position.lat, position.lng, effectiveRadii])
 
   useEffect(() => {
-    setLlmSummary('')
+    setLlmSummary(null)
     setLlmAsked(false)
   }, [position.lat, position.lng])
 
@@ -331,13 +341,13 @@ export default function CommercialAnalysisView() {
 
   const handleAskMaida = useCallback(async () => {
     setLlmLoading(true)
-    setLlmSummary('')
+    setLlmSummary(null)
     setLlmAsked(true)
     try {
-      const text = await fetchCommercialSummary({ amenities, aptDong, cardSales, stationPassengersTotal, radii })
-      setLlmSummary(text)
+      const result = await fetchCommercialSummary({ amenities, aptDong, cardSales, stationPassengersTotal, radii })
+      setLlmSummary(result)
     } catch {
-      setLlmSummary('마이다가 잠깐 연결이 끊겼어요. 다시 시도해주세요.')
+      setLlmSummary({ bullets: ['마이다가 잠깐 연결이 끊겼어요. 다시 시도해주세요.'], advice: '' })
     } finally {
       setLlmLoading(false)
     }
@@ -722,14 +732,34 @@ export default function CommercialAnalysisView() {
           {llmAsked && (
             <div className="mt-4 flex-1">
               {llmLoading ? (
-                <div className="space-y-2.5 animate-pulse">
-                  {[1, 0.9, 0.85, 0.7].map((w, i) => (
-                    <div key={i} className="h-2.5 bg-warm-gray/20 rounded-full"
-                      style={{ width: `${w * 100}%` }} />
+                <div className="space-y-3 animate-pulse">
+                  {[0.9, 0.75, 0.85].map((w, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-warm-gray/30 flex-shrink-0" />
+                      <div className="h-3 bg-warm-gray/20 rounded-full flex-1"
+                        style={{ width: `${w * 100}%` }} />
+                    </div>
                   ))}
+                  <div className="mt-3 h-3 bg-navy/10 rounded-full w-4/5" />
                 </div>
-              ) : (
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{llmSummary}</p>
+              ) : llmSummary && (
+                <div className="space-y-2.5">
+                  {llmSummary.bullets?.map((b, i) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-navy/10 text-navy text-xs font-bold
+                                       flex items-center justify-center flex-shrink-0 mt-0.5">
+                        {i + 1}
+                      </span>
+                      <p className="text-sm text-gray-700 leading-snug">{b}</p>
+                    </div>
+                  ))}
+                  {llmSummary.advice && (
+                    <div className="mt-3 pt-3 border-t border-warm-gray/15 flex items-start gap-2">
+                      <span className="text-base flex-shrink-0">💡</span>
+                      <p className="text-sm font-semibold text-navy leading-snug">{llmSummary.advice}</p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
