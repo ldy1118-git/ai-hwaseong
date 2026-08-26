@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { apiUrl } from '../../utils/api'
 import { getSiteInfo } from './SiteLaunchSheet'
 import marsImg from '../../../design/mars.png'
-import cheerImg from '../../../design/cheer.png'
+const cheerImg = marsImg  // cheer.png 추가되면 교체
 
 function findDoc(name, termsData) {
   if (!name || !termsData?.documents) return null
