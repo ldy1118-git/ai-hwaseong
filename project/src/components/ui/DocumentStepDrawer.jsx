@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { apiUrl } from '../../utils/api'
 import { getSiteInfo } from './SiteLaunchSheet'
+import marsImg from '../../../design/mars.png'
+import cheerImg from '../../../design/cheer.png'
 
 function findDoc(name, termsData) {
   if (!name || !termsData?.documents) return null
@@ -24,8 +26,9 @@ async function fetchLlmSteps(docName, issueUrl) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       system: `당신은 마이다(Mar-DA)입니다. 화성시 소상공인을 돕는 든든한 동료예요.
-서류를 준비하는 방법을 사장님이 바로 따라할 수 있도록 구체적인 단계로 설명해주세요.
+서류를 발급받거나 양식을 다운로드하는 방법을 사장님이 바로 따라할 수 있도록 구체적인 단계로 설명해주세요.
 준비 사이트가 주어진 경우, 그 사이트 기준으로 어디서 무엇을 눌러야 하는지 구체적으로 안내해주세요. "사이트에 접속해요" 같은 단계는 쓰지 마세요 — 이미 열려 있으니까요.
+중요: 서류를 제출하거나 신청을 완료하는 단계는 절대 포함하지 마세요. 서류를 발급·다운로드·작성하는 것까지만 안내하세요. 제출·신청은 별도 절차에서 진행됩니다.
 말투는 "~해요", "~하세요" 처럼 친근하게.
 JSON 형식으로만 응답: {"steps":["1단계","2단계",...],"fee":"비용(없으면 null)","time":"소요시간(없으면 null)","tip":"팁(없으면 null)"}`,
       prompt: `"${docName}" 서류를 준비하는 방법을 단계별로 알려주세요.${siteContext}`,
@@ -132,6 +135,8 @@ export default function DocumentStepDrawer({ item, termsData, applyUrl, onClose,
         <style>{`
           @keyframes slideInLeft { from { transform: translateX(-100%) } to { transform: translateX(0) } }
           @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+          @keyframes float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
+          @keyframes popIn { from { opacity:0; transform:scale(0.85) translateY(8px) } to { opacity:1; transform:scale(1) translateY(0) } }
         `}</style>
 
         {/* 사이드바 헤더 */}
@@ -290,12 +295,41 @@ export default function DocumentStepDrawer({ item, termsData, applyUrl, onClose,
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 bg-white">
-            <span className="text-5xl">📍</span>
-            <p className="text-sm font-bold text-navy mt-2">직접 준비가 필요한 서류예요</p>
-            <p className="text-xs text-warm-text text-center leading-relaxed">
-              온라인 발급 링크가 없어요.<br />왼쪽 절차를 따라 준비해주세요.
-            </p>
+          <div className="flex-1 flex items-center justify-center p-8 bg-gradient-to-b from-blue-50/40 to-white">
+            <div className="flex flex-col items-center gap-2" style={{ animation: 'popIn 0.3s ease' }}>
+
+              {/* 말풍선 */}
+              <div className="relative bg-white rounded-2xl border border-warm-gray/30 px-5 py-4 shadow-md text-center max-w-xs">
+                <p className="text-sm text-navy font-medium leading-relaxed">
+                  이 서류는 온라인 발급 대신<br />직접 준비해야 해요.<br />
+                  왼쪽 체크리스트 단계를 따라<br />하나씩 해결해봐요! 💪
+                </p>
+                {/* 말풍선 꼬리 — 아래 방향, 테두리 */}
+                <span className="absolute" style={{
+                  bottom: '-10px', left: '50%', transform: 'translateX(-50%)',
+                  width: 0, height: 0,
+                  borderLeft: '10px solid transparent',
+                  borderRight: '10px solid transparent',
+                  borderTop: '10px solid #D1D5DB',
+                }} />
+                {/* 말풍선 꼬리 — 흰색 채움 */}
+                <span className="absolute" style={{
+                  bottom: '-8px', left: '50%', transform: 'translateX(-50%)',
+                  width: 0, height: 0,
+                  borderLeft: '9px solid transparent',
+                  borderRight: '9px solid transparent',
+                  borderTop: '9px solid white',
+                }} />
+              </div>
+
+              {/* 마이다 캐릭터 */}
+              <img
+                src={cheerImg}
+                alt="마이다"
+                className="object-contain drop-shadow-lg"
+                style={{ width: '288px', height: '288px', animation: 'float 3s ease-in-out infinite' }}
+              />
+            </div>
           </div>
         )}
       </div>
