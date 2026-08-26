@@ -20,7 +20,7 @@ const leafletIcon = L.icon({
 })
 
 // ── 순수 Leaflet 지도 컴포넌트 ──────────────────────────────────
-function LeafletMap({ position, onMove, radii, markers }) {
+function LeafletMap({ position, onMove, radii, markers, sizeKey }) {
   const containerRef = useRef(null)
   const mapRef       = useRef(null)
   const markerRef    = useRef(null)
@@ -29,6 +29,10 @@ function LeafletMap({ position, onMove, radii, markers }) {
   const [mapReady, setMapReady] = useState(false)
 
   useEffect(() => { onMoveRef.current = onMove }, [onMove])
+
+  useEffect(() => {
+    if (mapRef.current) setTimeout(() => mapRef.current?.invalidateSize(), 50)
+  }, [sizeKey])
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -195,7 +199,7 @@ async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPa
 // ── 단계 번호 뱃지 ────────────────────────────────────────────────
 function StepBadge({ n }) {
   return (
-    <span className="w-6 h-6 rounded-full bg-navy text-white text-[11px] font-black
+    <span className="w-8 h-8 rounded-full bg-navy text-white text-sm font-black
                      flex items-center justify-center flex-shrink-0">
       {n}
     </span>
@@ -349,11 +353,11 @@ export default function CommercialAnalysisView() {
         <img src={marsImg} alt="마이다" className="w-16 h-16 object-contain flex-shrink-0"
           style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }} />
         <div className="flex-1">
-          <p className="text-[10px] font-semibold text-white/60 uppercase tracking-widest mb-0.5">마이다 상권분석</p>
+          <p className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-0.5">마이다 상권분석</p>
           <p className="text-lg font-extrabold text-white leading-snug">
             창업 예정지의 상권을 실제 데이터로 분석해드려요
           </p>
-          <p className="text-[11px] text-white/70 mt-1">
+          <p className="text-sm text-white/70 mt-1">
             위치를 고르면 유동인구·매출·경쟁 현황을 한눈에 볼 수 있어요
           </p>
         </div>
@@ -367,14 +371,15 @@ export default function CommercialAnalysisView() {
           <div className="flex items-center gap-2">
             <StepBadge n={1} />
             <div>
-              <p className="text-[13px] font-bold text-navy leading-tight">어디서 창업하고 싶으세요?</p>
-              <p className="text-[10px] text-warm-text">핀을 드래그하거나 주소를 검색해보세요</p>
+              <p className="text-base font-bold text-navy leading-tight">어디서 창업하고 싶으세요?</p>
+              <p className="text-sm text-warm-text">핀을 드래그하거나 주소를 검색해보세요</p>
             </div>
           </div>
 
           <div className="relative rounded-xl overflow-hidden border border-warm-gray/15 flex-1" style={{ minHeight: 260 }}>
             <LeafletMap position={position} onMove={handleMarkerMove} radii={effectiveRadii}
-              markers={displayMarkers.filter(m => enabledFacilities[m.key])} />
+              markers={displayMarkers.filter(m => enabledFacilities[m.key])}
+              sizeKey={showDetailSliders} />
             <button onClick={() => setExpanded(true)}
               className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-warm-gray/30
                          rounded-lg p-1.5 shadow hover:bg-white transition-colors"
@@ -384,7 +389,7 @@ export default function CommercialAnalysisView() {
           </div>
 
           {address && (
-            <div className="flex items-center gap-1.5 text-[11px] text-warm-text -mt-1">
+            <div className="flex items-center gap-1.5 text-sm text-warm-text -mt-1">
               <MapPin size={11} className="text-navy flex-shrink-0" />
               <span>선택한 위치: <strong className="text-navy">{address}</strong></span>
             </div>
@@ -394,7 +399,7 @@ export default function CommercialAnalysisView() {
             <input
               type="text" value={address} onChange={e => setAddress(e.target.value)}
               placeholder="예: 동탄역, 병점동, 봉담읍..."
-              className="flex-1 min-w-0 text-[11px] bg-gray-50 border border-warm-gray/30 rounded-xl
+              className="flex-1 min-w-0 text-sm bg-gray-50 border border-warm-gray/30 rounded-xl
                          px-3 py-2 text-navy placeholder:text-warm-gray/50
                          focus:outline-none focus:border-navy focus:bg-white transition-colors"
             />
@@ -411,8 +416,8 @@ export default function CommercialAnalysisView() {
           <div className="flex items-center gap-2">
             <StepBadge n={2} />
             <div>
-              <p className="text-[13px] font-bold text-navy leading-tight">범위를 설정해보세요</p>
-              <p className="text-[10px] text-warm-text">걸어서 이동 가능한 거리 기준</p>
+              <p className="text-base font-bold text-navy leading-tight">범위를 설정해보세요</p>
+              <p className="text-sm text-warm-text">걸어서 이동 가능한 거리 기준</p>
             </div>
           </div>
 
@@ -432,8 +437,8 @@ export default function CommercialAnalysisView() {
                     <span className={`absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-bold px-1.5 py-0.5 rounded-full
                       ${active ? 'bg-white text-navy' : 'bg-star-yellow text-navy'}`}>추천</span>
                   )}
-                  <span className="text-sm font-extrabold">{label}</span>
-                  <span className={`text-[10px] ${active ? 'text-white/80' : 'text-navy/60'}`}>{walk}</span>
+                  <span className="text-base font-extrabold">{label}</span>
+                  <span className={`text-sm ${active ? 'text-white/80' : 'text-navy/60'}`}>{walk}</span>
                 </button>
               )
             })}
@@ -441,20 +446,21 @@ export default function CommercialAnalysisView() {
 
           {/* 시설 현황 */}
           <div>
-            <p className="text-[11px] font-semibold text-warm-text mb-2">반경 내 시설 현황</p>
+            <p className="text-xs font-semibold text-warm-text mb-2">반경 내 시설 현황 <span className="font-normal opacity-60">(아이콘 클릭으로 끄기/켜기)</span></p>
             <div className="grid grid-cols-2 gap-x-3 gap-y-2">
               {AMENITY_CONFIG.map(({ key, label, Icon, color }) => {
                 const enabled = enabledFacilities[key]
                 return (
-                  <div key={key} className={`flex items-center gap-1.5 transition-opacity ${enabled ? '' : 'opacity-35'}`}>
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: color + '22', border: `1.5px solid ${color}` }}>
-                      <Icon size={9} style={{ color }} />
+                  <button key={key} onClick={() => toggleFacility(key)}
+                    className={`flex items-center gap-2 text-left transition-opacity rounded-lg px-1 py-0.5 hover:bg-gray-50 ${enabled ? '' : 'opacity-35'}`}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: color + '22', border: `2px solid ${enabled ? color : '#ccc'}` }}>
+                      <Icon size={12} style={{ color: enabled ? color : '#aaa' }} />
                     </div>
-                    <span className="text-[10px] text-warm-text flex-1">{label}</span>
-                    <span className="text-xs font-extrabold text-navy tabular-nums">{amenities[key]}</span>
-                    <span className="text-[9px] text-warm-text">개</span>
-                  </div>
+                    <span className="text-xs text-warm-text flex-1">{label}</span>
+                    <span className="text-sm font-extrabold text-navy tabular-nums">{amenities[key]}</span>
+                    <span className="text-xs text-warm-text">개</span>
+                  </button>
                 )
               })}
             </div>
@@ -463,7 +469,7 @@ export default function CommercialAnalysisView() {
           {/* 세부 슬라이더 */}
           <div>
             <button onClick={() => setShowDetailSliders(v => !v)}
-              className="flex items-center gap-1 text-[11px] text-navy/50 hover:text-navy transition-colors">
+              className="flex items-center gap-1 text-sm text-navy/50 hover:text-navy transition-colors">
               {showDetailSliders ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
               시설 종류별로 따로 설정
             </button>
@@ -476,11 +482,11 @@ export default function CommercialAnalysisView() {
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5">
                           <Icon size={9} style={{ color: enabled ? color : '#aaa' }} />
-                          <span className="text-[10px] text-warm-text">{label}</span>
+                          <span className="text-xs text-warm-text">{label}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           {enabled && (
-                            <span className="text-[9px] font-semibold tabular-nums" style={{ color }}>
+                            <span className="text-xs font-semibold tabular-nums" style={{ color }}>
                               {radii[key] >= 1000 ? `${radii[key] / 1000}km` : `${radii[key]}m`}
                             </span>
                           )}
@@ -516,7 +522,7 @@ export default function CommercialAnalysisView() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <StepBadge n={3} />
-          <p className="text-[13px] font-bold text-navy">이 위치의 상권은 어때요?</p>
+          <p className="text-base font-bold text-navy">이 위치의 상권은 어때요?</p>
           <img src={searchImg} alt="" className="w-7 h-7 object-contain ml-auto" />
         </div>
 
@@ -526,34 +532,34 @@ export default function CommercialAnalysisView() {
           <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-3">
             <div className="flex items-center gap-1 mb-1.5">
               <Users size={10} className="text-warm-text" />
-              <p className="text-[10px] text-warm-text font-medium">유동인구 예측</p>
+              <p className="text-xs text-warm-text font-medium">유동인구 예측</p>
             </div>
-            <p className="text-xl font-extrabold text-navy tabular-nums leading-none">
+            <p className="text-2xl font-extrabold text-navy tabular-nums leading-none">
               {ftScore >= 10000
                 ? `${(ftScore / 10000).toFixed(1)}만`
                 : ftScore.toLocaleString()}
-              <span className="text-[10px] font-normal text-warm-text ml-1">명/일</span>
+              <span className="text-xs font-normal text-warm-text ml-1">명/일</span>
             </p>
-            <span className="inline-block mt-2 text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+            <span className="inline-block mt-2 text-xs font-semibold px-1.5 py-0.5 rounded-full"
               style={{ color: ftLevel.color, background: ftLevel.color + '18' }}>
               {ftLevel.text}
             </span>
-            <p className="text-[10px] text-warm-text mt-1 leading-snug">{ftLevel.desc}</p>
+            <p className="text-xs text-warm-text mt-1 leading-snug">{ftLevel.desc}</p>
           </div>
 
           {/* 카드매출 */}
           <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-3">
             <div className="flex items-center gap-1 mb-1.5">
               <CreditCard size={10} className="text-warm-text" />
-              <p className="text-[10px] text-warm-text font-medium">이 지역 카드매출</p>
+              <p className="text-xs text-warm-text font-medium">이 지역 카드매출</p>
             </div>
             {cardSales ? (
               <>
-                <p className="text-xl font-extrabold text-navy tabular-nums leading-none">
+                <p className="text-2xl font-extrabold text-navy tabular-nums leading-none">
                   {Math.round(cardSales.total_sales / 1e8).toLocaleString()}
-                  <span className="text-[10px] font-normal text-warm-text ml-1">억/월</span>
+                  <span className="text-xs font-normal text-warm-text ml-1">억/월</span>
                 </p>
-                <p className="text-[10px] text-warm-text mt-2 leading-snug">
+                <p className="text-xs text-warm-text mt-2 leading-snug">
                   피크 <strong className="text-navy">{TZ_LABELS[cardSales.peak_tz] || cardSales.peak_tz}</strong>
                   {' '}({cardSales.peak_pct.toFixed(1)}%)
                 </p>
@@ -561,7 +567,7 @@ export default function CommercialAnalysisView() {
             ) : (
               <>
                 <p className="text-lg font-bold text-warm-text/30 mt-1">—</p>
-                <p className="text-[10px] text-warm-text mt-2">화성시 집계 밖 지역이에요</p>
+                <p className="text-xs text-warm-text mt-2">화성시 집계 밖 지역이에요</p>
               </>
             )}
           </div>
@@ -570,23 +576,23 @@ export default function CommercialAnalysisView() {
           <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-3">
             <div className="flex items-center gap-1 mb-1.5">
               <Building2 size={10} className="text-warm-text" />
-              <p className="text-[10px] text-warm-text font-medium">
+              <p className="text-xs text-warm-text font-medium">
                 주변 아파트
                 {aptDong?.dong && <span className="ml-1 font-bold text-navy">· {aptDong.dong}</span>}
               </p>
             </div>
             {aptDong && aptDong.total_units > 0 ? (
               <>
-                <p className="text-xl font-extrabold text-navy tabular-nums leading-none">
+                <p className="text-2xl font-extrabold text-navy tabular-nums leading-none">
                   {aptDong.total_units.toLocaleString()}
-                  <span className="text-[10px] font-normal text-warm-text ml-1">세대</span>
+                  <span className="text-xs font-normal text-warm-text ml-1">세대</span>
                 </p>
-                <p className="text-[10px] text-warm-text mt-2">단지 {aptDong.complexes}개</p>
+                <p className="text-xs text-warm-text mt-2">단지 {aptDong.complexes}개</p>
               </>
             ) : (
               <>
                 <p className="text-lg font-bold text-warm-text/30 mt-1">—</p>
-                <p className="text-[10px] text-warm-text mt-2">아파트 정보 없음</p>
+                <p className="text-xs text-warm-text mt-2">아파트 정보 없음</p>
               </>
             )}
           </div>
@@ -595,15 +601,15 @@ export default function CommercialAnalysisView() {
           <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-3">
             <div className="flex items-center gap-1 mb-1.5">
               <Train size={10} className="text-warm-text" />
-              <p className="text-[10px] text-warm-text font-medium">역세권</p>
+              <p className="text-xs text-warm-text font-medium">역세권</p>
             </div>
             {amenities.stations > 0 ? (
               <>
-                <p className="text-xl font-extrabold text-navy tabular-nums leading-none">
+                <p className="text-2xl font-extrabold text-navy tabular-nums leading-none">
                   {amenities.stations}
-                  <span className="text-[10px] font-normal text-warm-text ml-1">개역</span>
+                  <span className="text-xs font-normal text-warm-text ml-1">개역</span>
                 </p>
-                <p className="text-[10px] text-warm-text mt-2">
+                <p className="text-xs text-warm-text mt-2">
                   {stationPassengersTotal > 0
                     ? <>일 <strong className="text-navy">
                         {stationPassengersTotal >= 10000
@@ -617,7 +623,7 @@ export default function CommercialAnalysisView() {
             ) : (
               <>
                 <p className="text-lg font-bold text-warm-text/30 mt-1">—</p>
-                <p className="text-[10px] text-warm-text mt-2">범위 내 역 없음</p>
+                <p className="text-xs text-warm-text mt-2">범위 내 역 없음</p>
               </>
             )}
           </div>
@@ -629,7 +635,7 @@ export default function CommercialAnalysisView() {
 
         {/* 경쟁 현황 */}
         <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm p-4">
-          <p className="text-[12px] font-bold text-navy mb-4">경쟁 현황 · 예상 매출</p>
+          <p className="text-base font-bold text-navy mb-4">경쟁 현황 · 예상 매출</p>
 
           {bizTotal > 0 ? (
             <div className="space-y-4">
@@ -649,16 +655,16 @@ export default function CommercialAnalysisView() {
                 return (
                   <div key={key}>
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-[11px] text-navy font-semibold">
+                      <p className="text-sm text-navy font-semibold">
                         {label} <span className="tabular-nums">{count}개</span>
                       </p>
                       <div className="flex items-center gap-2">
                         {perStore != null && (
-                          <span className="text-[10px] font-semibold text-navy tabular-nums">
+                          <span className="text-xs font-semibold text-navy tabular-nums">
                             {fmtWon(perStore)}/월
                           </span>
                         )}
-                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full"
                           style={{ color: lvl.color, background: lvl.bg }}>
                           {lvl.emoji} {lvl.label}
                         </span>
@@ -668,14 +674,14 @@ export default function CommercialAnalysisView() {
                       <div className="h-full rounded-full transition-all duration-500"
                         style={{ width: `${pct}%`, background: lvl.color }} />
                     </div>
-                    <p className="text-[10px] text-warm-text">{lvl.tip}</p>
+                    <p className="text-xs text-warm-text">{lvl.tip}</p>
                   </div>
                 )
               })}
 
               {amenities.schools > 0 && (
                 <div className="pt-3 border-t border-warm-gray/10">
-                  <p className="text-[11px] text-warm-text">
+                  <p className="text-sm text-warm-text">
                     <School size={10} className="inline text-blue-500 mr-1 mb-0.5" />
                     학교 <strong className="text-navy">{amenities.schools}개</strong> — 하교 시간대 고객 유입 기대
                   </p>
@@ -687,7 +693,7 @@ export default function CommercialAnalysisView() {
           )}
 
           {cardSales && bizTotal > 0 && (
-            <p className="mt-4 text-[10px] text-warm-text/55 leading-relaxed border-t border-warm-gray/10 pt-3">
+            <p className="mt-4 text-xs text-warm-text/55 leading-relaxed border-t border-warm-gray/10 pt-3">
               * 예상 매출은 행정동 전체 카드 소비를 반경 내 가게 수로 나눈
               데이터 기반 예상치예요. 실제 매출은 업종·규모·운영 방식에 따라
               크게 달라질 수 있어요.
@@ -700,8 +706,8 @@ export default function CommercialAnalysisView() {
           <div className="flex items-start gap-3 mb-4">
             <StepBadge n={4} />
             <div className="flex-1">
-              <p className="text-[13px] font-bold text-navy">마이다의 종합 한마디</p>
-              <p className="text-[10px] text-warm-text mt-0.5">위 데이터를 보고 마이다가 분석해드려요</p>
+              <p className="text-base font-bold text-navy">마이다의 종합 한마디</p>
+              <p className="text-sm text-warm-text mt-0.5">위 데이터를 보고 마이다가 분석해드려요</p>
             </div>
             <img src={findImg} alt="마이다" className="w-10 h-10 object-contain flex-shrink-0" />
           </div>
@@ -723,13 +729,13 @@ export default function CommercialAnalysisView() {
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{llmSummary}</p>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{llmSummary}</p>
               )}
             </div>
           )}
 
           {!llmAsked && (
-            <p className="mt-3 text-center text-[10px] text-warm-text/50">
+            <p className="mt-3 text-center text-xs text-warm-text/50">
               위 분석을 확인한 뒤 눌러보세요
             </p>
           )}
@@ -752,7 +758,7 @@ export default function CommercialAnalysisView() {
             <form onSubmit={handleSearch} className="flex gap-1.5">
               <input type="text" value={address} onChange={e => setAddress(e.target.value)}
                 placeholder="예: 동탄역, 병점동, 봉담읍..."
-                className="flex-1 min-w-0 text-[11px] bg-gray-50 border border-warm-gray/30 rounded-xl
+                className="flex-1 min-w-0 text-sm bg-gray-50 border border-warm-gray/30 rounded-xl
                            px-3 py-2.5 text-navy placeholder:text-warm-gray/50
                            focus:outline-none focus:border-navy transition-colors"
               />
