@@ -143,7 +143,7 @@ export default function Landing() {
           </Button>
           <button
             onClick={() => navigate('/onboarding')}
-            className={`text-sm underline underline-offset-2 transition-colors
+            className={`tap text-sm underline underline-offset-2 transition-colors
               ${light ? 'text-warm-text hover:text-white' : 'text-warm-text hover:text-navy'}`}
           >
             내 정보 확인하기

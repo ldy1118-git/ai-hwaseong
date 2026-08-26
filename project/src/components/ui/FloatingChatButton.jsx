@@ -45,7 +45,7 @@ export default function FloatingChatButton({ onClick }) {
           type="button"
           onClick={onClick}
           aria-label="Mars에게 물어보기"
-          className="w-24 h-24 cursor-pointer hover:scale-110 active:scale-95 transition-transform duration-200
+          className="w-16 h-16 sm:w-24 sm:h-24 cursor-pointer hover:scale-110 active:scale-95 transition-transform duration-200
                      drop-shadow-[0_6px_16px_rgba(64,43,56,0.25)] focus:outline-none"
         >
           <img src={marsImg} alt="Mars" className="w-full h-full object-contain" />

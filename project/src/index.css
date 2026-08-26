@@ -29,6 +29,19 @@
   body {
     @apply bg-primary-bg text-gray-900;
     font-family: 'Nunito', 'Noto Sans KR', sans-serif;
+
+    /* 한국어를 낱말 중간에서 끊지 않는다.
+     *
+     * 브라우저 기본값은 한글을 글자 단위로 끊는다. 영어는 낱말이 띄어쓰기로
+     * 갈라져 있어서 문제가 안 되는데 한글은 아니다. 폰으로 찍어보니 홈
+     * 인사말이 「음식점 사장 / 님!」, 「출발할 준비 되셨나 / 요?」로 잘려
+     * 있었다. 좁을수록 심해지니 모바일에서 제일 티가 난다.
+     *
+     * keep-all 만 주면 끊을 데가 없는 긴 덩어리(주소·긴 사업명)가 칸을
+     * 넘는다. break-word 를 같이 줘서 「띄어쓰기에서 끊되, 그래도 안 되면
+     * 그때만 낱말을 자른다」로 만든다. 둘은 한 벌이다. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
 }
 
@@ -43,4 +56,27 @@
 /* 눕히는 효과를 끈다. 어지러움을 느끼는 사람이 있다. 값 고르기는 그대로 된다. */
 @media (prefers-reduced-motion: reduce) {
   .hide-scrollbar [role="option"] { transform: none !important; opacity: 1 !important; }
+}
+
+/* 손가락으로 누를 자리를 넓힌다.
+ *
+ * **보이는 크기는 그대로 둔다.** 여백을 늘리면 데스크탑 배치까지 바뀐다.
+ * 대신 안 보이는 덮개를 하나 깔아서 그것까지 누를 수 있게 한다. 덮개는
+ * 버튼의 자식이라 눌러도 버튼이 눌린 것으로 처리된다.
+ *
+ * 폰으로 찍어보니 글자 버튼이 18~23px 밖에 안 되는 곳이 여럿이었다.
+ * 「고치기」 51x18 · 「2026년에 지난 것」 307x18 · 「← 이전」 49x23.
+ * 손가락 끝이 대략 44px 이라 그 아래는 헛누름이 난다.
+ */
+.tap { position: relative; }
+.tap::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  min-width: 44px;
+  min-height: 44px;
 }

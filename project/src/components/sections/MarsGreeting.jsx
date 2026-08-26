@@ -20,17 +20,23 @@ export default function MarsGreeting({ userName = '사장님' }) {
         <span aria-hidden className="pointer-events-none absolute -right-20 -top-24 w-64 h-64 rounded-full border border-star-yellow/15" />
         <span aria-hidden className="pointer-events-none absolute -right-8 top-4 w-32 h-32 rounded-full border border-star-yellow/10" />
 
-        <div className="relative flex-1 min-w-0">
+        {/* break-keep 이 여기서 중요하다. 한국어는 기본 줄바꿈 규칙이 낱말
+            중간에서 끊는다. 폰에서 「음식점 사장 / 님!」, 「되셨나 / 요?」로
+            잘려 있었다. keep-all 을 주면 띄어쓰기에서만 끊는다. */}
+        <div className="relative flex-1 min-w-0 break-keep">
           <p className="text-sm font-bold text-star-yellow">안녕하세요, {userName}!</p>
-          <p className="mt-1 text-base font-bold text-white leading-snug">
+          <p className="mt-1 text-[15px] sm:text-base font-bold text-white leading-snug">
             오늘도 성공적인 궤도를 향해<br />출발할 준비 되셨나요?
           </p>
         </div>
 
+        {/* 폰에서는 마이다를 줄인다. 112px 를 그대로 두면 글자에 186px 밖에
+            안 남아서 어떻게 써도 접힌다. */}
         <img
           src={marsImg}
           alt="Mars-Fit 탐험 대원 마이다"
-          className="relative flex-shrink-0 w-28 h-28 object-contain drop-shadow-lg -mb-1"
+          className="relative flex-shrink-0 w-20 h-20 sm:w-28 sm:h-28 object-contain
+                     drop-shadow-lg -mb-1"
         />
       </div>
     </section>

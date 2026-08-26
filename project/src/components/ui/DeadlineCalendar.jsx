@@ -49,7 +49,7 @@ function DayDialog({
           </p>
           <span className="text-[11px] text-warm-gray">{year}년</span>
           <button type="button" onClick={onClose} aria-label="닫기"
-            className="ml-auto p-1 rounded-full text-warm-gray hover:bg-warm-gray/15">
+            className="tap ml-auto p-1 rounded-full text-warm-gray hover:bg-warm-gray/15">
             <XIcon size={16} />
           </button>
         </div>
@@ -254,7 +254,7 @@ export default function DeadlineCalendar({
         {/* 월 이동 */}
         <div className="flex items-center justify-between mb-4">
           <button onClick={prevMonth}
-            className="w-8 h-8 rounded-full hover:bg-warm-gray/20 flex items-center justify-center
+            className="tap w-8 h-8 rounded-full hover:bg-warm-gray/20 flex items-center justify-center
                        text-navy text-xl font-bold transition-colors leading-none">
             ‹
           </button>
@@ -265,7 +265,7 @@ export default function DeadlineCalendar({
             {awayFromToday && (
               <button
                 type="button" onClick={goToday}
-                className="flex items-center gap-1 px-2 py-1 rounded-full
+                className="tap flex items-center gap-1 px-2 py-1 rounded-full
                            border border-warm-gray/40 text-[11px] font-bold text-navy
                            hover:border-navy/50 hover:bg-warm-gray/10 transition-colors">
                 <CornerUpLeft size={11} /> 오늘
@@ -273,7 +273,7 @@ export default function DeadlineCalendar({
             )}
           </div>
           <button onClick={nextMonth}
-            className="w-8 h-8 rounded-full hover:bg-warm-gray/20 flex items-center justify-center
+            className="tap w-8 h-8 rounded-full hover:bg-warm-gray/20 flex items-center justify-center
                        text-navy text-xl font-bold transition-colors leading-none">
             ›
           </button>

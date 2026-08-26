@@ -86,7 +86,7 @@ function ProfileCard({ profile, onEdit }) {
       <div className="flex items-start justify-between mb-3">
         <SectionTitle sub="온보딩에서 답해주신 내용이에요">내 정보</SectionTitle>
         <button onClick={onEdit}
-          className="flex items-center gap-1 text-[12px] text-navy font-semibold flex-shrink-0">
+          className="tap flex items-center gap-1 text-[12px] text-navy font-semibold flex-shrink-0">
           <Pencil size={13} /> 고치기
         </button>
       </div>
@@ -335,7 +335,7 @@ export default function MyStore() {
           {past.length > 0 && (
             <div className="mt-3 pt-3 border-t border-warm-gray/15">
               <button onClick={() => setShowPast(v => !v)}
-                className="w-full flex items-center justify-between text-left">
+                className="tap w-full flex items-center justify-between text-left">
                 <span className="text-[12px] font-bold text-warm-text">
                   {year}년에 지난 것 {past.length}건
                 </span>
@@ -359,7 +359,7 @@ export default function MyStore() {
           {optional.length > 0 && (
             <div className="mt-3 pt-3 border-t border-warm-gray/15">
               <button onClick={() => setShowIf(v => !v)}
-                className="w-full flex items-center justify-between text-left">
+                className="tap w-full flex items-center justify-between text-left">
                 <span className="text-[12px] font-bold text-warm-text">
                   해당되면 이것도 {optional.length}건
                 </span>

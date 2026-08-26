@@ -438,13 +438,13 @@ export default function ApplicationGuide() {
       <div className="max-w-4xl mx-auto w-full px-5 pt-3 flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
-          className="text-sm font-medium text-navy hover:underline"
+          className="tap text-sm font-medium text-navy hover:underline"
         >
           ← 이전
         </button>
         <button
           onClick={() => navigate('/home')}
-          className="text-sm font-medium text-navy hover:underline"
+          className="tap text-sm font-medium text-navy hover:underline"
         >
           홈으로
         </button>
