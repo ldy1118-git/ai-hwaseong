@@ -126,9 +126,21 @@ async function main() {
       returnByValue: true,
       expression: `(() => {
         const vw = document.documentElement.clientWidth;
+        /* 옆으로 굴러가라고 만든 것은 빼고 센다. 챗봇 제안 칩처럼 일부러
+           가로 스크롤 상자에 담은 것은 화면 밖으로 나가는 게 정상이다.
+           그것까지 세면 진짜 사고가 그 틈에 묻힌다. */
+        const inScroller = el => {
+          for (let p = el.parentElement; p; p = p.parentElement) {
+            const ox = getComputedStyle(p).overflowX;
+            if (ox === 'auto' || ox === 'scroll') return true;
+            if (ox === 'hidden') return true;
+          }
+          return false;
+        };
         const over = [...document.querySelectorAll('*')]
           .map(el => ({ el, r: el.getBoundingClientRect() }))
           .filter(({ r }) => r.width > 0 && (r.right > vw + 1 || r.left < -1))
+          .filter(({ el }) => !inScroller(el))
           .slice(0, 6)
           .map(({ el, r }) => (el.tagName.toLowerCase()
             + (el.className && typeof el.className === 'string'
