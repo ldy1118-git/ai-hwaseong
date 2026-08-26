@@ -366,6 +366,24 @@
   .bench tr:last-child td { border-bottom: 0; }
   .bench tr.win td { color: var(--ink); font-weight: 900; background: rgba(251,226,129,.35); }
 
+  .crew-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 30px; }
+  .crew-col > h4 { margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--ink);
+                   font-family: 'Noto Sans KR', sans-serif; font-size: 20px; font-weight: 900; color: var(--ink); }
+  .crew-col > h4 i { font-style: normal; margin-left: 8px; font-size: 16px; font-weight: 700; color: var(--sand); }
+  .crew-col .row { margin: 0 0 9px; padding-left: 13px; position: relative;
+                   font-family: 'Noto Sans KR', sans-serif; font-size: 17px; font-weight: 700;
+                   line-height: 1.45; color: var(--muted); }
+  .crew-col .row::before { content: ''; position: absolute; left: 0; top: .62em;
+                           width: 5px; height: 5px; border-radius: 50%; background: var(--sand); }
+  .crew-col .row b { color: var(--ink); font-weight: 900; }
+  .crew-col .row .dim { color: var(--sand); font-weight: 700; }
+  /* 1차에 「2차에 하겠다」고 적어둔 둘. 이게 제일 먼저 읽혀야 한다. */
+  .crew-col .row.vow { color: var(--ink); }
+  .crew-col .row.vow::before { background: var(--alarm); }
+  .crew-col .vow-tag { display: inline-block; margin-left: 7px; padding: 1px 7px; border-radius: 999px;
+                       background: var(--accent); font-size: 13px; font-weight: 900; color: var(--ink);
+                       vertical-align: 2px; white-space: nowrap; }
+
   .quoted { margin: 0; padding: 12px 0 12px 22px; border-left: 5px solid var(--sand);
              font-size: 19px; font-weight: 500; line-height: 1.6; color: var(--muted); }
   .quoted b { color: var(--ink); font-weight: 900; }
@@ -658,31 +676,43 @@
         </section>
       </div>
 
-      <!-- 3장 · 1차 대비 -->
+      <!-- 3장 · 1차 이후 -->
       <div class="box">
         <section class="slide">
           <div class="body">
-            <div class="col" style="gap:20px">
+            <div class="col" style="gap:16px">
               <p class="eyebrow">1차 이후 — 셋이 나눠서</p>
-              <p class="kicker" style="margin:-6px 0 0">1차 자료에 <b>「2차 과제」로 적어둔 둘</b>을 다 했고, 셋을 더 붙였습니다.<br><span style="font-size:20px;color:var(--muted);font-weight:700">상권분석은 심사 의견을 받은 곳이라 뒤에서 따로 말씀드립니다.</span></p>
+              <p class="kicker" style="margin:-6px 0 0">1차 자료에 <b>「2차 과제」로 적어둔 둘</b>을 먼저 했고, 나머지를 나눠 붙였습니다.</p>
               <hr class="rule">
-              <div class="moves">
-                <div class="move wide"><p class="kind">약속대로</p>
-                  <p class="text">신청기간 알림 — 조건에 맞는 새 공고와 신고기한이 <em>카카오톡으로</em> 갑니다<span class="who">임대윤</span></p></div>
-                <div class="move wide"><p class="kind">약속대로</p>
-                  <p class="text">사업자등록증 OCR — <em>사진 한 장</em>이면 과세유형·개업일·업종이 채워집니다<span class="who">전성현</span></p></div>
-                <div class="move done"><p class="kind">새로</p>
-                  <p class="text">서류준비 창 — 서류별 <em>발급 절차를 옆에 띄우고</em> 어디까지 했는지 남깁니다<span class="who">전서희</span></p></div>
-                <div class="move done"><p class="kind">새로</p>
-                  <p class="text">소득분위 — 「4인 가구 월 500」 같은 <em>자유 문장을 LLM 이</em> 분위로 읽습니다<span class="who">전서희</span></p></div>
-                <div class="move done"><p class="kind">새로</p>
-                  <p class="text">관심공고 ★ — 담아두면 <em>달력에서 다시</em> 만납니다. 상시 접수 공고까지<span class="who">임대윤</span></p></div>
+              <div class="crew-cols">
+                <div class="crew-col">
+                  <h4>임대윤 <i>알림과 챙김</i></h4>
+                  <p class="row vow">새 공고가 새벽에 <b>카카오톡</b>으로<span class="vow-tag">1차 약속</span></p>
+                  <p class="row">세무 신고기한도 <b>같은 한 통</b>에</p>
+                  <p class="row">관심공고 ★ · 달력 메모</p>
+                  <p class="row">알림 문턱을 직접 조절</p>
+                  <p class="row">화성시청 공고 <b>직접 수집</b></p>
+                </div>
+                <div class="crew-col">
+                  <h4>전서희 <i>LLM</i></h4>
+                  <p class="row">소득분위를 <b>자유 문장</b>으로<br><span class="dim">「동생은 대학생이에요」</span></p>
+                  <p class="row">서류준비 창 — 발급 절차와 진행률</p>
+                  <p class="row">공고문 원문을 <b>창 안에서</b> 바로</p>
+                  <p class="row">첫 로그인 환영 화면</p>
+                </div>
+                <div class="crew-col">
+                  <h4>전성현 <i>상권분석</i></h4>
+                  <p class="row vow">사업자등록증 <b>사진 한 장</b>으로<span class="vow-tag">1차 약속</span></p>
+                  <p class="row">위치·범위 <b>4단계 가이드</b></p>
+                  <p class="row">카드매출 · 가게당 예상 월매출</p>
+                  <p class="row">아파트 <b>K-apt 실데이터</b></p>
+                </div>
               </div>
               <hr class="rule">
               <div class="strip">
-                <div class="item"><p class="n">59 → 82<span class="unit">건</span></p><p class="t">공고<br>화성시청 고시공고 직접 수집 2건 포함</p></div>
+                <div class="item"><p class="n">59 → 82<span class="unit">건</span></p><p class="t">공고<br>기업마당에 없는 화성시 자금사업 2건 포함</p></div>
                 <div class="item"><p class="n">14 → 18<span class="unit">건</span></p><p class="t">세무 항목<br>직원 있는 사장님 6 → 10건</p></div>
-                <div class="item hot"><p class="n">목업 → 실데이터</p><p class="t">상권분석 아파트 단지<br>K-apt 공동주택관리정보시스템</p></div>
+                <div class="item hot"><p class="n">3 → 6<span class="unit">업종</span></p><p class="t">상권 데이터<br>소매·미용·보건의료가 붙었다</p></div>
               </div>
             </div>
           </div>
@@ -962,15 +992,13 @@
                    '마지막 줄(「중소기업 운전자금」)이 우리 서비스로 넘어가는 다리다. 여기만 힘줘서',
                    '질문받으면: 9,458건은 946페이지를 전부 받아서 센 값이다'] },
     3: { say: '"1차 자료에 2차 과제로 적어둔 둘을 다 했습니다."',
-         bullets: ['**노란 칩 둘이 이 장의 핵심이다.** 1차 덱 13장에 그대로 적혀 있다 —',
+         bullets: ['**주황 점 둘이 이 장의 핵심이다.** 1차 덱 13장에 그대로 적혀 있다 —',
                    '  · 신청기간 알림 · 2차 — 「마감일과 캘린더는 있고 발송이 없다」',
                    '  · 사업자등록증 OCR · 2차 — 「torch 가 배포 용량 한도를 넘어 이번엔 뺐다」',
-                   'OCR 을 뺀 이유가 4장에서 말한 1.4GB 대 250MB 다. 그걸 이번에 밖으로 빼서 풀었다고 이어주면 좋다',
-                   '13장을 실제로 넘겼는지는 두 대본 파일이 엇갈린다. 「말씀드렸다」고 단정하지 말고 「적어뒀다」로 말할 것',
-                   '말한 것을 했다는 게 새 기능 여섯 개보다 세다 — 그 연결을 반드시 말로 짚을 것',
-                   '아래 넷은 이름만 훑는다. 다 읽으면 55초가 모자란다',
-                   '오른쪽 이름은 셋이 나눠 만들었다는 표시다. 읽지 말 것',
-                   '아파트 목업 → 실데이터가 8장(숫자를 지어내지 않는다)의 예고편이다'] },
+                   '**열세 줄을 다 읽지 말 것.** 주황 둘만 읽고, 나머지 세 칸은 손으로 훑으면서 한 마디씩만',
+                   '세 칸으로 나눈 건 셋이 나눠 만들었다는 표시다. 이름을 소리내어 읽을 필요는 없다',
+                   '13장을 실제로 넘겼는지는 두 대본 파일이 엇갈린다. 「말씀드렸다」로 단정하지 말고 「적어뒀다」로',
+                   'OCR 을 왜 1차에 못 냈는지는 바로 다음 장 주황 줄(1.4GB)에서 풀린다'] },
     4: { say: '"AI 를 자랑하려고 붙이지 않았습니다. 안 쓸 곳을 먼저 정했습니다."',
          bullets: ['왼쪽 다섯은 이름만 훑는다. 오른쪽 셋이 이 장의 주인공이다',
                    '자격요건 판정을 규칙으로 한 이유 — 재현되고 근거를 댈 수 있어야 한다',
@@ -1022,11 +1050,11 @@
     ]},
     { n: 3, t: '1차 이후', sec: 50, lines: [
       '1차 자료에 저희가 **2차 과제로 적어둔 것이 둘** 있었습니다. 신청기간 알림과 사업자등록증 OCR. **둘 다 했습니다.**',
-      '조건에 맞는 새 공고와 세무 신고기한이 이제 **카카오톡으로** 갑니다. 앱을 안 열어도 압니다.',
+      '조건에 맞는 새 공고와 세무 신고기한이 이제 **한 통으로 묶여 카카오톡**으로 갑니다. 앱을 안 열어도 압니다.',
       '사업자등록증은 **사진 한 장**이면 과세유형과 개업일, 업종까지 채워집니다.',
-      '넷을 더 붙였습니다. **서류준비 창**은 서류마다 발급 절차를 옆에 띄우고, **소득분위**는 「4인 가구 월 500」 같은 자유 문장을 LLM 이 읽습니다.',
-      '**관심공고**는 담아두면 달력에서 다시 만납니다. **상권분석은 심사 의견을 받은 곳이라 뒤에서 따로** 말씀드리겠습니다.',
-      '공고는 59건에서 **82건**, 세무 항목은 14건에서 **18건**이 됐습니다.'
+      '나머지는 셋이 나눠 붙였습니다. **관심공고와 달력 메모**, 소득분위를 **자유 문장으로 받는 것**, **서류준비 창**, 그리고 상권분석의 **4단계 안내**까지.',
+      '공고는 59건에서 **82건**이 됐습니다. 늘어난 것 중 둘은 **기업마당에 안 올라오는 화성시 자금사업**이라 시청 게시판에서 직접 받아온 것입니다.',
+      '세무 항목은 14건에서 **18건**, 상권 데이터는 세 업종에서 **여섯 업종**으로 늘었습니다.'
     ]},
     { n: 4, t: 'AI 를 어디에', sec: 48, lines: [
       'AI 는 전부 맡기지 않았습니다. **어디에 안 쓸지를 먼저 정했습니다.**',
