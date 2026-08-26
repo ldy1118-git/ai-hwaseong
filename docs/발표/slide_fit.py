@@ -86,6 +86,44 @@ for i, raw in enumerate(slides, 1):
         for x in re.finditer(r'<h4>(.*?)</h4>', c, re.S): ch += lines_of(x.group(1),15,1.3,colw)+14
         for x in re.finditer(r'<p class="v"[^>]*>(.*?)</p>', c, re.S): ch += lines_of(x.group(1),16,1.5,colw*.62)+10
         add("ai-col", ch)
+    # 받아온 파일 표
+    for m in re.finditer(r'<table class="csvtbl">(.*?)</table>', sl, re.S):
+        tb = m.group(1); h2 = 0
+        head = re.search(r'<tr><th>(.*?)</tr>', tb, re.S)
+        if head: h2 += 14*1.3 + 7 + 9 + 2
+        for r in re.findall(r'<tr><td>(.*?)</tr>', tb, re.S):
+            tds = re.findall(r'(?:^|<td>)(.*?)(?=</td>)', r, re.S)
+            ws = [AVAIL_W*.30-14, AVAIL_W*.22-14, AVAIL_W*.48-14]
+            hh = 0
+            for ci, td in enumerate(tds[:3]):
+                it = re.search(r'<i>(.*?)</i>', td, re.S)
+                base = re.sub(r'<i>.*?</i>', '', td, flags=re.S)
+                c = lines_of(base, 17, 1.4, ws[ci])
+                if it: c += lines_of(it.group(1), 14, 1.4, ws[ci]) + 2
+                hh = max(hh, c)
+            h2 += hh + 18 + 1
+        add("표", h2)
+    # 두 갈래
+    for m in re.finditer(r'<div class="flowcols">(.*?)</div>\s*<div class="aside-note">', sl, re.S):
+        cols = re.split(r'<div class="flowcol[^"]*">', m.group(1))[1:]
+        colw = (AVAIL_W - 34)/2 - 18
+        tall = 0
+        for c in cols:
+            ch = 0
+            for x in re.finditer(r'<h4>(.*?)</h4>', c, re.S): ch += lines_of(x.group(1), 20, 1.3, colw) + 11
+            for x in re.finditer(r'<p class="fl">(.*?)</p>', c, re.S):
+                t = x.group(1)
+                sub = re.search(r'<span class="sub">(.*?)</span>', t, re.S)
+                if sub:
+                    ch += lines_of(re.sub(r'<span class="sub">.*?</span>','',t,flags=re.S), 17, 1.45, colw)
+                    ch += lines_of(sub.group(1), 15, 1.45, colw-14) + 3
+                else:
+                    ch += lines_of(t, 17, 1.45, colw)
+                ch += 9
+            for x in re.finditer(r'<p class="note">(.*?)</p>', c, re.S):
+                ch += lines_of(x.group(1), 15, 1.4, colw) + 11 + 9
+            tall = max(tall, ch)
+        add("두갈래", tall)
     for m in re.finditer(r'<div class="aside-note">(.*?)</div>', sl, re.S):
         sp = re.search(r'<span>(.*?)</span>', m.group(1), re.S)
         add("aside", (lines_of(sp.group(1),17,1.5,AVAIL_W-70) if sp else 40) + 16 + 3)
