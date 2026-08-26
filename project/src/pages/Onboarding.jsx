@@ -1233,7 +1233,7 @@ export default function Onboarding() {
   //
   // 사장님이 다음 화면에서 고칠 수 있으므로, 읽은 값은 정답이 아니라
   // 기본값으로만 넣는다.
-  function applyOcr(r) {
+  function applyOcr(r, profile = {}) {
     setOcrResult(r)
     if (r.업종) set('category', r.업종)
     if (r.개업일) {
@@ -1244,6 +1244,10 @@ export default function Onboarding() {
     // 간이과세자는 부가세 신고가 1년에 한 번뿐이다.
     const vat = { 일반과세자: '일반과세', 간이과세자: '간이과세' }[r.과세유형]
     if (vat) set('vat_type', vat)
+    // profile 에서 추가로 채울 수 있는 필드
+    if (profile.age)  set('age', profile.age)
+    // region 은 화성시만 확정 가능 — 주소가 화성이 아닐 때는 경기도/타지역 구분 불가
+    if (profile.region === '화성시') set('region', '화성시')
     setBizMode('review')
   }
 
@@ -1267,7 +1271,7 @@ export default function Onboarding() {
         })
         const json = await res.json()
         if (!res.ok || json.error) throw new Error(json.error || 'OCR 실패')
-        applyOcr(json.result)
+        applyOcr(json.result, json.profile || {})
       })
       .catch((err) => {
         setOcrError(err.message || 'OCR에 실패했어요. 다시 시도하거나 직접 입력해주세요.')
