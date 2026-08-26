@@ -93,7 +93,7 @@ for i, raw in enumerate(slides, 1):
         if head: h2 += 14*1.3 + 7 + 9 + 2
         for r in re.findall(r'<tr><td>(.*?)</tr>', tb, re.S):
             tds = re.findall(r'(?:^|<td>)(.*?)(?=</td>)', r, re.S)
-            ws = [AVAIL_W*.30-14, AVAIL_W*.22-14, AVAIL_W*.48-14]
+            ws = [AVAIL_W*.32-14, AVAIL_W*.68-14, AVAIL_W*.48-14]
             hh = 0
             for ci, td in enumerate(tds[:3]):
                 it = re.search(r'<i>(.*?)</i>', td, re.S)
@@ -101,10 +101,10 @@ for i, raw in enumerate(slides, 1):
                 c = lines_of(base, 17, 1.4, ws[ci])
                 if it: c += lines_of(it.group(1), 14, 1.4, ws[ci]) + 2
                 hh = max(hh, c)
-            h2 += hh + 18 + 1
+            h2 += hh + 14 + 1
         add("표", h2)
     # 두 갈래
-    for m in re.finditer(r'<div class="flowcols">(.*?)</div>\s*<div class="aside-note">', sl, re.S):
+    for m in re.finditer(r'<div class="flowcols">(.*?)\n              </div>', sl, re.S):
         cols = re.split(r'<div class="flowcol[^"]*">', m.group(1))[1:]
         colw = (AVAIL_W - 34)/2 - 18
         tall = 0
