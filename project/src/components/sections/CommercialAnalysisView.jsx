@@ -4,6 +4,7 @@ import {
   School, Utensils, BookOpen, Coffee, Building2, Search, Train,
   Maximize2, X as XIcon, Sparkles, Users, CreditCard, MapPin,
   ChevronDown, ChevronUp, ShoppingBag, Scissors, Stethoscope,
+  ChevronLeft, ChevronRight, Database,
 } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -88,6 +89,16 @@ function LeafletMap({ position, onMove, radii, markers, sizeKey }) {
 
 // ── 상수 ─────────────────────────────────────────────────────────
 const HWS_CENTER = { lat: 37.1999, lng: 126.8317 }
+
+const DATA_GALLERY = [
+  { src: '/screenshots/data-list.png',   label: '전체 데이터 목록',                   desc: '상권분석에 사용된 공공 데이터 출처 일람' },
+  { src: '/screenshots/stores.png',      label: '소상공인시장진흥공단 상가(상권)정보', desc: '경기도 내 상가 업종·위치 정보 (2026.06)' },
+  { src: '/screenshots/schools.png',     label: '경기도교육청 학교기본정보',           desc: '초·중·고등학교 위치 및 현황' },
+  { src: '/screenshots/stations.png',    label: '국가철도공단 지하철 주소데이터',      desc: '코레일 및 수도권 전철 역 위치 (2025.06)' },
+  { src: '/screenshots/passengers.png',  label: '한국철도공사 역별 승하차 현황',      desc: '역별 연간 승하차 인원 (2024.12)' },
+  { src: '/screenshots/card-sales.png',  label: '분석시스템 카드매출 시간대별',       desc: '화성시 행정동별 카드 소비 시간대 데이터' },
+  { src: '/screenshots/apartments.png',  label: 'K-apt 단지·면적 정보',              desc: '경기도 아파트 단지 세대수 현황 (2026.08)' },
+]
 
 const TZ_LABELS = {
   TZ01: '자정~새벽',  TZ02: '새벽',    TZ03: '오전',
@@ -272,6 +283,8 @@ export default function CommercialAnalysisView() {
   const [activePreset, setActivePreset]   = useState(500)
   const [showDetailSliders, setShowDetailSliders] = useState(false)
   const [expanded, setExpanded]           = useState(false)
+  const [showGallery, setShowGallery]     = useState(false)
+  const [galleryIdx, setGalleryIdx]       = useState(0)
   const [apiData, setApiData]             = useState(null)
   const [llmSummary, setLlmSummary]       = useState(null)
   const [llmLoading, setLlmLoading]       = useState(false)
@@ -417,6 +430,14 @@ export default function CommercialAnalysisView() {
           <p className="text-sm text-white/70 mt-1">
             위치를 고르면 유동인구·매출·경쟁 현황을 한눈에 볼 수 있어요
           </p>
+          <button
+            onClick={() => { setGalleryIdx(0); setShowGallery(true) }}
+            className="mt-3 flex items-center gap-1.5 text-xs font-semibold
+                       bg-white/15 hover:bg-white/25 text-white rounded-lg px-3 py-1.5
+                       transition-colors duration-150 border border-white/20">
+            <Database size={11} />
+            실제 데이터 미리보기
+          </button>
         </div>
       </div>
 
@@ -822,6 +843,76 @@ export default function CommercialAnalysisView() {
           )}
         </div>
       </div>
+
+      {/* ── 데이터 갤러리 모달 ──────────────────────────────────── */}
+      {showGallery && (
+        <div className="fixed inset-0 z-[9999] bg-black/75 flex items-center justify-center p-4"
+          onClick={() => setShowGallery(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col overflow-hidden"
+            style={{ maxHeight: '90vh' }}
+            onClick={e => e.stopPropagation()}>
+
+            {/* 헤더 */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-warm-gray/20 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <Database size={14} className="text-navy" />
+                <p className="text-sm font-bold text-navy">{DATA_GALLERY[galleryIdx].label}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-warm-text tabular-nums">
+                  {galleryIdx + 1} / {DATA_GALLERY.length}
+                </span>
+                <button onClick={() => setShowGallery(false)}
+                  className="p-1 rounded-lg hover:bg-warm-gray/15 transition-colors">
+                  <XIcon size={18} className="text-navy" />
+                </button>
+              </div>
+            </div>
+
+            {/* 이미지 */}
+            <div className="flex-1 overflow-auto bg-gray-50 flex items-center justify-center p-4 min-h-0">
+              <img
+                key={galleryIdx}
+                src={DATA_GALLERY[galleryIdx].src}
+                alt={DATA_GALLERY[galleryIdx].label}
+                className="max-w-full max-h-full object-contain rounded-lg shadow-sm"
+              />
+            </div>
+
+            {/* 설명 + 네비게이션 */}
+            <div className="flex items-center gap-3 px-5 py-3 border-t border-warm-gray/20 flex-shrink-0 bg-white">
+              <button
+                onClick={() => setGalleryIdx(i => Math.max(0, i - 1))}
+                disabled={galleryIdx === 0}
+                className="p-2 rounded-xl border border-warm-gray/30 bg-white hover:bg-gray-50
+                           disabled:opacity-25 transition-all flex-shrink-0">
+                <ChevronLeft size={16} className="text-navy" />
+              </button>
+
+              <div className="flex-1 text-center">
+                <p className="text-xs text-warm-text leading-snug">{DATA_GALLERY[galleryIdx].desc}</p>
+                {/* 점 인디케이터 */}
+                <div className="flex justify-center gap-1.5 mt-2">
+                  {DATA_GALLERY.map((_, i) => (
+                    <button key={i} onClick={() => setGalleryIdx(i)}
+                      className={`w-1.5 h-1.5 rounded-full transition-all ${
+                        i === galleryIdx ? 'bg-navy w-4' : 'bg-warm-gray/40 hover:bg-warm-gray/70'
+                      }`} />
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={() => setGalleryIdx(i => Math.min(DATA_GALLERY.length - 1, i + 1))}
+                disabled={galleryIdx === DATA_GALLERY.length - 1}
+                className="p-2 rounded-xl border border-warm-gray/30 bg-white hover:bg-gray-50
+                           disabled:opacity-25 transition-all flex-shrink-0">
+                <ChevronRight size={16} className="text-navy" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── 확대 지도 모달 ───────────────────────────────────────── */}
       {expanded && (
