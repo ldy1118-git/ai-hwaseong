@@ -35,6 +35,19 @@ export const DEFAULTS = {
   // 잊어버리고, 하루 전에만 알리면 서류를 준비할 시간이 없다. 미리 한 번,
   // 코앞에 한 번이 실제로 필요한 모양이다.
   taxLead: [7, 1],
+
+  /* 카톡을 **언제** 받을지. 앱 안의 종은 여기 안 걸린다 — 열면 바로 보이는
+     것이라 시각을 정할 이유가 없다.
+   *
+   * 공고는 새벽 6시 11분에 받아온다. 예전에는 받자마자 카톡을 보냈는데,
+   * 그 시각에 울리는 건 알림이 아니라 민폐다. 받는 일과 보내는 일을 갈랐다.
+   *
+   * 기본은 **아침 8시, 매일**이다. 요일을 기본에서 줄이지 않는 이유는,
+   * 줄이면 세무 신고기한 알림이 하루 늦게 갈 수 있어서다. 완전히 놓치지는
+   * 않는다 — 기한 자체가 늘 평일이고(휴일이면 다음 날로 미는 규칙),
+   * 최악이라도 기한 당일 아침에는 간다. */
+  sendHour: 8,                     // 0~23, 정시
+  sendDays: [0, 1, 2, 3, 4, 5, 6], // 0=일 … 6=토. **JS Date.getDay() 와 같은 번호다**
 }
 
 /* 점수를 그대로 보여준다.
@@ -48,6 +61,19 @@ export const TAX_LEAD_CHOICES = [
   { value: 7,  label: '일주일 전' },
   { value: 1,  label: '하루 전' },
 ]
+
+/** 요일 이름. 번호는 Date.getDay() 와 같다 — 0 이 일요일이다. */
+export const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+
+/** 보낼 시각. 정시만 고른다 — 분 단위까지 두면 고르기만 번거롭다. */
+export const SEND_HOURS = Array.from({ length: 24 }, (_, h) => h)
+
+/** 「오전 8시」처럼 읽히게. 24시간제로 적으면 아침·저녁이 한눈에 안 온다. */
+export function hourLabel(h) {
+  if (h === 0) return '밤 12시'
+  if (h === 12) return '낮 12시'
+  return h < 12 ? `오전 ${h}시` : `오후 ${h - 12}시`
+}
 
 export const SCORE_CHOICES = [
   { value: 60, hint: '조건이 조금이라도 맞으면 알려드려요. 알림이 잦아져요.' },
@@ -65,6 +91,20 @@ function read() {
     // taxLead 는 배열이다. 깨진 값이 들어오면 화면이 죽는다.
     if (!Array.isArray(merged.taxLead)) merged.taxLead = [...DEFAULTS.taxLead]
     merged.taxLead = merged.taxLead.filter(n => Number.isFinite(n)).sort((a, b) => b - a)
+
+    /* 시각과 요일도 깨진 값이 들어올 수 있다. 여기서 막지 않으면 서버가
+       그대로 받아 읽다가 아무 때나 보내거나 아예 안 보낸다. */
+    if (!Number.isInteger(merged.sendHour) || merged.sendHour < 0 || merged.sendHour > 23) {
+      merged.sendHour = DEFAULTS.sendHour
+    }
+    if (!Array.isArray(merged.sendDays)) merged.sendDays = [...DEFAULTS.sendDays]
+    merged.sendDays = [...new Set(
+      merged.sendDays.filter(n => Number.isInteger(n) && n >= 0 && n <= 6),
+    )].sort((a, b) => a - b)
+    // 하나도 안 남으면 아무 날도 아니라서 영영 안 온다. 화면에서 마지막
+    // 하나는 못 끄게 막아두지만, 저장된 값이 깨졌을 때를 대비한다.
+    if (merged.sendDays.length === 0) merged.sendDays = [...DEFAULTS.sendDays]
+
     return merged
   } catch {
     return { ...DEFAULTS }

@@ -36,7 +36,8 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -60,6 +61,57 @@ TIMEOUT = 10
 SCORE_MIN = 70
 # 한 사람에게 하루 세 건까지. 그 이상은 알림이 아니라 스팸이다.
 MAX_PER_USER = 3
+
+# **서버 시간대를 코드에 못 박는다.** 지금은 서버가 KST 라 date.today() 로도
+# 맞지만, 시간대가 한 번 바뀌면 알림이 조용히 하루씩 어긋난다. 사장님이 고른
+# 「아침 8시」는 한국 시각 8시다.
+KST = ZoneInfo("Asia/Seoul")
+
+# 사장님이 안 고쳤을 때 쓰는 값. notifySettings.js 의 DEFAULTS 와 같아야 한다.
+SEND_HOUR = 8
+SEND_DAYS = [0, 1, 2, 3, 4, 5, 6]
+
+
+def js_weekday(when: datetime) -> int:
+    """파이썬 요일 번호를 화면과 같은 번호로 바꾼다.
+
+    **파이썬 weekday() 는 월=0 이고 JS Date.getDay() 는 일=0 이다.**
+    그냥 갖다 쓰면 요일이 하루씩 밀려서, 「월요일만」을 골라둔 사장님에게
+    일요일에 카톡이 간다. 화면이 저장하는 번호가 JS 쪽이므로 여기서 맞춘다.
+    """
+    return (when.weekday() + 1) % 7
+
+
+def due_now(settings: dict, when: datetime) -> bool:
+    """지금이 이 사장님이 정해둔 시각·요일인가.
+
+    cron 이 매시 정각에 부르고, 사람마다 정해둔 시각에만 실제로 보낸다.
+    공고를 받아오는 일(06:11)과는 갈라져 있다 — 받자마자 보내면 새벽에
+    카톡이 울린다.
+    """
+    try:
+        hour = int(settings.get("sendHour", SEND_HOUR))
+    except (TypeError, ValueError):
+        hour = SEND_HOUR
+    if not 0 <= hour <= 23:
+        hour = SEND_HOUR
+
+    raw = settings.get("sendDays")
+    days = set()
+    if isinstance(raw, list):
+        for d in raw:
+            try:
+                n = int(d)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= n <= 6:
+                days.add(n)
+    # 비어 있거나 깨졌으면 기본(매일)로 본다. 여기서 「아무 날도 아님」으로
+    # 두면 값이 한 번 깨진 사장님에게 영영 알림이 안 간다.
+    if not days:
+        days = set(SEND_DAYS)
+
+    return when.hour == hour and js_weekday(when) in days
 
 
 def load_env() -> None:
@@ -280,6 +332,9 @@ def main() -> int:
     parser.add_argument("--demo", action="store_true",
                         help="시연용. 제일 잘 맞는 공고 1건을 지금 보낸다. "
                              "보낸 기록을 안 남겨서 몇 번이든 다시 된다")
+    parser.add_argument(
+        "--force", action="store_true",
+        help="정해둔 시각·요일이 아니어도 지금 보낸다 (손으로 돌릴 때)")
     parser.add_argument("--user", type=int, default=None,
                         help="이 사람에게만. 시연 때 남의 카톡까지 울리지 않게")
     args = parser.parse_args()
@@ -327,6 +382,16 @@ def main() -> int:
     policies = matching.load_policies_from_folder(matching.default_notices_folder())
     sent_total = 0
 
+    # 사람마다 정해둔 시각과 견주려면 지금이 몇 시인지가 필요하다. 루프 안에서
+    # 매번 부르면 자정을 넘길 때 사람마다 날짜가 달라진다. 한 번만 구한다.
+    now = datetime.now(KST)
+    today = now.date()
+    ignore_clock = args.demo or args.force
+    if ignore_clock:
+        print(f"시각 무시 — {'시연' if args.demo else '--force'} 라 지금 보낸다")
+    else:
+        print(f"지금 {now:%Y-%m-%d %H:%M} (KST) · 이 시각으로 정해둔 사람에게만 보낸다")
+
     for target in targets:
         user_id = target["user_id"]
 
@@ -347,6 +412,14 @@ def main() -> int:
         tax_done = state.get("taxDone") or {}
         # 새 공고를 껐어도 세무 알림은 받을 수 있다. 여기서 끊지 않고
         # 아래에서 공고 목록만 비운다.
+        # 사장님이 정해둔 시각·요일이 아니면 아무것도 안 한다. **기준선도 안
+        # 잡는다** — 잡아버리면 처음 켠 날 8시가 오기 전에 「보냄」으로 적혀서
+        # 그날 공고를 통째로 놓친다.
+        if not ignore_clock and not due_now(settings, now):
+            hour = settings.get("sendHour", SEND_HOUR)
+            print(f"  아직 아님 user={user_id} — {hour}시로 정해두었다")
+            continue
+
         score_min = int(settings.get("minScore") or SCORE_MIN)
 
         results = matching.match_policies(policies, profile)
@@ -380,7 +453,7 @@ def main() -> int:
         # 쌓여 있어서 기준선이 필요하지만, 세무는 날짜가 정해진 몇 건뿐이라
         # 지금 걸린 것이 곧 알려야 할 것이다.
         tax_sent = _store.sent_notice_ids(user_id, "tax")
-        tax_rows = pick_tax(profile, settings, date.today(), tax_sent, tax_done)
+        tax_rows = pick_tax(profile, settings, today, tax_sent, tax_done)
 
         sent = _store.sent_notice_ids(user_id, "new")
 

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Sparkles, CalendarClock, Receipt } from 'lucide-react'
+import { Sparkles, CalendarClock, Receipt, Clock } from 'lucide-react'
 import {
   getNotifySettings, setNotifySettings, subscribeNotifySettings,
   SCORE_CHOICES, TAX_LEAD_CHOICES, DEFAULTS,
+  DAY_LABELS, SEND_HOURS, hourLabel,
 } from '../../utils/notifySettings'
 import KakaoNotifyCard from './KakaoNotifyCard'
 
@@ -175,6 +176,76 @@ export default function NotifySettings({ profile, className = '' }) {
           </p>
         </Row>
       )}
+
+      {/* 「언제 받을지」. 카톡에만 해당한다 — 앱 안의 종은 열면 바로 보이는
+          것이라 시각을 정할 이유가 없다. 그 말을 안 적어두면 「알림을 8시로
+          해뒀는데 왜 종에는 아까부터 있지」가 된다. */}
+      <div className="py-3 border-b border-warm-gray/20">
+        <div className="flex items-start gap-3">
+          <Clock size={15} className="flex-shrink-0 mt-0.5 text-navy" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-navy">언제 받을까요</p>
+            <p className="text-[13px] text-warm-text leading-relaxed mt-0.5">
+              카카오톡으로 보내는 시각이에요. 앱 안의 알림은 열면 바로 보여요.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-2.5 pl-[27px] space-y-2.5">
+          <label className="flex items-center gap-2">
+            <span className="text-[13px] font-bold text-navy">시각</span>
+            <select
+              value={s.sendHour}
+              onChange={e => set({ sendHour: Number(e.target.value) })}
+              className="flex-1 max-w-[160px] rounded-lg border border-warm-gray/40 bg-white
+                         px-2.5 py-1.5 text-[13px] font-bold text-navy
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/40"
+            >
+              {SEND_HOURS.map(h => (
+                <option key={h} value={h}>{hourLabel(h)}</option>
+              ))}
+            </select>
+          </label>
+
+          <div>
+            <p className="text-[13px] font-bold text-navy mb-1.5">요일</p>
+            <div className="flex gap-1.5">
+              {DAY_LABELS.map((label, day) => {
+                const on = (s.sendDays ?? []).includes(day)
+                // 마지막 하나는 못 끄게 한다. 다 끄면 영영 안 오는데, 그건
+                // 「알림 끄기」지 요일 고르기가 아니다.
+                const last = on && (s.sendDays ?? []).length === 1
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    aria-pressed={on}
+                    disabled={last}
+                    onClick={() => {
+                      const now = s.sendDays ?? []
+                      const next = on ? now.filter(d => d !== day) : [...now, day]
+                      set({ sendDays: next.sort((a, b) => a - b) })
+                    }}
+                    className={[
+                      'w-9 h-9 rounded-full text-[13px] font-bold transition',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/40',
+                      on ? 'bg-navy text-white' : 'bg-warm-gray/15 text-warm-text hover:bg-warm-gray/25',
+                      last ? 'cursor-default' : '',
+                    ].join(' ')}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-[13px] text-warm-text mt-1.5 leading-relaxed">
+              {(s.sendDays ?? []).length === 7
+                ? `매일 ${hourLabel(s.sendHour)}에 보내드려요.`
+                : `${(s.sendDays ?? []).map(d => DAY_LABELS[d]).join('·')}요일 ${hourLabel(s.sendHour)}에 보내드려요.`}
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* 「어디로 받을지」. 위의 「무엇을 받을지」와 같은 상자에 둔다 —
           상자를 나누면 카톡이 또 다른 알림 종류처럼 보인다.
