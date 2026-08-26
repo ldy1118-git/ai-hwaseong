@@ -10,7 +10,7 @@
 | `mars.png` | MarsGreeting · MarsAvatar · FloatingChatButton · Landing 히어로 |
 | `search.png` | ApplicationGuide 로딩 화면 |
 | `find.png` | **아직 import 하는 곳이 없다** |
-| `cheer.png` | **아직 저장소에 없다.** DocumentStepDrawer 가 이걸 쓰려다 빌드가 죽어서, 지금은 `mars.png` 로 대신하고 있다 |
+| `cheer.png` | DocumentStepDrawer — 응원하는 마이다 |
 
 서희 원본으로 교체 완료 (2026-08-16). 빌드 3.64초 통과.
 
