@@ -30,22 +30,6 @@ const leafletIcon = L.icon({
   shadowSize:  [41, 41],
 })
 
-// ── 시설 마커 위치 생성 (황금각 분산) ────────────────────────────
-
-function mockMarkerPositions(centerLat, centerLng, radiusMeters, count) {
-  const latScale = radiusMeters / 111320
-  const lngScale = radiusMeters / (111320 * Math.cos(centerLat * Math.PI / 180))
-  return Array.from({ length: Math.min(count, 12) }, (_, i) => {
-    const a = Math.abs(Math.sin((i + 1) * 137.508) * 10000)
-    const b = Math.abs(Math.sin((i + 1) * 137.508 + 50) * 10000)
-    const angle = (a - Math.floor(a)) * 2 * Math.PI
-    const dist  = Math.sqrt(b - Math.floor(b)) * 0.88
-    return {
-      lat: centerLat + Math.cos(angle) * dist * latScale,
-      lng: centerLng + Math.sin(angle) * dist * lngScale,
-    }
-  })
-}
 
 // ── 순수 Leaflet 지도 컴포넌트 ───────────────────────────────────
 
@@ -129,20 +113,6 @@ function LeafletMap({ position, onMove, radii, markers }) {
 
 const HWS_CENTER = { lat: 37.1999, lng: 126.8317 }
 
-function seededRand(seed, min, max) {
-  const x = Math.sin(seed) * 10000
-  return min + Math.floor((x - Math.floor(x)) * (max - min + 1))
-}
-
-const BASE_RADIUS = 500
-
-// 아파트만 mock (실제 위치 데이터 없음)
-function getMockApartmentCount(lat, lng, radius) {
-  const s  = Math.abs(Math.round(lat * 100) * 1000 + Math.round(lng * 100))
-  const sc = Math.max(0.04, (radius / BASE_RADIUS) ** 1.8)
-  return Math.max(0, Math.round(seededRand(s + 4, 1, 18) * sc))
-}
-
 function getFootTrafficText(am, stationPassengers) {
   const stationScore = stationPassengers != null
     ? stationPassengers * 0.15
@@ -194,16 +164,15 @@ export default function CommercialAnalysisView() {
   }, [position.lat, position.lng, radii])
 
   const { amenities, displayMarkers, stationPassengersTotal } = useMemo(() => {
-    const aptCount = getMockApartmentCount(position.lat, position.lng, radii.apartments)
-    const counts   = apiData?.counts  || {}
-    const markers  = apiData?.markers || {}
+    const counts  = apiData?.counts  || {}
+    const markers = apiData?.markers || {}
 
     const amenities = {
       schools:     counts.schools     ?? 0,
       restaurants: counts.restaurants ?? 0,
       academies:   counts.academies   ?? 0,
       cafes:       counts.cafes       ?? 0,
-      apartments:  aptCount,
+      apartments:  counts.apartments  ?? 0,
       stations:    counts.stations    ?? 0,
     }
 
@@ -222,14 +191,18 @@ export default function CommercialAnalysisView() {
         popup: `<b>${s.name}역</b> (${s.line})${s.passengers > 0 ? `<br>일 평균 ${s.passengers.toLocaleString()}명 이용` : ''}`,
       })
     )
-    mockMarkerPositions(position.lat, position.lng, radii.apartments, aptCount)
-      .forEach(pos => displayMarkers.push({ lat: pos.lat, lng: pos.lng, key: 'apartments' }))
+    ;(markers.apartments || []).forEach(s =>
+      displayMarkers.push({
+        lat: s.lat, lng: s.lng, key: 'apartments',
+        popup: `<b>${s.name}</b>${s.units ? `<br>${s.units.toLocaleString()}세대` : ''}`,
+      })
+    )
     ;['restaurants', 'cafes', 'academies'].forEach(key => {
       ;(markers[key] || []).forEach(s => displayMarkers.push({ lat: s.lat, lng: s.lng, key }))
     })
 
     return { amenities, displayMarkers, stationPassengersTotal }
-  }, [apiData, position.lat, position.lng, radii.apartments])
+  }, [apiData])
 
   const footTraffic = useMemo(() => getFootTrafficText(amenities, stationPassengersTotal), [amenities, stationPassengersTotal])
 
@@ -273,14 +246,14 @@ export default function CommercialAnalysisView() {
   return (
     <div className="max-w-4xl mx-auto px-4 space-y-4 pb-8">
 
-      {/* 목업 안내 */}
+      {/* 데이터 출처 */}
       <div className="flex items-start gap-2 bg-star-yellow/20 border border-star-yellow/50 rounded-xl px-3.5 py-2.5">
         <Info size={12} className="text-navy/50 mt-0.5 flex-shrink-0" />
         <p className="text-[11px] text-warm-text leading-relaxed">
           음식점·카페·학원은 <strong className="text-navy">소상공인시장진흥공단</strong>(2026.06),
           학교는 <strong className="text-navy">경기도교육청</strong>,
-          역은 <strong className="text-navy">한국철도공사</strong> 실제 데이터예요.
-          아파트 단지만 목업이에요.
+          역은 <strong className="text-navy">한국철도공사</strong>,
+          아파트 단지는 <strong className="text-navy">경기도경기부동산포털</strong> 실제 데이터예요.
         </p>
       </div>
 

@@ -10,22 +10,23 @@ Caddy 가 앞에서 HTTPS 를 처리하고, 이 서버는 localhost 에서만 �
     GET  /health       헬스체크
     POST /ocr          사업자등록증 OCR
     POST /foottraffic  주변 POI 수집 (Overpass API, LLM 없음 — 요약은 Vercel 이)
-    POST /commercial   상가·학교·역 위치 기반 필터링 (CSV 원본에서 로드)
+    POST /commercial   상가·학교·역·아파트 위치 기반 필터링 (CSV/JSON 에서 로드)
 
 인증: X-Mars-Secret 헤더 (모든 POST 공통).
 
 환경변수:
     OCR_SHARED_SECRET        필수
     OCR_PORT                 기본 8001
-    COMMERCIAL_DATA_DIR      CSV 파일 폴더. 기본값: 이 파일 옆 data/ 폴더
+    COMMERCIAL_DATA_DIR      데이터 파일 폴더. 기본값: 이 파일 옆 폴더
 
-CSV 파일 위치 (COMMERCIAL_DATA_DIR 기준):
+파일 위치 (COMMERCIAL_DATA_DIR 기준):
     소상공인시장진흥공단_상가(상권)정보_경기_202606.csv   상가 (UTF-8 BOM)
     학교기본정보(초)_경기도교육청.csv                    초등학교 (UTF-8 BOM)
     학교기본정보(중)_경기도교육청.csv                    중학교 (UTF-8 BOM)
     학교기본정보(고)_경기도교육청.csv                    고등학교 (UTF-8 BOM)
     국가철도공단_코레일_지하철_주소데이터_20250630.csv    역 주소 (CP949)
     한국철도공사_역별 승하차 현황_20241231.csv            역 승하차 (CP949)
+    apartments_hwaseong.json                            아파트 단지 (preprocess_apartments.py 로 생성)
 """
 
 from __future__ import annotations
@@ -56,9 +57,10 @@ SECRET = os.environ.get("OCR_SHARED_SECRET", "")
 
 # ── 상권 데이터 (시작 시 1회 CSV 에서 로드) ─────────────────────────
 
-_STORES:   list[dict] = []   # {"lat": float, "lng": float, "cat": "r"|"c"|"a"}
-_SCHOOLS:  list[dict] = []   # {"name": str, "level": str, "lat": float, "lng": float}
-_STATIONS: list[dict] = []   # {"name": str, "line": str, "lat": float, "lng": float, "passengers": int}
+_STORES:     list[dict] = []   # {"lat": float, "lng": float, "cat": "r"|"c"|"a"}
+_SCHOOLS:    list[dict] = []   # {"name": str, "level": str, "lat": float, "lng": float}
+_STATIONS:   list[dict] = []   # {"name": str, "line": str, "lat": float, "lng": float, "passengers": int}
+_APARTMENTS: list[dict] = []   # {"name": str, "units": int, "lat": float, "lng": float}
 
 _UA = "hwaseong-ai-hackathon/1.0"
 
@@ -199,8 +201,19 @@ def _geocode(query: str) -> tuple[float, float] | None:
     return None
 
 
+def _load_apartments() -> list[dict]:
+    """preprocess_apartments.py 로 생성한 JSON → 화성시 아파트 단지."""
+    path = _data_dir() / "apartments_hwaseong.json"
+    if not path.exists():
+        print("경고: apartments_hwaseong.json 없음 — preprocess_apartments.py 로 생성하세요.", file=sys.stderr)
+        return []
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    return [d for d in data if d.get("lat") and d.get("lng")]
+
+
 def _load_commercial_data() -> None:
-    global _STORES, _SCHOOLS, _STATIONS
+    global _STORES, _SCHOOLS, _STATIONS, _APARTMENTS
     data_dir = _data_dir()
 
     store_csv = data_dir / "소상공인시장진흥공단_상가(상권)정보_경기_202606.csv"
@@ -223,6 +236,9 @@ def _load_commercial_data() -> None:
     print("  역 지오코딩 중...", file=sys.stderr, flush=True)
     _STATIONS = _load_stations()
     print(f"  역: {len(_STATIONS)}개 로드", file=sys.stderr, flush=True)
+
+    _APARTMENTS = _load_apartments()
+    print(f"  아파트: {len(_APARTMENTS)}개 로드", file=sys.stderr, flush=True)
 
 
 # ── 거리 계산 ─────────────────────────────────────────────────────────
@@ -297,6 +313,7 @@ class Handler(BaseHTTPRequestHandler):
             "stores":           len(_STORES),
             "schools":          len(_SCHOOLS),
             "stations":         len(_STATIONS),
+            "apartments":       len(_APARTMENTS),
         })
 
     def do_POST(self) -> None:  # noqa: N802
@@ -401,6 +418,7 @@ class Handler(BaseHTTPRequestHandler):
             "restaurants": int(radii.get("restaurants") or 500),
             "cafes":       int(radii.get("cafes")       or 500),
             "academies":   int(radii.get("academies")   or 500),
+            "apartments":  int(radii.get("apartments")  or 500),
             "stations":    int(radii.get("stations")    or 500),
         }
 
@@ -426,6 +444,11 @@ class Handler(BaseHTTPRequestHandler):
             s for s in _SCHOOLS
             if _haversine(lat, lng, s["lat"], s["lng"]) <= r["schools"]
         ]
+        apartments = [
+            {"name": a["name"], "units": a["units"], "lat": a["lat"], "lng": a["lng"]}
+            for a in _APARTMENTS
+            if _haversine(lat, lng, a["lat"], a["lng"]) <= r["apartments"]
+        ]
         stations = [
             s for s in _STATIONS
             if _haversine(lat, lng, s["lat"], s["lng"]) <= r["stations"]
@@ -443,6 +466,7 @@ class Handler(BaseHTTPRequestHandler):
                 "restaurants": len(restaurants),
                 "cafes":       len(cafes),
                 "academies":   len(academies),
+                "apartments":  len(apartments),
                 "stations":    len(stations),
             },
             "markers": {
@@ -450,6 +474,7 @@ class Handler(BaseHTTPRequestHandler):
                 "restaurants": sample(restaurants),
                 "cafes":       sample(cafes),
                 "academies":   sample(academies),
+                "apartments":  apartments,
                 "stations":    stations,
             },
         })

@@ -326,9 +326,9 @@ Supabase 에만 둔다. 저장소·로그·API 응답에 절대 싣지 않는다
 때문이다. 하단에 「목업」이라고 적어도, 그 줄을 읽은 사람은 다른 숫자까지
 의심한다.
 
-지금 목업인 것은 **아파트 단지 수와 유동인구** 둘뿐이고
-(`project/src/components/sections/CommercialAnalysisView.jsx`), 화면에 그렇게
-적혀 있다.
+상권분석의 모든 항목(음식점·카페·학원·학교·역·아파트 단지)은 실제 데이터다.
+유동인구 예측은 이 실측값을 가중합산한 추정치다
+(`project/src/components/sections/CommercialAnalysisView.jsx`).
 
 ## 대회가 끝나면 지울 것
 

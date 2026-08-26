@@ -330,5 +330,5 @@ apply_period, applied_at}` 이 담긴다. 담는 쪽은 `ApplicationGuide.jsx` �
 
 - 용어 뜻풀이 툴팁이 `onMouseEnter`/`onMouseLeave` 라 **휴대폰에서 안 열린다**
   (`NoticeDetail.jsx`, `OrbitDashboard.jsx` 의 `group-hover`)
-- 아파트 단지 수와 유동인구는 목업이다. 화면에 그렇게 적어뒀다
+- 유동인구 예측은 실측값(음식점·학교·역·아파트)을 가중합산한 추정치다
 - `utils/demoMode.js` 와 온보딩의 `DemoSkip` 은 대회가 끝나면 지운다
