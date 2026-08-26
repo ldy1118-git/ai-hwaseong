@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
-  Info, School, Utensils, BookOpen, Coffee, Building2, Search, Train,
-  Maximize2, X as XIcon, Sparkles, Users, CreditCard, ChevronDown, ChevronUp,
-  MapPin,
+  School, Utensils, BookOpen, Coffee, Building2, Search, Train,
+  Maximize2, X as XIcon, Sparkles, Users, CreditCard, MapPin,
 } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -182,7 +181,6 @@ export default function CommercialAnalysisView() {
   const [searching, setSearching]   = useState(false)
   const [radii, setRadii]           = useState(DEFAULT_RADII)
   const [expanded, setExpanded]     = useState(false)
-  const [sliderOpen, setSliderOpen] = useState(false)
   const [apiData, setApiData]       = useState(null)
   const [llmSummary, setLlmSummary] = useState('')
   const [llmLoading, setLlmLoading] = useState(false)
@@ -391,22 +389,9 @@ export default function CommercialAnalysisView() {
 
           {/* 우측: 주변 시설 + 반경 설정 */}
           <div className="flex-1 bg-white rounded-2xl border border-warm-gray/20 shadow-sm overflow-hidden">
-            <button
-              onClick={() => setSliderOpen(v => !v)}
-              className="w-full flex items-center justify-between px-3 py-2.5 text-left"
-            >
-              <div>
-                <span className="text-[11px] font-bold text-navy">주변 시설 현황</span>
-                {!sliderOpen && (
-                  <span className="ml-1.5 text-[10px] text-warm-text/60">탭하면 반경 조정</span>
-                )}
-              </div>
-              {sliderOpen
-                ? <ChevronUp size={13} className="text-warm-text" />
-                : <ChevronDown size={13} className="text-warm-text" />}
-            </button>
+            <p className="px-3 pt-2.5 pb-1 text-[11px] font-bold text-navy">주변 시설 현황</p>
 
-            <div className="px-3 pb-3 grid grid-cols-2 gap-x-3 gap-y-2">
+            <div className="px-3 pb-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
               {AMENITY_CONFIG.map(({ key, label, Icon, color }) => (
                 <div key={key} className="flex items-center gap-1.5">
                   <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
@@ -420,40 +405,27 @@ export default function CommercialAnalysisView() {
               ))}
             </div>
 
-            {sliderOpen && (
-              <div className="border-t border-warm-gray/10 px-3 pt-3 pb-3 space-y-3">
-                {AMENITY_CONFIG.map(({ key, label, color }) => (
-                  <div key={key}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] text-warm-text">{label} 반경</span>
-                      <span className="text-[9px] font-semibold tabular-nums" style={{ color }}>
-                        {radii[key] >= 1000 ? `${radii[key] / 1000}km` : `${radii[key]}m`}
-                      </span>
-                    </div>
-                    <input
-                      type="range" min={100} max={3000} step={50}
-                      value={radii[key]}
-                      onChange={e => setRadius(key, e.target.value)}
-                      className="w-full h-1.5 cursor-pointer"
-                      style={{ accentColor: color }}
-                    />
+            <div className="border-t border-warm-gray/10 px-3 pt-2.5 pb-3 space-y-2.5">
+              {AMENITY_CONFIG.map(({ key, label, color }) => (
+                <div key={key}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-warm-text">{label} 반경</span>
+                    <span className="text-[9px] font-semibold tabular-nums" style={{ color }}>
+                      {radii[key] >= 1000 ? `${radii[key] / 1000}km` : `${radii[key]}m`}
+                    </span>
                   </div>
-                ))}
-              </div>
-            )}
+                  <input
+                    type="range" min={100} max={3000} step={50}
+                    value={radii[key]}
+                    onChange={e => setRadius(key, e.target.value)}
+                    className="w-full h-1.5 cursor-pointer"
+                    style={{ accentColor: color }}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* 데이터 출처 */}
-      <div className="flex items-start gap-2 bg-star-yellow/20 border border-star-yellow/40 rounded-xl px-3 py-2">
-        <Info size={10} className="text-navy/40 mt-0.5 flex-shrink-0" />
-        <p className="text-[10px] text-warm-text leading-relaxed">
-          음식점·카페·학원 <strong className="text-navy">소상공인시장진흥공단</strong>(2026.06) ·
-          학교 <strong className="text-navy">경기도교육청</strong> ·
-          역 <strong className="text-navy">국가철도공단</strong> ·
-          아파트 <strong className="text-navy">K-apt</strong> 실제 데이터
-        </p>
       </div>
 
       {/* ─────────────────────────────────────────
