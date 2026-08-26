@@ -584,12 +584,12 @@ export default function CommercialAnalysisView() {
           </div>
         </div>
 
-        {/* 경쟁 현황 */}
+        {/* 경쟁 현황 + 업종별 예상 매출 */}
         <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm p-4">
-          <p className="text-[12px] font-bold text-navy mb-3">경쟁 현황</p>
+          <p className="text-[12px] font-bold text-navy mb-3">경쟁 현황 · 예상 매출</p>
 
           {bizTotal > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {[
                 { key: 'restaurants', label: '음식점이', max: 200 },
                 { key: 'cafes',       label: '카페가',   max: 80  },
@@ -598,6 +598,9 @@ export default function CommercialAnalysisView() {
                 const count = amenities[key]
                 const pct   = Math.min((count / max) * 100, 100)
                 const lvl   = competitionLevel(key, count)
+                const perStore = (cardSales && count > 0)
+                  ? cardSales.total_sales / count
+                  : null
                 return (
                   <div key={key}>
                     <div className="flex items-center justify-between mb-1">
@@ -609,11 +612,21 @@ export default function CommercialAnalysisView() {
                         {lvl.emoji} {lvl.label}
                       </span>
                     </div>
-                    <div className="h-2 bg-warm-gray/15 rounded-full overflow-hidden mb-1">
+                    <div className="h-2 bg-warm-gray/15 rounded-full overflow-hidden mb-2">
                       <div className="h-full rounded-full transition-all duration-500"
                         style={{ width: `${pct}%`, background: lvl.color }} />
                     </div>
-                    <p className="text-[10px] text-warm-text">{lvl.tip}</p>
+                    {perStore != null && (
+                      <p className="text-[11px] text-navy font-semibold">
+                        가게당 예상 월매출{' '}
+                        <span className="text-navy">
+                          {perStore >= 1_0000_0000
+                            ? `약 ${(perStore / 1_0000_0000).toFixed(1)}억원`
+                            : `약 ${Math.round(perStore / 10000).toLocaleString()}만원`}
+                        </span>
+                      </p>
+                    )}
+                    <p className="text-[10px] text-warm-text mt-0.5">{lvl.tip}</p>
                   </div>
                 )
               })}
@@ -630,6 +643,14 @@ export default function CommercialAnalysisView() {
                 하교 시간대 고객 유입 기대돼요
               </p>
             </div>
+          )}
+
+          {cardSales && bizTotal > 0 && (
+            <p className="mt-4 text-[10px] text-warm-text/60 leading-relaxed border-t border-warm-gray/10 pt-3">
+              * 예상 매출은 이 행정동 전체 카드 소비를 반경 내 가게 수로 나눈
+              데이터 기반 예상치예요. 실제 매출은 업종·규모·운영 방식에 따라
+              크게 달라질 수 있어요.
+            </p>
           )}
         </div>
       </div>
