@@ -64,12 +64,12 @@ function ThinkingBubble() {
 function FollowupChips({ questions, onSelect }) {
   if (!questions?.length) return null
   return (
-    <div className="flex flex-wrap gap-2 pl-10 mt-1.5">
+    <div className="flex flex-wrap gap-2.5 pl-10 mt-1.5">
       {questions.map((q, i) => (
         <button
           key={i}
           onClick={() => onSelect(q)}
-          className="text-xs border border-navy/25 text-navy rounded-full px-3 py-1.5
+          className="tap text-xs border border-navy/25 text-navy rounded-full px-3 py-1.5
                      bg-white hover:bg-navy/5 transition-colors"
         >
           {q}
@@ -91,7 +91,7 @@ function SuggestionChips({ onSelect }) {
         <button
           key={i}
           onClick={() => onSelect(chip.text)}
-          className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium
+          className="tap flex-shrink-0 flex items-center gap-1.5 text-xs font-medium
                      bg-white border border-navy/20 text-navy rounded-full
                      px-3 py-2 hover:border-navy/50 hover:bg-navy/5
                      active:scale-[0.97] transition-all"

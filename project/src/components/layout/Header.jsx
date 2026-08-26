@@ -43,7 +43,7 @@ export default function Header({ onAvatarClick, className = '' }) {
       ].join(' ')}
     >
       {/* 로고 */}
-      <a href="#/" aria-label="Mars-Fit 홈" className="flex-shrink-0">
+      <a href="#/" aria-label="Mars-Fit 홈" className="tap flex-shrink-0">
         {/* 폰에서는 줄인다. 48px 로 두면 로고가 폭을 먹어서 탭 다섯 칸이
               38px 씩밖에 못 가진다. */}
           <img src={logoImg} alt="Mars-Fit" className="h-9 sm:h-12 object-contain" />

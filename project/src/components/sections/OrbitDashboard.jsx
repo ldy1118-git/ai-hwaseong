@@ -215,14 +215,14 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
         {conditions.length > 0 ? (
           <button
             onClick={() => setShowReason(v => !v)}
-            className={`text-[13px] font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
+            className={`tap text-[13px] font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
           >
             매칭이유 {showReason ? '▲' : '▼'}
           </button>
         ) : <span />}
         <button
           onClick={onDetail}
-          className={`text-[13px] font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
+          className={`tap text-[13px] font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
         >
           자세히 →
         </button>
@@ -610,7 +610,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
           {!loading && urgentSorted.length > URGENT_INIT && (
             <button type="button"
               onClick={() => setUrgentExpanded(v => !v)}
-              className="w-full flex items-center justify-center gap-1 py-2 mt-1 mb-6
+              className="tap w-full flex items-center justify-center gap-1 py-2 mt-1 mb-6
                          border-t border-warm-gray/20
                          text-[13px] font-semibold text-sunset-orange hover:underline">
               {urgentExpanded ? '접기' : `${urgentSorted.length - URGENT_INIT}건 더보기`}
@@ -641,7 +641,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
                   }}
                   aria-pressed={on}
                   className={[
-                    'px-2.5 py-1 rounded-full text-[13px] font-bold transition-colors',
+                    'tap px-2.5 py-1 rounded-full text-[13px] font-bold transition-colors',
                     on ? 'bg-navy text-white'
                        : 'text-warm-text hover:bg-warm-gray/20',
                   ].join(' ')}

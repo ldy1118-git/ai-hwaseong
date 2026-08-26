@@ -39,6 +39,7 @@ export default function FavoriteButton({ notice, size = 20, className = '' }) {
       aria-label={on ? '관심공고에서 빼기' : '관심공고로 담기'}
       title={on ? '관심공고에서 빼기' : '관심공고로 담기'}
       className={[
+        'tap ' +
         'flex-shrink-0 p-1.5 rounded-full transition-colors duration-150',
         on ? 'text-sunset-orange hover:bg-sunset-orange/10'
            : 'text-warm-gray hover:text-sunset-orange hover:bg-warm-gray/10',
