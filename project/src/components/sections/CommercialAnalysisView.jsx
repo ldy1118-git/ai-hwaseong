@@ -2,20 +2,14 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   Info, School, Utensils, BookOpen, Coffee, Building2, Search, Train,
   Maximize2, X as XIcon, Sparkles, Users, CreditCard, ChevronDown, ChevronUp,
+  MapPin,
 } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { apiUrl } from '../../utils/api'
-
-/**
- * 상권분석 뷰.
- *
- * District.jsx 에서 떼어냈다. 세무 쪽은 District.jsx 에, 상권 쪽은 여기에 둔다.
- *
- * 지도와 주소 검색에는 API 키가 없다.
- *   타일    — OpenStreetMap
- *   주소검색 — Nominatim (/search, /reverse)
- */
+import marsImg   from '../../../design/mars.png'    // 날아가는 포즈 — 인트로
+import searchImg from '../../../design/search.png'  // 돋보기 포즈 — 분석 중
+import findImg   from '../../../design/find.png'    // 전구 포즈 — 인사이트 발견
 
 // ── Leaflet 아이콘 CDN 고정 ───────────────────────────────────────
 const leafletIcon = L.icon({
@@ -109,7 +103,6 @@ const AMENITY_CONFIG = [
 
 const DEFAULT_RADII = { schools: 500, restaurants: 500, academies: 500, cafes: 500, stations: 500 }
 
-// 반경 500m 기준 경쟁 강도 임계값 [보통 시작, 높음 시작]
 const COMPETITION_THRESHOLDS = {
   restaurants: [30, 80],
   cafes:       [15, 40],
@@ -118,23 +111,23 @@ const COMPETITION_THRESHOLDS = {
 
 function competitionLevel(key, count) {
   const [mid, high] = COMPETITION_THRESHOLDS[key] || [20, 60]
-  if (count >= high) return { label: '높음', color: '#EF4444', bg: '#FEF2F2' }
-  if (count >= mid)  return { label: '보통', color: '#F97316', bg: '#FFF7ED' }
-  return { label: '낮음', color: '#10B981', bg: '#F0FDF4' }
+  if (count >= high) return { label: '경쟁 높음', color: '#EF4444', bg: '#FEF2F2' }
+  if (count >= mid)  return { label: '경쟁 보통', color: '#F97316', bg: '#FFF7ED' }
+  return               { label: '경쟁 낮음', color: '#10B981', bg: '#F0FDF4' }
 }
 
 function calcFootTrafficScore(am, stationPassengers, aptDong) {
-  const stationScore = stationPassengers != null
+  const stationScore = (stationPassengers != null && stationPassengers > 0)
     ? stationPassengers * 0.15
     : am.stations * 650
   const aptScore = Math.round((aptDong?.total_units || 0) * 0.08)
   return Math.round(am.schools * 220 + am.restaurants * 55 + am.cafes * 90 + aptScore + stationScore)
 }
 
-function footTrafficLabel(score) {
-  if (score >= 8000) return { text: '매우 활발', color: '#10B981' }
-  if (score >= 4000) return { text: '활발',     color: '#3B82F6' }
-  return              { text: '안정적',    color: '#8B5CF6' }
+function footTrafficLevel(score) {
+  if (score >= 8000) return { text: '매우 활발', color: '#10B981', desc: '역세권·학교·아파트가 갖춰진 핵심 상권이에요' }
+  if (score >= 4000) return { text: '활발',     color: '#3B82F6', desc: '음식점·카페가 밀집해 점심·저녁 방문이 활발해요' }
+  return               { text: '안정적',    color: '#8B5CF6', desc: '조용한 주거 중심 상권으로 단골 비중이 높아요' }
 }
 
 async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPassengersTotal, radii }) {
@@ -143,19 +136,18 @@ async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPa
     : '아파트 정보: 없음'
 
   const stationLine = amenities.stations > 0
-    ? `역: ${amenities.stations}개 (일 평균 ${(stationPassengersTotal || 0).toLocaleString()}명 이용)`
+    ? `역: ${amenities.stations}개${stationPassengersTotal > 0 ? ` (일 평균 ${stationPassengersTotal.toLocaleString()}명 이용)` : ''}`
     : '역: 없음'
 
   let salesLine = ''
   if (cardSales) {
     const billionSales = Math.round(cardSales.total_sales / 100_000_000)
-    const peakLabel    = TZ_LABELS[cardSales.peak_tz] || cardSales.peak_tz
-    salesLine = `이 지역 카드매출: 월 약 ${billionSales}억원 / 가장 바쁜 시간대: ${peakLabel} (${cardSales.peak_pct.toFixed(1)}%)`
+    salesLine = `이 지역 카드매출: 월 약 ${billionSales}억원 / 가장 바쁜 시간대: ${TZ_LABELS[cardSales.peak_tz] || cardSales.peak_tz} (${cardSales.peak_pct.toFixed(1)}%)`
   }
 
   const bizTotal = amenities.restaurants + amenities.cafes + amenities.academies
   const distLine = bizTotal > 0
-    ? `업종 분포: 음식점 ${amenities.restaurants}개, 카페 ${amenities.cafes}개, 학원 ${amenities.academies}개 (합계 ${bizTotal}개)`
+    ? `업종 분포: 음식점 ${amenities.restaurants}개, 카페 ${amenities.cafes}개, 학원 ${amenities.academies}개`
     : ''
 
   const prompt = [
@@ -185,19 +177,18 @@ async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPa
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────
 
 export default function CommercialAnalysisView() {
-  const [position, setPosition]   = useState(HWS_CENTER)
-  const [address, setAddress]     = useState('')
-  const [searching, setSearching] = useState(false)
-  const [radii, setRadii]         = useState(DEFAULT_RADII)
-  const [expanded, setExpanded]   = useState(false)
+  const [position, setPosition]     = useState(HWS_CENTER)
+  const [address, setAddress]       = useState('')
+  const [searching, setSearching]   = useState(false)
+  const [radii, setRadii]           = useState(DEFAULT_RADII)
+  const [expanded, setExpanded]     = useState(false)
   const [sliderOpen, setSliderOpen] = useState(false)
-  const [apiData, setApiData]     = useState(null)
+  const [apiData, setApiData]       = useState(null)
   const [llmSummary, setLlmSummary] = useState('')
   const [llmLoading, setLlmLoading] = useState(false)
   const [llmAsked, setLlmAsked]     = useState(false)
   const debounceRef = useRef(null)
 
-  // 위치·반경이 바뀔 때마다 상권 데이터 재조회
   useEffect(() => {
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
@@ -212,7 +203,6 @@ export default function CommercialAnalysisView() {
     }, 300)
   }, [position.lat, position.lng, radii])
 
-  // 위치가 바뀌면 LLM 답변 초기화 (새 위치에서 다시 물어보도록)
   useEffect(() => {
     setLlmSummary('')
     setLlmAsked(false)
@@ -230,9 +220,10 @@ export default function CommercialAnalysisView() {
       stations:    counts.stations    ?? 0,
     }
 
-    const stationPassengersTotal = markers.stations
+    const rawPassengers = markers.stations
       ? markers.stations.reduce((sum, s) => sum + (s.passengers || 0), 0)
       : null
+    const stationPassengersTotal = rawPassengers
 
     const aptDong   = apiData?.apt_dong   ?? null
     const cardSales = apiData?.card_sales ?? null
@@ -258,8 +249,7 @@ export default function CommercialAnalysisView() {
     () => calcFootTrafficScore(amenities, stationPassengersTotal, aptDong),
     [amenities, stationPassengersTotal, aptDong]
   )
-  const ftLabel = footTrafficLabel(ftScore)
-
+  const ftLevel  = footTrafficLevel(ftScore)
   const bizTotal = amenities.restaurants + amenities.cafes + amenities.academies
 
   const applyPosition = useCallback((pos) => setPosition(pos), [])
@@ -271,8 +261,8 @@ export default function CommercialAnalysisView() {
       .then(d => {
         const addr = d.address
         if (addr) {
-          const parts = [addr.road, addr.neighbourhood, addr.suburb, addr.city || addr.county].filter(Boolean)
-          setAddress(parts.slice(0, 2).join(' '))
+          const parts = [addr.suburb || addr.quarter, addr.city || addr.county].filter(Boolean)
+          setAddress(parts.join(' '))
         }
       })
       .catch(() => {})
@@ -303,9 +293,7 @@ export default function CommercialAnalysisView() {
     setLlmAsked(true)
     try {
       const text = await fetchCommercialSummary({
-        amenities, aptDong, cardSales,
-        stationPassengersTotal,
-        radii,
+        amenities, aptDong, cardSales, stationPassengersTotal, radii,
       })
       setLlmSummary(text)
     } catch {
@@ -316,240 +304,320 @@ export default function CommercialAnalysisView() {
   }, [amenities, aptDong, cardSales, stationPassengersTotal, radii])
 
   return (
-    <div className="max-w-4xl mx-auto px-4 space-y-4 pb-8">
+    <div className="max-w-4xl mx-auto px-4 space-y-5 pb-8">
 
-      {/* 데이터 출처 */}
-      <div className="flex items-start gap-2 bg-star-yellow/20 border border-star-yellow/50 rounded-xl px-3.5 py-2.5">
-        <Info size={12} className="text-navy/50 mt-0.5 flex-shrink-0" />
-        <p className="text-[11px] text-warm-text leading-relaxed">
-          음식점·카페·학원 <strong className="text-navy">소상공인시장진흥공단</strong>(2026.06) ·
-          학교 <strong className="text-navy">경기도교육청</strong> ·
-          역 <strong className="text-navy">한국철도공사</strong> ·
-          아파트 <strong className="text-navy">K-apt</strong> 실제 데이터예요.
-        </p>
-      </div>
+      {/* ─────────────────────────────────────────
+          STEP 1: 마이다 인트로 (mars.png — 날아가는 포즈)
+          ───────────────────────────────────────── */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-navy to-navy/80 rounded-2xl px-5 py-5 flex items-center gap-4">
+        {/* 배경 별 장식 */}
+        <div className="absolute top-2 right-24 w-1.5 h-1.5 rounded-full bg-white/20" />
+        <div className="absolute top-6 right-36 w-1 h-1 rounded-full bg-white/15" />
+        <div className="absolute bottom-3 right-20 w-2 h-2 rounded-full bg-white/10" />
 
-      {/* 지도 + 반경 설정 2열 */}
-      <div className="flex gap-3 items-stretch">
-
-        {/* 좌측: 지도 + 주소 입력 */}
-        <div className="flex flex-col gap-2" style={{ flex: '0 0 58%' }}>
-          <div className="relative rounded-2xl shadow-sm" style={{ height: 300 }}>
-            <div className="absolute inset-0 rounded-2xl overflow-hidden border border-warm-gray/20">
-              <LeafletMap position={position} onMove={handleMarkerMove} radii={radii} markers={displayMarkers} />
-            </div>
-            <button
-              onClick={() => setExpanded(true)}
-              title="지도 크게 보기"
-              className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-warm-gray/30
-                         rounded-lg p-1.5 shadow hover:bg-white transition-colors"
-              style={{ zIndex: 1000 }}
-            >
-              <Maximize2 size={13} className="text-navy" />
-            </button>
-          </div>
-          <form onSubmit={handleSearch} className="flex gap-1.5">
-            <input
-              type="text"
-              value={address}
-              onChange={e => setAddress(e.target.value)}
-              placeholder="도로명주소 입력 후 검색"
-              className="flex-1 min-w-0 text-[11px] bg-white border border-warm-gray/30 rounded-xl
-                         px-3 py-2 text-navy placeholder:text-warm-gray/60
-                         focus:outline-none focus:border-navy transition-colors"
-            />
-            <button
-              type="submit"
-              disabled={searching}
-              className="flex-shrink-0 bg-navy text-white rounded-xl px-2.5 py-2 disabled:opacity-50 transition-opacity"
-            >
-              <Search size={14} />
-            </button>
-          </form>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-semibold text-white/60 uppercase tracking-widest mb-1">Mars-Fit · 상권분석</p>
+          <p className="text-base font-extrabold text-white leading-snug mb-1.5">
+            창업 예정지의 상권을<br />지금 바로 분석해드려요!
+          </p>
+          <p className="text-[11px] text-white/70 leading-relaxed">
+            지도에서 <strong className="text-white">핀을 드래그</strong>하거나
+            주소를 검색하면<br />유동인구·매출·경쟁 현황을 실제 데이터로 보여드려요.
+          </p>
         </div>
 
-        {/* 우측: 반경 설정 */}
-        <div className="flex-1 bg-white rounded-2xl border border-warm-gray/20 shadow-sm overflow-hidden">
-          <button
-            onClick={() => setSliderOpen(v => !v)}
-            className="w-full flex items-center justify-between px-3 py-2.5 text-left"
-          >
-            <span className="text-[11px] font-bold text-navy">반경 설정</span>
-            {sliderOpen
-              ? <ChevronUp size={13} className="text-warm-text" />
-              : <ChevronDown size={13} className="text-warm-text" />}
-          </button>
+        <img
+          src={marsImg}
+          alt="마이다"
+          className="w-24 h-24 object-contain flex-shrink-0 drop-shadow-lg"
+          style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
+        />
+      </div>
 
-          {/* 항상 보이는 카운트 요약 */}
-          {!sliderOpen && (
-            <div className="px-3 pb-3 grid grid-cols-2 gap-x-3 gap-y-1.5">
+      {/* ─────────────────────────────────────────
+          STEP 2: 위치 선택 (search.png — 돋보기 포즈)
+          ───────────────────────────────────────── */}
+      <div>
+        {/* 섹션 헤더 */}
+        <div className="flex items-center gap-2.5 mb-3">
+          <img src={searchImg} alt="" className="w-8 h-8 object-contain flex-shrink-0" />
+          <div>
+            <p className="text-[12px] font-bold text-navy leading-tight">위치를 선택해주세요</p>
+            <p className="text-[10px] text-warm-text">핀을 드래그하거나 아래 검색창을 이용해보세요</p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 items-stretch">
+          {/* 좌측: 지도 + 주소 입력 */}
+          <div className="flex flex-col gap-2" style={{ flex: '0 0 58%' }}>
+            <div className="relative rounded-2xl shadow-sm" style={{ height: 280 }}>
+              <div className="absolute inset-0 rounded-2xl overflow-hidden border border-warm-gray/20">
+                <LeafletMap position={position} onMove={handleMarkerMove} radii={radii} markers={displayMarkers} />
+              </div>
+              {address && (
+                <div className="absolute bottom-2 left-2 right-10 bg-white/90 backdrop-blur-sm
+                                rounded-lg px-2.5 py-1.5 flex items-center gap-1.5 shadow"
+                  style={{ zIndex: 1000 }}>
+                  <MapPin size={10} className="text-navy flex-shrink-0" />
+                  <span className="text-[10px] text-navy font-medium truncate">{address}</span>
+                </div>
+              )}
+              <button
+                onClick={() => setExpanded(true)}
+                title="지도 크게 보기"
+                className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-warm-gray/30
+                           rounded-lg p-1.5 shadow hover:bg-white transition-colors"
+                style={{ zIndex: 1000 }}
+              >
+                <Maximize2 size={13} className="text-navy" />
+              </button>
+            </div>
+            <form onSubmit={handleSearch} className="flex gap-1.5">
+              <input
+                type="text"
+                value={address}
+                onChange={e => setAddress(e.target.value)}
+                placeholder="도로명주소 또는 동 이름 검색"
+                className="flex-1 min-w-0 text-[11px] bg-white border border-warm-gray/30 rounded-xl
+                           px-3 py-2 text-navy placeholder:text-warm-gray/60
+                           focus:outline-none focus:border-navy transition-colors"
+              />
+              <button type="submit" disabled={searching}
+                className="flex-shrink-0 bg-navy text-white rounded-xl px-2.5 py-2 disabled:opacity-50 transition-opacity">
+                <Search size={14} />
+              </button>
+            </form>
+          </div>
+
+          {/* 우측: 주변 시설 + 반경 설정 */}
+          <div className="flex-1 bg-white rounded-2xl border border-warm-gray/20 shadow-sm overflow-hidden">
+            <button
+              onClick={() => setSliderOpen(v => !v)}
+              className="w-full flex items-center justify-between px-3 py-2.5 text-left"
+            >
+              <div>
+                <span className="text-[11px] font-bold text-navy">주변 시설 현황</span>
+                {!sliderOpen && (
+                  <span className="ml-1.5 text-[10px] text-warm-text/60">탭하면 반경 조정</span>
+                )}
+              </div>
+              {sliderOpen
+                ? <ChevronUp size={13} className="text-warm-text" />
+                : <ChevronDown size={13} className="text-warm-text" />}
+            </button>
+
+            <div className="px-3 pb-3 grid grid-cols-2 gap-x-3 gap-y-2">
               {AMENITY_CONFIG.map(({ key, label, Icon, color }) => (
                 <div key={key} className="flex items-center gap-1.5">
-                  <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
                     style={{ background: color + '22', border: `1.5px solid ${color}` }}>
-                    <Icon size={8} style={{ color }} />
+                    <Icon size={9} style={{ color }} />
                   </div>
                   <span className="text-[10px] text-warm-text flex-1 leading-tight">{label}</span>
-                  <span className="text-[11px] font-extrabold text-navy tabular-nums">{amenities[key]}</span>
+                  <span className="text-xs font-extrabold text-navy tabular-nums">{amenities[key]}</span>
                   <span className="text-[9px] text-warm-text">개</span>
                 </div>
               ))}
             </div>
-          )}
 
-          {/* 슬라이더 (펼쳐졌을 때) */}
-          {sliderOpen && (
-            <div className="px-3 pb-3 space-y-3">
-              {AMENITY_CONFIG.map(({ key, label, Icon, color }) => (
-                <div key={key}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: color + '22', border: `1.5px solid ${color}` }}>
-                      <Icon size={10} style={{ color }} />
+            {sliderOpen && (
+              <div className="border-t border-warm-gray/10 px-3 pt-3 pb-3 space-y-3">
+                {AMENITY_CONFIG.map(({ key, label, color }) => (
+                  <div key={key}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] text-warm-text">{label} 반경</span>
+                      <span className="text-[9px] font-semibold tabular-nums" style={{ color }}>
+                        {radii[key] >= 1000 ? `${radii[key] / 1000}km` : `${radii[key]}m`}
+                      </span>
                     </div>
-                    <span className="text-[10px] text-warm-text flex-1">{label}</span>
-                    <span className="text-xs font-extrabold text-navy tabular-nums">{amenities[key]}</span>
-                    <span className="text-[9px] text-warm-text">개</span>
-                  </div>
-                  <div className="pl-6 flex items-center gap-2">
-                    <span className="text-[9px] text-warm-text/60 flex-shrink-0">반경</span>
                     <input
                       type="range" min={100} max={3000} step={50}
                       value={radii[key]}
                       onChange={e => setRadius(key, e.target.value)}
-                      className="flex-1 h-1.5 cursor-pointer"
+                      className="w-full h-1.5 cursor-pointer"
                       style={{ accentColor: color }}
                     />
-                    <span className="text-[9px] font-semibold w-10 text-right tabular-nums flex-shrink-0"
-                      style={{ color }}>
-                      {radii[key] >= 1000 ? `${radii[key] / 1000}km` : `${radii[key]}m`}
-                    </span>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 데이터 출처 */}
+      <div className="flex items-start gap-2 bg-star-yellow/20 border border-star-yellow/40 rounded-xl px-3 py-2">
+        <Info size={10} className="text-navy/40 mt-0.5 flex-shrink-0" />
+        <p className="text-[10px] text-warm-text leading-relaxed">
+          음식점·카페·학원 <strong className="text-navy">소상공인시장진흥공단</strong>(2026.06) ·
+          학교 <strong className="text-navy">경기도교육청</strong> ·
+          역 <strong className="text-navy">국가철도공단</strong> ·
+          아파트 <strong className="text-navy">K-apt</strong> 실제 데이터
+        </p>
+      </div>
+
+      {/* ─────────────────────────────────────────
+          STEP 3: 상권 지표 분석 (데이터 카드)
+          ───────────────────────────────────────── */}
+      <div>
+        <p className="text-[12px] font-bold text-navy mb-3 flex items-center gap-2">
+          <span className="w-1 h-4 rounded-full bg-navy inline-block" />
+          상권 핵심 지표
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+
+          {/* 유동인구 */}
+          <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Users size={11} className="text-warm-text" />
+              <p className="text-[10px] text-warm-text font-medium">유동인구 예측</p>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── 핵심 지표 4개 ── */}
-      <div className="grid grid-cols-2 gap-3">
-
-        {/* 유동인구 예측 */}
-        <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-3">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Users size={11} className="text-warm-text" />
-            <p className="text-[10px] text-warm-text font-medium">유동인구 예측</p>
-          </div>
-          <p className="text-xl font-extrabold text-navy tabular-nums leading-tight">
-            {ftScore >= 10000
-              ? `${(ftScore / 10000).toFixed(1)}만`
-              : ftScore.toLocaleString()}
-            <span className="text-xs font-normal text-warm-text ml-1">명/일</span>
-          </p>
-          <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-            style={{ color: ftLabel.color, background: ftLabel.color + '18' }}>
-            {ftLabel.text}
-          </span>
-        </div>
-
-        {/* 카드매출 */}
-        <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-3">
-          <div className="flex items-center gap-1.5 mb-1">
-            <CreditCard size={11} className="text-warm-text" />
-            <p className="text-[10px] text-warm-text font-medium">이 지역 카드매출</p>
-          </div>
-          {cardSales ? (
-            <>
-              <p className="text-xl font-extrabold text-navy tabular-nums leading-tight">
-                {Math.round(cardSales.total_sales / 100_000_000).toLocaleString()}
-                <span className="text-xs font-normal text-warm-text ml-1">억/월</span>
-              </p>
-              <p className="text-[10px] text-warm-text mt-1">
-                피크: <strong className="text-navy">{TZ_LABELS[cardSales.peak_tz] || cardSales.peak_tz}</strong>
-                {' '}({cardSales.peak_pct.toFixed(1)}%)
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-warm-text/50 mt-1">집계 지역 외</p>
-          )}
-        </div>
-
-        {/* 거주수요 (아파트) */}
-        <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-3">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Building2 size={11} className="text-warm-text" />
-            <p className="text-[10px] text-warm-text font-medium">거주수요
-              {aptDong?.dong && (
-                <span className="ml-1 text-navy font-bold">· {aptDong.dong}</span>
-              )}
+            <p className="text-2xl font-extrabold text-navy tabular-nums leading-none">
+              {ftScore >= 10000
+                ? `${(ftScore / 10000).toFixed(1)}만`
+                : ftScore.toLocaleString()}
+              <span className="text-xs font-normal text-warm-text ml-1">명/일</span>
             </p>
+            <span className="inline-block mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              style={{ color: ftLevel.color, background: ftLevel.color + '18' }}>
+              {ftLevel.text}
+            </span>
+            <p className="text-[10px] text-warm-text mt-1 leading-snug">{ftLevel.desc}</p>
           </div>
-          {aptDong && aptDong.total_units > 0 ? (
-            <>
-              <p className="text-xl font-extrabold text-navy tabular-nums leading-tight">
-                {aptDong.total_units.toLocaleString()}
-                <span className="text-xs font-normal text-warm-text ml-1">세대</span>
-              </p>
-              <p className="text-[10px] text-warm-text mt-1">{aptDong.complexes}개 단지</p>
-            </>
-          ) : (
-            <p className="text-sm text-warm-text/50 mt-1">아파트 정보 없음</p>
-          )}
-        </div>
 
-        {/* 역 이용객 */}
-        <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-3">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Train size={11} className="text-warm-text" />
-            <p className="text-[10px] text-warm-text font-medium">역 이용객</p>
+          {/* 카드매출 */}
+          <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <CreditCard size={11} className="text-warm-text" />
+              <p className="text-[10px] text-warm-text font-medium">이 지역 카드매출</p>
+            </div>
+            {cardSales ? (
+              <>
+                <p className="text-2xl font-extrabold text-navy tabular-nums leading-none">
+                  {Math.round(cardSales.total_sales / 100_000_000).toLocaleString()}
+                  <span className="text-xs font-normal text-warm-text ml-1">억/월</span>
+                </p>
+                <p className="text-[10px] text-warm-text mt-2">
+                  피크 <strong className="text-navy">{TZ_LABELS[cardSales.peak_tz] || cardSales.peak_tz}</strong>
+                  {' '}({cardSales.peak_pct.toFixed(1)}%)
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-lg font-bold text-warm-text/30 leading-none mt-1">—</p>
+                <p className="text-[10px] text-warm-text mt-2">화성시 집계 지역 밖이에요</p>
+              </>
+            )}
           </div>
-          {amenities.stations > 0 && stationPassengersTotal != null ? (
-            <>
-              <p className="text-xl font-extrabold text-navy tabular-nums leading-tight">
-                {stationPassengersTotal >= 10000
-                  ? `${(stationPassengersTotal / 10000).toFixed(1)}만`
-                  : stationPassengersTotal.toLocaleString()}
-                <span className="text-xs font-normal text-warm-text ml-1">명/일</span>
+
+          {/* 거주수요 */}
+          <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Building2 size={11} className="text-warm-text" />
+              <p className="text-[10px] text-warm-text font-medium">
+                거주수요
+                {aptDong?.dong && <span className="ml-1 font-bold text-navy">· {aptDong.dong}</span>}
               </p>
-              <p className="text-[10px] text-warm-text mt-1">반경 내 역 {amenities.stations}개</p>
-            </>
-          ) : (
-            <p className="text-sm text-warm-text/50 mt-1">인근 역 없음</p>
-          )}
+            </div>
+            {aptDong && aptDong.total_units > 0 ? (
+              <>
+                <p className="text-2xl font-extrabold text-navy tabular-nums leading-none">
+                  {aptDong.total_units.toLocaleString()}
+                  <span className="text-xs font-normal text-warm-text ml-1">세대</span>
+                </p>
+                <p className="text-[10px] text-warm-text mt-2">
+                  아파트 단지 <strong className="text-navy">{aptDong.complexes}개</strong>
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-lg font-bold text-warm-text/30 leading-none mt-1">—</p>
+                <p className="text-[10px] text-warm-text mt-2">이 동의 아파트 정보 없음</p>
+              </>
+            )}
+          </div>
+
+          {/* 역세권 */}
+          <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Train size={11} className="text-warm-text" />
+              <p className="text-[10px] text-warm-text font-medium">역세권</p>
+            </div>
+            {amenities.stations > 0 ? (
+              <>
+                <p className="text-2xl font-extrabold text-navy tabular-nums leading-none">
+                  {amenities.stations}
+                  <span className="text-xs font-normal text-warm-text ml-1">개역</span>
+                </p>
+                {stationPassengersTotal > 0 ? (
+                  <p className="text-[10px] text-warm-text mt-2">
+                    일 평균 <strong className="text-navy">
+                      {stationPassengersTotal >= 10000
+                        ? `${(stationPassengersTotal / 10000).toFixed(1)}만`
+                        : stationPassengersTotal.toLocaleString()}
+                    </strong>명 이용
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-warm-text mt-2">이용객 수 미집계</p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-lg font-bold text-warm-text/30 leading-none mt-1">—</p>
+                <p className="text-[10px] text-warm-text mt-2">반경 내 역 없음</p>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* ── 업종 분포 & 경쟁 현황 ── */}
+      {/* 업종 분포 & 경쟁 현황 */}
       <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-4">
-        <p className="text-[11px] font-bold text-navy mb-3">업종 분포 · 경쟁 현황</p>
+        <p className="text-[12px] font-bold text-navy mb-3 flex items-center gap-2">
+          <span className="w-1 h-4 rounded-full bg-navy inline-block" />
+          업종 분포 · 경쟁 현황
+        </p>
 
-        {/* 분포 바 */}
         {bizTotal > 0 ? (
           <div className="mb-4">
-            <div className="flex h-3 rounded-full overflow-hidden gap-px mb-1.5">
+            <div className="flex h-5 rounded-xl overflow-hidden gap-0.5 mb-2">
               {amenities.restaurants > 0 && (
-                <div style={{ flex: amenities.restaurants, background: '#F97316' }} title={`음식점 ${amenities.restaurants}개`} />
+                <div className="flex items-center justify-center"
+                  style={{ flex: amenities.restaurants, background: '#F97316' }}>
+                  {amenities.restaurants / bizTotal > 0.15 && (
+                    <span className="text-[8px] font-bold text-white">식</span>
+                  )}
+                </div>
               )}
               {amenities.cafes > 0 && (
-                <div style={{ flex: amenities.cafes, background: '#92400E' }} title={`카페 ${amenities.cafes}개`} />
+                <div className="flex items-center justify-center"
+                  style={{ flex: amenities.cafes, background: '#92400E' }}>
+                  {amenities.cafes / bizTotal > 0.15 && (
+                    <span className="text-[8px] font-bold text-white">카</span>
+                  )}
+                </div>
               )}
               {amenities.academies > 0 && (
-                <div style={{ flex: amenities.academies, background: '#8B5CF6' }} title={`학원 ${amenities.academies}개`} />
+                <div className="flex items-center justify-center"
+                  style={{ flex: amenities.academies, background: '#8B5CF6' }}>
+                  {amenities.academies / bizTotal > 0.15 && (
+                    <span className="text-[8px] font-bold text-white">원</span>
+                  )}
+                </div>
               )}
             </div>
-            <div className="flex gap-3 flex-wrap">
+            <div className="flex gap-4 flex-wrap">
               {[
                 { key: 'restaurants', label: '음식점', color: '#F97316' },
                 { key: 'cafes',       label: '카페',   color: '#92400E' },
                 { key: 'academies',   label: '학원',   color: '#8B5CF6' },
               ].map(({ key, label, color }) => (
                 <div key={key} className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+                  <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: color }} />
                   <span className="text-[10px] text-warm-text">{label}</span>
                   <span className="text-[10px] font-bold text-navy">{amenities[key]}</span>
                   <span className="text-[9px] text-warm-text">
-                    ({bizTotal > 0 ? Math.round((amenities[key] / bizTotal) * 100) : 0}%)
+                    ({Math.round((amenities[key] / bizTotal) * 100)}%)
                   </span>
                 </div>
               ))}
@@ -559,8 +627,7 @@ export default function CommercialAnalysisView() {
           <p className="text-xs text-warm-text/50 mb-4">반경 내 업종 데이터 없음</p>
         )}
 
-        {/* 경쟁 현황 */}
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {[
             { key: 'restaurants', label: '음식점 경쟁', color: '#F97316', max: 200 },
             { key: 'cafes',       label: '카페 경쟁',   color: '#92400E', max: 80  },
@@ -575,13 +642,13 @@ export default function CommercialAnalysisView() {
                   <span className="text-[10px] text-warm-text">{label}</span>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-bold text-navy tabular-nums">{count}개</span>
-                    <span className="text-[9px] font-semibold px-1.5 py-px rounded-full"
+                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
                       style={{ color: lvl.color, background: lvl.bg }}>
                       {lvl.label}
                     </span>
                   </div>
                 </div>
-                <div className="h-1.5 bg-warm-gray/15 rounded-full overflow-hidden">
+                <div className="h-2 bg-warm-gray/15 rounded-full overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-500"
                     style={{ width: `${pct}%`, background: color }} />
                 </div>
@@ -590,48 +657,54 @@ export default function CommercialAnalysisView() {
           })}
         </div>
 
-        {/* 학교 — 경쟁이 아닌 고객 유입 요인 */}
         <div className="mt-3 pt-3 border-t border-warm-gray/10 flex items-center justify-between">
-          <span className="text-[10px] text-warm-text">학교 (하교 고객 유입)</span>
-          <span className="text-[10px] font-bold text-navy tabular-nums">
-            반경 내 {amenities.schools}개
-          </span>
+          <div className="flex items-center gap-1.5">
+            <School size={11} className="text-blue-500" />
+            <span className="text-[10px] text-warm-text">학교 (하교 시간 고객 유입)</span>
+          </div>
+          <span className="text-[10px] font-bold text-navy">반경 내 {amenities.schools}개</span>
         </div>
       </div>
 
-      {/* ── 마이다에게 물어보기 ── */}
-      <button
-        onClick={handleAskMaida}
-        disabled={llmLoading || !apiData}
-        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm
-                   transition-all disabled:opacity-50 disabled:cursor-not-allowed
-                   bg-navy text-white hover:bg-navy/90 active:scale-[0.99] shadow-md"
-      >
-        <Sparkles size={15} />
-        {llmLoading ? '마이다가 분석 중이에요...' : '마이다에게 이 위치의 상권 물어보기'}
-      </button>
-
-      {/* LLM 답변 카드 */}
-      {llmAsked && (
-        <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-4">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-6 h-6 rounded-full bg-navy/10 flex items-center justify-center flex-shrink-0">
-              <Sparkles size={12} className="text-navy" />
-            </div>
-            <p className="text-[11px] font-bold text-navy">마이다 상권 분석</p>
+      {/* ─────────────────────────────────────────
+          STEP 4: 마이다에게 물어보기 (find.png — 전구 포즈)
+          ───────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-4">
+        <div className="flex items-center gap-3 mb-3">
+          <img src={findImg} alt="마이다" className="w-12 h-12 object-contain flex-shrink-0" />
+          <div>
+            <p className="text-[12px] font-bold text-navy">마이다의 상권 인사이트</p>
+            <p className="text-[10px] text-warm-text">위 데이터를 바탕으로 마이다가 분석해드려요</p>
           </div>
-          {llmLoading ? (
-            <div className="space-y-2 animate-pulse">
-              <div className="h-2.5 bg-warm-gray/20 rounded-full w-full" />
-              <div className="h-2.5 bg-warm-gray/20 rounded-full w-11/12" />
-              <div className="h-2.5 bg-warm-gray/20 rounded-full w-4/5" />
-              <div className="h-2.5 bg-warm-gray/20 rounded-full w-9/12" />
-            </div>
-          ) : (
-            <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{llmSummary}</p>
-          )}
         </div>
-      )}
+
+        <button
+          onClick={handleAskMaida}
+          disabled={llmLoading || !apiData}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm
+                     transition-all disabled:opacity-50 disabled:cursor-not-allowed
+                     bg-navy text-white hover:bg-navy/90 active:scale-[0.99]"
+        >
+          <Sparkles size={14} />
+          {llmLoading ? '마이다가 분석 중이에요...' : '이 위치의 상권 물어보기'}
+        </button>
+
+        {/* LLM 답변 */}
+        {llmAsked && (
+          <div className="mt-4 pt-4 border-t border-warm-gray/15">
+            {llmLoading ? (
+              <div className="space-y-2.5 animate-pulse">
+                <div className="h-2.5 bg-warm-gray/20 rounded-full w-full" />
+                <div className="h-2.5 bg-warm-gray/20 rounded-full w-11/12" />
+                <div className="h-2.5 bg-warm-gray/20 rounded-full w-4/5" />
+                <div className="h-2.5 bg-warm-gray/20 rounded-full w-10/12" />
+              </div>
+            ) : (
+              <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{llmSummary}</p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* 확대 지도 모달 */}
       {expanded && (
@@ -651,16 +724,13 @@ export default function CommercialAnalysisView() {
                 type="text"
                 value={address}
                 onChange={e => setAddress(e.target.value)}
-                placeholder="도로명주소 입력 후 검색"
+                placeholder="도로명주소 또는 동 이름 검색"
                 className="flex-1 min-w-0 text-[11px] bg-white border border-warm-gray/30 rounded-xl
                            px-3 py-2.5 text-navy placeholder:text-warm-gray/60
                            focus:outline-none focus:border-navy transition-colors"
               />
-              <button
-                type="submit"
-                disabled={searching}
-                className="flex-shrink-0 bg-navy text-white rounded-xl px-3 py-2.5 disabled:opacity-50 transition-opacity"
-              >
+              <button type="submit" disabled={searching}
+                className="flex-shrink-0 bg-navy text-white rounded-xl px-3 py-2.5 disabled:opacity-50">
                 <Search size={14} />
               </button>
             </form>
