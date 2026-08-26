@@ -97,13 +97,14 @@ for i, raw in enumerate(slides, 1):
             ws = ([AVAIL_W*.15-14, AVAIL_W*.22-14, AVAIL_W*.63-14] if w3
                   else [AVAIL_W*.32-14, AVAIL_W*.68-14, AVAIL_W*.48-14])
             hh = 0
+            tdfs, ifs, pad = (21, 17, 18) if w3 else (17, 15, 10)
             for ci, td in enumerate(tds[:3]):
                 it = re.search(r'<i>(.*?)</i>', td, re.S)
                 base = re.sub(r'<i>.*?</i>', '', td, flags=re.S)
-                c = lines_of(base, 17, 1.4, ws[ci])
-                if it: c += lines_of(it.group(1), 14, 1.4, ws[ci]) + 2
+                c = lines_of(base, tdfs, 1.4, ws[ci])
+                if it: c += lines_of(it.group(1), ifs, 1.4, ws[ci]) + 4
                 hh = max(hh, c)
-            h2 += hh + 14 + 1
+            h2 += hh + pad + 1
         add("표", h2)
     # 두 갈래
     for m in re.finditer(r'<div class="flowcols">(.*?)\n              </div>', sl, re.S):

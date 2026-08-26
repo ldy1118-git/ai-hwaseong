@@ -385,7 +385,7 @@
      둔다 — 기관 이름이 먼저 읽히고 파일명이 뒤따라야 한다. */
   .tbl-wrap { overflow-x: auto; }
   .csvtbl { border-collapse: collapse; width: 100%; font-family: 'Noto Sans KR', sans-serif; }
-  .csvtbl th, .csvtbl td { padding: 7px 14px 7px 0; text-align: left; vertical-align: top;
+  .csvtbl th, .csvtbl td { padding: 5px 14px 5px 0; text-align: left; vertical-align: top;
                            border-bottom: 1px solid var(--rule); }
   .csvtbl th { font-size: 15px; font-weight: 800; letter-spacing: .05em; color: var(--muted);
                border-bottom: 2px solid var(--ink); padding-bottom: 7px; }
@@ -418,9 +418,14 @@
              border-radius: 10px; font-family: 'Noto Sans KR', sans-serif; font-size: 20px;
              font-weight: 800; line-height: 1.4; color: var(--ink); }
   .formula b { color: var(--alarm); font-weight: 900; }
+  /* 7장은 표가 다섯 줄뿐이라 자리가 남는다. 6장(여섯 줄)은 빠듯해서
+     여기만 키운다 — 강당에서 읽히는 게 먼저다. */
+  .csvtbl.w3 th { font-size: 16px; }
+  .csvtbl.w3 th, .csvtbl.w3 td { padding-top: 9px; padding-bottom: 9px; }
+  .csvtbl.w3 td { font-size: 21px; line-height: 1.4; }
   .csvtbl.w3 td:first-child { width: 15%; }
   .csvtbl.w3 td:nth-child(2) { width: 22%; color: var(--ink); font-weight: 900; }
-  .csvtbl.w3 td i { display: block; margin-top: 3px; font-style: normal; font-size: 15px;
+  .csvtbl.w3 td i { display: block; margin-top: 4px; font-style: normal; font-size: 17px;
                     font-weight: 700; color: var(--muted); }
 
   .quoted { margin: 0; padding: 12px 0 12px 22px; border-left: 5px solid var(--sand);
