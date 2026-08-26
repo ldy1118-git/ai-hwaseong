@@ -139,7 +139,10 @@ for i, raw in enumerate(slides, 1):
         for x in re.finditer(r'<p class="fact">(.*?)</p>', v, re.S): add("fact", lines_of(x.group(1),24,1.5,AVAIL_W))
         for x in re.finditer(r'<p class="then">(.*?)</p>', v, re.S): add("then", lines_of(x.group(1),34,1.3,AVAIL_W)+12)
     for m in re.finditer(r'<div class="ba">', sl):
-        add("나란히", 452 + 16*1.4 + 7)
+        cap = 16*1.4 + 7
+        left  = 550 + cap
+        right = 420*970/1330 + 420*423/880 + cap*2 + 12
+        add("원문·정리", max(left, right))
     if 'archslide' in raw[:120]:
         add("그림(꽉 채움)", AVAIL_H)
     for m in re.finditer(r'<div class="archgrid">(.*?)\n              </div>', sl, re.S):
