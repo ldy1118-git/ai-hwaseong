@@ -302,17 +302,36 @@ def _reverse_geocode_dong(lat: float, lng: float) -> str | None:
     return dong
 
 
+def _strip_dong_number(name: str) -> str:
+    """행정동 → 법정동 근사 변환. 끝의 숫자를 제거.
+    병점2동 → 병점동, 동탄1동 → 동탄동, 남양1리 → 남양리"""
+    import re
+    return re.sub(r"(\d+)(동|읍|면|리)$", r"\2", name)
+
+
 def _apt_dong_summary(lat: float, lng: float) -> dict | None:
-    """핀 위치를 역지오코딩해 해당 동의 아파트 단지 수·세대수를 반환."""
+    """핀 위치를 역지오코딩해 해당 동의 아파트 단지 수·세대수를 반환.
+    행정동(병점2동)과 법정동(병점동) 불일치 시 숫자 제거 후 재시도."""
     if not _APT_BY_DONG:
         return None
     dong_name = _reverse_geocode_dong(lat, lng)
     if dong_name is None:
         return None
+
+    # 1차: 정확히 일치
     info = _APT_BY_DONG.get(dong_name)
     if info:
         return {"dong": dong_name, "eup": info["eup"],
                 "complexes": info["complexes"], "total_units": info["total_units"]}
+
+    # 2차: 행정동 숫자 제거 → 법정동 근사 (병점2동 → 병점동)
+    legal = _strip_dong_number(dong_name)
+    if legal != dong_name:
+        info = _APT_BY_DONG.get(legal)
+        if info:
+            return {"dong": legal, "eup": info["eup"],
+                    "complexes": info["complexes"], "total_units": info["total_units"]}
+
     return {"dong": dong_name, "eup": "", "complexes": 0, "total_units": 0}
 
 
