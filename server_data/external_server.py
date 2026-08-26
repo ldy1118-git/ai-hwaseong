@@ -60,7 +60,8 @@ SECRET = os.environ.get("OCR_SHARED_SECRET", "")
 _STORES:     list[dict] = []   # {"lat": float, "lng": float, "cat": "r"|"c"|"a"}
 _SCHOOLS:    list[dict] = []   # {"name": str, "level": str, "lat": float, "lng": float}
 _STATIONS:   list[dict] = []   # {"name": str, "line": str, "lat": float, "lng": float, "passengers": int}
-_APARTMENTS: list[dict] = []   # {"name": str, "units": int, "lat": float, "lng": float}
+_APARTMENTS: list[dict] = []   # {"name": str, "units": int, "dong": str, "eup": str, "lat": float, "lng": float}
+_DONG_CACHE: dict[tuple, str | None] = {}   # (lat4, lng4) → 동리 이름
 
 _UA = "hwaseong-ai-hackathon/1.0"
 
@@ -212,12 +213,53 @@ def _load_apartments() -> list[dict]:
     return [d for d in data if d.get("lat") and d.get("lng")]
 
 
+def _reverse_geocode_dong(lat: float, lng: float) -> str | None:
+    """Nominatim 역지오코딩 → 동리 이름. 소수점 4자리(≈11m) 단위로 캐시."""
+    key = (round(lat, 4), round(lng, 4))
+    if key in _DONG_CACHE:
+        return _DONG_CACHE[key]
+    params = urllib.parse.urlencode({"lat": lat, "lon": lng, "format": "json", "zoom": 14})
+    req = urllib.request.Request(
+        f"https://nominatim.openstreetmap.org/reverse?{params}",
+        headers={"User-Agent": _UA},
+    )
+    dong = None
+    try:
+        with urllib.request.urlopen(req, timeout=5) as res:
+            data = json.loads(res.read())
+        addr = data.get("address", {})
+        # 동 지역: suburb / 읍면 지역: town·village
+        dong = addr.get("suburb") or addr.get("village") or addr.get("quarter") or None
+        if dong:
+            dong = dong.strip()
+    except Exception as e:
+        print(f"[reverse_geocode] {lat},{lng} — {e}", file=sys.stderr)
+    _DONG_CACHE[key] = dong
+    return dong
+
+
 def _apt_dong_summary(lat: float, lng: float) -> dict | None:
-    """핀 위치에서 가장 가까운 아파트 단지의 동을 찾아 동 전체 집계를 반환."""
+    """핀 위치를 역지오코딩해 해당 동의 아파트 단지 수·세대수를 반환."""
     if not _APARTMENTS:
         return None
+
+    dong_name = _reverse_geocode_dong(lat, lng)
+
+    if dong_name:
+        same = [a for a in _APARTMENTS if a.get("dong") == dong_name]
+        if same:
+            return {
+                "dong":        dong_name,
+                "eup":         same[0].get("eup", ""),
+                "complexes":   len(same),
+                "total_units": sum(a.get("units", 0) for a in same),
+            }
+        # 역지오코딩은 됐지만 그 동에 아파트 없음 → 0으로 반환
+        return {"dong": dong_name, "eup": "", "complexes": 0, "total_units": 0}
+
+    # 역지오코딩 실패 시 가장 가까운 단지의 동으로 폴백
     nearest = None
-    nearest_dist = 5_000.0  # 5 km 이상이면 의미 없음
+    nearest_dist = 5_000.0
     for a in _APARTMENTS:
         if not a.get("dong"):
             continue
@@ -228,11 +270,10 @@ def _apt_dong_summary(lat: float, lng: float) -> dict | None:
     if nearest is None:
         return None
     dong = nearest["dong"]
-    eup  = nearest.get("eup", "")
     same = [a for a in _APARTMENTS if a.get("dong") == dong]
     return {
         "dong":        dong,
-        "eup":         eup,
+        "eup":         nearest.get("eup", ""),
         "complexes":   len(same),
         "total_units": sum(a.get("units", 0) for a in same),
     }
