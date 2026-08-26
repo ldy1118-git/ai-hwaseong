@@ -428,6 +428,26 @@
   .csvtbl.w3 td i { display: block; margin-top: 4px; font-style: normal; font-size: 17px;
                     font-weight: 700; color: var(--muted); }
 
+  /* 실제로 가는 메시지를 그대로 보여준다. 카카오톡 화면을 흉내내지 않고
+     우리 색으로 둔다 — 남의 앱처럼 꾸미면 그게 더 이상하다. */
+  .kkcols { display: grid; grid-template-columns: 390px 1fr; gap: 0 36px; align-items: start; }
+  .kk-head { margin: 0 0 8px; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 900;
+             letter-spacing: .14em; color: var(--muted); }
+  .kk-bubble { padding: 16px 18px; border-radius: 16px 4px 16px 16px;
+               background: rgba(251,226,129,.42); border: 1px solid rgba(42,60,119,.10); }
+  .kk-bubble p { margin: 0; font-family: 'Noto Sans KR', sans-serif; font-size: 17px;
+                 font-weight: 700; line-height: 1.5; color: var(--ink); }
+  .kk-bubble .q { margin-top: 7px; font-weight: 900; }
+  .kk-bubble .m { margin-top: 3px; font-weight: 700; color: var(--muted); }
+  .kk-bubble .sep { margin: 10px 0; color: var(--sand); letter-spacing: .1em; }
+  .kk-bubble .kk-btn { margin-top: 13px; padding-top: 10px; border-top: 1px solid rgba(42,60,119,.14);
+                       text-align: center; font-weight: 900; color: var(--ink); }
+  .kk-why { display: flex; flex-direction: column; gap: 13px; }
+  .kk-why .w { margin: 0; padding-left: 15px; border-left: 3px solid var(--rule);
+               font-family: 'Noto Sans KR', sans-serif; font-size: 18px; font-weight: 700;
+               line-height: 1.5; color: var(--muted); }
+  .kk-why .w b { color: var(--ink); font-weight: 900; }
+
   .quoted { margin: 0; padding: 12px 0 12px 22px; border-left: 5px solid var(--sand);
              font-size: 19px; font-weight: 500; line-height: 1.6; color: var(--muted); }
   .quoted b { color: var(--ink); font-weight: 900; }
@@ -951,7 +971,46 @@
         </section>
       </div>
 
-      <!-- 8장 · 안 보이는 곳 -->
+      <!-- 10장 · 카카오톡 알림 -->
+      <div class="box">
+        <section class="slide">
+          <div class="body">
+            <div class="col" style="gap:14px">
+              <p class="eyebrow">앱을 안 열어도 알게 됩니다</p>
+              <p class="kicker" style="margin:-6px 0 0">새벽에 공고를 새로 받고 나서, 조건에 맞는 것이 있으면
+                <b>카카오톡 「나와의 채팅」</b>으로 먼저 보냅니다.</p>
+              <hr class="rule">
+              <div class="kkcols">
+                <div>
+                  <p class="kk-head">실제로 가는 메시지</p>
+                  <div class="kk-bubble">
+                    <p>새로 뜬 지원사업이 조건에 잘 맞아요</p>
+                    <p class="q">「2026년 소상공인 고용보험료 지원사업 공고」</p>
+                    <p class="m">매칭 80점<br>마감 2026-11-30</p>
+                    <p class="sep">───────────</p>
+                    <p>세무 신고기한이 다가와요</p>
+                    <p class="q">「원천세 신고·납부 (매월)」</p>
+                    <p class="m">5일 남았어요</p>
+                    <p class="kk-btn">공고 보러가기</p>
+                  </div>
+                </div>
+                <div class="kk-why">
+                  <p class="w"><b>한 통으로 묶습니다.</b> 공고와 세무를 따로 보내면 아침에 두 번 울립니다</p>
+                  <p class="w"><b>켠 날에는 아무것도 안 보냅니다.</b> 그때 걸리는 스무 건은 「새로 떴다」가 아니라
+                    처음부터 있던 것입니다. 하루 세 건씩 나가면 아흐레 동안 카톡이 옵니다</p>
+                  <p class="w"><b>Vercel 이 아니라 연구실 서버가 보냅니다.</b> 서버리스는 요청이 와야 도는데,
+                    알림은 아무도 안 부를 때 나가야 하니까요</p>
+                  <p class="w"><b>동의는 누를 때 받습니다.</b> 로그인 화면에 「메시지 전송」을 같이 띄우면
+                    처음 온 분이 광고인 줄 알고 체크를 뺍니다</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="pagenum">10 · 카카오톡</p>
+        </section>
+      </div>
+
+      <!-- 11장 · 원칙 -->
       <div class="box">
         <section class="slide">
           <div class="body">
@@ -959,12 +1018,6 @@
               <p class="eyebrow">화면에 안 보이는 곳</p>
               <hr class="rule">
               <div class="claims">
-                <div class="claim">
-                  <p class="head">먼저 갑니다</p>
-                  <p class="body-t">조건에 맞는 새 공고와 세무 신고기한을 <b>한 통으로 묶어</b> 카카오톡 「나와의 채팅」으로 보냅니다.
-                    켠 날에는 아무것도 안 보냅니다 — 그때 걸리는 스무 건은 「새로 떴다」가 아니니까요.</p>
-                  <p class="not">Vercel 이 아니라<br>연구실 서버가 보낸다<br><span style="font-weight:700;color:var(--muted)">서버리스는 요청이<br>와야 돌기 때문</span></p>
-                </div>
                 <div class="claim">
                   <p class="head">안 남깁니다</p>
                   <p class="body-t">사업자등록증 사진을 <b>저장하지 않습니다.</b> 메모리에서 읽고 필요한 항목만 돌려줍니다.
@@ -980,11 +1033,11 @@
               </div>
             </div>
           </div>
-          <p class="pagenum">10 · 원칙</p>
+          <p class="pagenum">11 · 원칙</p>
         </section>
       </div>
 
-      <!-- 11장 · 마무리 -->
+      <!-- 12장 · 마무리 -->
       <div class="box">
         <section class="slide on-night">
           <div class="orbit a"></div>
@@ -1006,7 +1059,7 @@
               <p class="meta-line kr" style="position:static;color:var(--accent);font-size:22px;font-weight:900">ai-hwaseong-ten.vercel.app</p>
             </div>
           </div>
-          <p class="pagenum">11 · 마무리</p>
+          <p class="pagenum">12 · 마무리</p>
         </section>
       </div>
 
@@ -1017,7 +1070,7 @@
     <aside class="notes" id="notes" aria-live="polite"></aside>
     <div class="controls">
       <button class="btn" id="prev" type="button">← 이전</button>
-      <span class="counter" id="counter">1 / 11</span>
+      <span class="counter" id="counter">1 / 12</span>
       <button class="btn" id="next" type="button">다음 →</button>
       <button class="btn" id="gridBtn" type="button" aria-pressed="false">전체 보기</button>
       <button class="btn" id="scriptBtn" type="button" aria-pressed="false">발표 대본</button>
@@ -1097,11 +1150,18 @@
                    '세무 18건은 국세청 원문으로 전부 대조했다. 공휴일이면 다음 날로 미는 규칙까지 계산한다',
                    '③ 신청 완료까지가 우리 서비스의 한 문장이다. 여기서 힘줄 것',
                    '영상이 2분으로 제일 길다. 끝나고 바로 8장으로'] },
-    10: { say: '"화면에 안 보이는 곳에서도 같은 원칙으로 만들었습니다."',
+    10: { say: '"앱을 안 열어도 알게 됩니다."',
+         bullets: ['**왼쪽 말풍선이 실제로 나가는 문장 그대로다.** 지어낸 예시가 아니라고 말해도 좋다',
+                   '오른쪽 넷을 다 읽지 말 것. 「한 통으로」와 「켠 날에는 안 보낸다」 둘만',
+                   '「아흐레 동안 카톡이 온다」가 이 장에서 제일 잘 남는 말이다 — 겪고 고친 것이라',
+                   '3장 「약속대로 — 신청기간 알림」이 여기서 완성된다. 그 연결을 한 마디로',
+                   '질문받으면: 친구에게 보내기는 안 쓴다. 「나와의 채팅」뿐이라 심사가 안 걸린다',
+                   '토큰은 Supabase 에만 두고 알림을 끄면 행을 지운다 — 물어보면 이렇게'] },
+    11: { say: '"화면에 안 보이는 곳에서도 같은 원칙으로 만들었습니다."',
          bullets: ['셋 다 실제로 겪고 고친 것이다 — 사진 넉 장이 서버에 남아 있었다고 그대로 말할 것',
                    '개인정보는 심사에서 자주 나오는 질문이다. 먼저 말해두면 질문이 줄어든다',
                    '「지어내지 않는다」는 매출 그래프를 지운 이야기와 같이 말해야 힘이 있다'] },
-    11: { say: '"찾아주는 데서 끝내지 않고, 신청 완료까지 같이 갑니다."',
+    12: { say: '"찾아주는 데서 끝내지 않고, 신청 완료까지 같이 갑니다."',
          bullets: ['새로운 내용을 넣지 말 것. 30초 안에 닫는다',
                    '남은 셋은 「못 한다」가 아니라 「무엇이 있으면 되는지」로 말할 것',
                    '주소를 띄운 채로 끝낸다 — 질의응답 동안 심사위원이 직접 열어볼 수 있다'] },
@@ -1167,13 +1227,19 @@
       '다음 세무일정이 **D-day** 로 뜹니다. 18건 전부 국세청 원문으로 대조했고, 기한이 공휴일이면 다음 날로 미는 규칙까지 계산합니다.',
       '지원사업은 **29건**이 신청가능으로 걸립니다. 그리고 서류 체크리스트에서 접수처를 거쳐 **신청 완료까지** 갑니다.'
     ]},
-    { n: 10, t: '원칙', sec: 42, lines: [
+    { n: 10, t: '카카오톡', sec: 45, lines: [
+      '화면에 안 보이는 곳도 말씀드리겠습니다. 새벽에 공고를 새로 받고 나서, 조건에 맞는 것이 있으면 **카카오톡으로 먼저 보냅니다.**',
+      '왼쪽이 **실제로 나가는 메시지**입니다. 새로 뜬 공고와 다가오는 세무 신고기한이 **한 통에** 들어 있습니다. 따로 보내면 아침에 두 번 울립니다.',
+      '**켠 날에는 아무것도 안 보냅니다.** 그때 걸리는 스무 건은 새로 뜬 게 아니라 처음부터 있던 것이니까요. 하루 세 건씩 나가면 아흐레 동안 카톡이 옵니다.',
+      '보내는 것은 Vercel 이 아니라 **연구실 서버**입니다. 서버리스는 요청이 와야 도는데, 알림은 아무도 안 부를 때 나가야 하기 때문입니다.'
+    ]},
+    { n: 11, t: '원칙', sec: 34, lines: [
       '화면에 안 보이는 곳도 말씀드리겠습니다.',
       '조건에 맞는 새 공고와 세무 신고기한을 **한 통으로 묶어** 카카오톡으로 보냅니다. 앱을 안 열어도 알게 됩니다.',
       '**사업자등록증 사진은 저장하지 않습니다.** 메모리에서 읽고 필요한 항목만 돌려줍니다. 실제로 넉 장이 남아 있어서 고쳤습니다.',
       '그리고 **출처 없는 숫자를 화면에 두지 않습니다.** 매출과 재방문율을 그렸다가 전부 지웠습니다.'
     ]},
-    { n: 11, t: '마무리', sec: 46, lines: [
+    { n: 12, t: '마무리', sec: 46, lines: [
       '정리하겠습니다. 찾는다, 읽는다, 낸다, 관리한다.',
       '**정보만 던져주고 알아서 신청하세요 하지 않습니다. 신청 완료까지 같이 갑니다.**',
       '남은 것도 말씀드리겠습니다. 주변 동종업체는 **데이터가 이미 서버에 있어서 매장 위치만 받으면** 됩니다. 신규개업·폐업은 인허가 데이터를 붙이면 되고, 매출 추이는 POS 가 있어야 합니다.',
