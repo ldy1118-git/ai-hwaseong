@@ -14,6 +14,11 @@
 Groq 무료 등급은 하루 토큰 한도가 있다(계정당 100,000). 이 점검은 짧은
 프롬프트만 쓰지만, 그래도 리허설 때마다 돌리지는 말 것.
 
+[6] 은 Vercel 밖(pjrx.kr)까지 실제로 나간다. 거기가 꺼져 있으면 우리 중계는
+조용히 503 을 돌려주고 **화면은 멀쩡히 뜬다** — 지도만 안 채워져서 눈으로는
+모른다. 그래서 사진 한 장과 좌표 하나를 진짜로 보내본다. 유동인구만 중계까지만
+보는데, 그 길은 Overpass 와 LLM 을 함께 태워서 점검이 Groq 한도를 먹는다.
+
 종료 코드
     0   시연 가능
     1   시연에 지장 있음 — 무엇이 문제인지 마지막에 요약된다
@@ -23,6 +28,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -42,6 +48,20 @@ TIMEOUT = 60
 # 아무것도 못 돌려준다. 그 차이만 잡으면 된다.
 MIN_NOTICES = 20        # 이 아래면 수집이 깨졌다고 본다 (평소 80건 안팎)
 MIN_MATCH = 1           # 신청가능이 0건이면 보여줄 화면이 없다
+
+# OCR 서버에 보낼 시험용 사진. 64×64 흰 png 132바이트다. 등록증이 아니라
+# 아무것도 안 적힌 그림이라 서버는 빈 결과를 돌려주는데, 우리가 보려는 건
+# **읽은 내용이 아니라 사진 한 장이 서버까지 갔다 왔는가**다.
+BLANK_PNG = (
+    "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAS0lEQVR42u3PMQ0AAAwDoPo33"
+    "UrYvQQckD4XAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAY"
+    "HLAMpT0sIcNbcEAAAAAElFTkSuQmCC"
+)
+
+# 동탄역 근처. 화성시 안이면서 음식점이 실제로 빽빽한 곳이라, 여기서
+# 음식점이 0건이면 좌표가 아니라 데이터가 안 올라온 것이다. 역·학교는
+# 0이 나올 수 있어서(동탄역은 SRT 라 코레일 지하철 목록에 없다) 안 본다.
+DEMO_LATLNG = {"lat": 37.2001, "lng": 127.0735}
 
 PROFILES = {
     "예비창업 카페": {"business_status": "예비창업자", "category": "카페",
@@ -252,6 +272,70 @@ def check_llm(groq_keys: int) -> None:
         line("❌", "JSON 모드", f"HTTP {code}")
 
 
+# ── 6. 외부 서버 ─────────────────────────────────────────────
+# OCR 과 상권분석은 Vercel 밖 pjrx.kr 에서 돈다. 여기가 꺼지면 우리 쪽
+# 중계는 **조용히 503 을 돌려준다.** 화면은 멀쩡히 뜨고 지도만 안 채워지니,
+# 눈으로 보기 전에는 모른다. 무대에서 그걸 처음 알게 하지 않으려고 여기서
+# 실제로 한 번씩 찔러본다.
+#
+# 무거운 것을 부르지 않는다. 유동인구는 Overpass 와 LLM 을 함께 태우는데,
+# 리허설마다 그걸 돌리면 Groq 하루 한도를 점검이 먹는다. 그래서 유동인구는
+# **중계와 열쇠까지만** 본다 — 그 위는 [5] 에서 이미 확인한 것과 같은 키다.
+
+def http(code: int) -> str:
+    """0 은 응답이 아니라 아예 못 닿았다는 뜻이다. HTTP 0 이라고 쓰면 헷갈린다."""
+    return "닿지 않음" if code == 0 else f"HTTP {code}"
+
+
+def check_external() -> None:
+    print("\n[6] 외부 서버 — pjrx.kr")
+
+    # ① 사진 한 장을 실제로 보내본다
+    t0 = time.time()
+    code, d = post("/api/ocr", {"image": "data:image/png;base64," + BLANK_PNG,
+                                "mimeType": "image/png"})
+    took = time.time() - t0
+    if code == 200 and isinstance(d, dict) and "result" in d:
+        line("✅", "OCR 사진", f"{took:.1f}초 만에 돌아왔다")
+    elif code == 503:
+        warn.append("OCR 서버가 꺼져 있다 — 온보딩이 사진 화면을 안 내고 직접 입력으로 간다. "
+                    "켜려면 scripts/run_ocr.sh, 주소가 바뀌었으면 Vercel 의 OCR_BACKEND_URL")
+        line("⚠️ ", "OCR 사진", "503 — 서버가 꺼져 있다 (직접 입력으로 대신한다)")
+    else:
+        warn.append(f"/api/ocr — {http(code)}. 사진 읽기를 시연하지 말 것")
+        line("⚠️ ", "OCR 사진", http(code))
+
+    # ② 상권분석. 이건 대신할 것이 없어서 꺼지면 화면이 빈 채로 뜬다
+    code, d = post("/api/commercial", {**DEMO_LATLNG, "radii": {
+        "schools": 500, "restaurants": 500, "cafes": 500,
+        "academies": 500, "stations": 1000}})
+    counts = (d or {}).get("counts") or {}
+    if code == 200 and counts.get("restaurants"):
+        line("✅", "상권분석", " · ".join(
+            f"{ko} {counts.get(k, 0)}" for k, ko in
+            (("restaurants", "음식점"), ("cafes", "카페"), ("academies", "학원"))))
+    elif code == 200:
+        fatal.append("상권분석이 동탄역에서 음식점 0건을 돌려준다 — 서버는 떴는데 CSV 를 못 읽은 것")
+        line("❌", "상권분석", "음식점 0건 — CSV 가 안 올라왔다")
+    else:
+        fatal.append(f"상권분석 — {http(code)}. 비사업자 화면이 빈 채로 뜬다. "
+                     "외부 서버가 떠 있는지, Vercel 의 OCR_BACKEND_URL 이 맞는지 볼 것")
+        line("❌", "상권분석", f"{http(code)} — 지도에 아무것도 안 찍힌다")
+
+    # ③ 유동인구는 중계까지만. 빈 요청은 서버까지 안 가고 400 으로 되돌아온다.
+    #    그 400 이 나오려면 OCR_BACKEND_URL 과 OCR_SHARED_SECRET 이 둘 다
+    #    있어야 한다 — 없으면 그 앞에서 503 이다. 열쇠까지 한 번에 확인된다.
+    code, _ = post("/api/foottraffic", {})
+    if code == 400:
+        line("✅", "유동인구 중계", "주소·열쇠 둘 다 있다 (Overpass·LLM 은 안 불렀다)")
+    elif code == 503:
+        warn.append("유동인구가 503 — OCR_BACKEND_URL 이 비어 있다")
+        line("⚠️ ", "유동인구 중계", "503 — 주소가 설정되지 않았다")
+    else:
+        warn.append(f"유동인구 중계 — {http(code)}")
+        line("⚠️ ", "유동인구 중계", http(code))
+
+
 def main() -> int:
     print(f"\n시연 직전 점검 — {BASE}")
     print("=" * 62)
@@ -260,6 +344,7 @@ def main() -> int:
     check_terms()
     check_match()
     check_llm(groq)
+    check_external()
 
     print("\n" + "=" * 62)
     if fatal:
