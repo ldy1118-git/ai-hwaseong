@@ -666,7 +666,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
       {!loading && regularSorted.length > REGULAR_INIT && (
         <button type="button"
           onClick={() => setRegularExpanded(v => !v)}
-          className="w-full flex items-center justify-center gap-1 py-2 mt-1
+          className="tap w-full flex items-center justify-center gap-1 py-2 mt-1
                      border-t border-warm-gray/20
                      text-[13px] font-semibold text-navy hover:underline">
           {regularExpanded ? '접기' : `${regularSorted.length - REGULAR_INIT}건 더보기`}
