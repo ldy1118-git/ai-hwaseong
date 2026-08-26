@@ -128,6 +128,74 @@ function mapMatch(r) {
   }
 }
 
+/* 담아둔 공고.
+ *
+ * 칩으로 「관심공고」만 켜도 **달력에 점만 찍히고 목록이 없었다.** 어느
+ * 공고인지 보려면 칸을 하나씩 눌러야 했다. 홈에는 목록이 있는데 여기엔
+ * 안 붙어 있었다 — 담아둔 것을 보러 오는 화면이 정작 일정인데도.
+ *
+ * 마감이 가까운 순이고, 마감일이 없는 것은 뒤로 보낸다 — 「상시 접수」
+ * 묶음이 아래에 따로 있어서 거기서 다시 만난다.
+ */
+function Favorites({ matches, open, onToggle }) {
+  const navigate = useNavigate()
+  // listFavorites() 는 **공고 객체**를 준다. 번호만 뽑아서 견준다.
+  const ids = () => new Set(listFavorites().map(f => f.notice_id))
+  const [favSet, setFavSet] = useState(ids)
+
+  // 이 화면 안에서 ★ 를 껐다 켜면 목록도 따라 움직여야 한다.
+  useEffect(() => subscribeFavorites(() => setFavSet(ids())), [])
+
+  const list = matches
+    .filter(m => favSet.has(m.id))
+    .sort((a, b) => {
+      if (a.dDay === null) return b.dDay === null ? 0 : 1
+      if (b.dDay === null) return -1
+      return a.dDay - b.dDay
+    })
+
+  if (list.length === 0) return null
+
+  return (
+    <CollapsibleSection
+      title="관심공고" count={`${list.length}건`} tone="text-sunset-orange"
+      open={open} onToggle={onToggle}
+    >
+      <p className="text-sm text-warm-text mb-3 leading-snug">
+        ★ 로 담아두신 것이에요. 마감이 가까운 것부터 보여드려요.
+      </p>
+      <div className="space-y-2 lg:max-h-[58vh] lg:overflow-y-auto lg:pr-1">
+        {list.map(m => (
+          <div key={m.id}
+            className="bg-primary-bg border border-warm-gray/25 rounded-xl pl-1.5 pr-4 py-2.5
+                       hover:border-navy/40 transition flex items-start gap-1.5">
+            <FavoriteButton notice={m} size={18} className="mt-0.5" />
+            <button
+              onClick={() => {
+                localStorage.setItem('mars-fit-selected-match', JSON.stringify(m.raw))
+                navigate('/notice')
+              }}
+              className="flex-1 min-w-0 text-left flex items-start gap-3 py-0.5">
+              <span className="flex-1 text-sm font-medium text-navy leading-snug line-clamp-2">
+                {m.title}
+              </span>
+              <span className={[
+                'text-xs font-bold whitespace-nowrap mt-0.5',
+                m.dDay === null ? 'text-warm-gray'
+                  : m.dDay <= 7 ? 'text-sunset-orange' : 'text-warm-text',
+              ].join(' ')}>
+                {m.dDay === null ? '마감일 미정'
+                  : m.dDay === 0 ? '오늘 마감'
+                    : `D-${m.dDay}`}
+              </span>
+            </button>
+          </div>
+        ))}
+      </div>
+    </CollapsibleSection>
+  )
+}
+
 /* 마감일이 없는 공고를 따로 모아 보여준다.
  *
  * 달력은 날짜가 있는 것만 그릴 수 있어서 apply_period.end 가 없으면
