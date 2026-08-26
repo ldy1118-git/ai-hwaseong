@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { MessageSquare, Check, Loader2 } from 'lucide-react'
+import { MessageSquare, Check, Loader2, Send } from 'lucide-react'
 import { getToken } from '../../utils/api'
-import { getKakaoNotify, goToKakaoNotifyConsent, stopKakaoNotify } from '../../utils/kakao'
+import { getKakaoNotify, goToKakaoNotifyConsent, stopKakaoNotify, sendTestKakao } from '../../utils/kakao'
+import { testMessageText } from '../../utils/kakaoPreview'
 
 /**
  * 카카오톡 알림 켜기·끄기.
@@ -22,6 +23,8 @@ export default function KakaoNotifyCard({ inline = false, className = '' }) {
   const [enabled, setEnabled] = useState(null)   // null = 아직 모름
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [testing, setTesting] = useState(false)
+  const [tested, setTested] = useState(false)
 
   const loggedIn = Boolean(getToken())
 
@@ -44,6 +47,26 @@ export default function KakaoNotifyCard({ inline = false, className = '' }) {
       setError(err.message || '알림을 켜지 못했어요')
       setBusy(false)
     }
+  }
+
+  /* 「지금 한 통 보내보기」.
+   *
+   * 켜두기만 하고 진짜 오는지 모르는 채로 며칠을 보내는 게 제일 나쁘다.
+   * 새벽에 처음 울릴 때까지 확인할 길이 없었다.
+   *
+   * **본문은 여기서 만든다.** 화면에 이미 매칭 결과와 세무 기한이 있고,
+   * 서버에서 다시 매칭을 돌리면 같은 판정이 두 벌이 된다.
+   *
+   * **보낸 기록을 안 남긴다.** 확인 한 번에 그날 진짜 알림이 사라지면 안 된다. */
+  async function sendTest() {
+    setTesting(true); setError(''); setTested(false)
+    try {
+      await sendTestKakao(await testMessageText())
+      setTested(true)
+    } catch (err) {
+      setError(err.message || '보내지 못했어요')
+    }
+    setTesting(false)
   }
 
   async function turnOff() {
@@ -102,6 +125,28 @@ export default function KakaoNotifyCard({ inline = false, className = '' }) {
         {busy && <Loader2 size={13} className="animate-spin" />}
         {enabled === null ? '확인 중...' : enabled ? '알림 끄기' : '카톡으로 알림 받기'}
       </button>
+
+      {/* 켜져 있을 때만 보인다. 꺼져 있으면 보낼 토큰이 없어서 눌러도
+          「꺼져 있어요」만 나온다 — 그런 버튼은 없느니만 못하다. */}
+      {enabled && (
+        <button
+          type="button"
+          onClick={sendTest}
+          disabled={testing}
+          className="tap mt-2 w-full py-2.5 rounded-xl text-[13px] font-bold
+                     flex items-center justify-center gap-1.5
+                     border border-warm-gray/40 text-navy hover:bg-warm-gray/10
+                     disabled:opacity-40 disabled:cursor-default transition-all active:scale-[.99]"
+        >
+          {testing ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+          {testing ? '보내는 중...' : tested ? '한 통 더 보내기' : '지금 한 통 보내보기'}
+        </button>
+      )}
+      {tested && !error && (
+        <p className="mt-2 text-[13px] text-emerald-600 leading-relaxed">
+          보냈어요. 카톡의 「나와의 채팅」을 확인해주세요.
+        </p>
+      )}
     </div>
   )
 }

@@ -100,3 +100,4 @@ export async function finishKakaoNotify() {
 
 /** 끈다. 서버에서 refresh_token 행이 지워진다. */
 export const stopKakaoNotify = disableKakaoNotify
+export { sendTestKakao } from './api'

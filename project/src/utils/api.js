@@ -222,6 +222,16 @@ export const enableKakaoNotify = (code) =>
 export const disableKakaoNotify = () =>
   authed('/api/notify/kakao', 'DELETE')
 
+/** 지금 한 통 보낸다. 켜져 있어야 된다.
+ *
+ *  **본문을 화면이 만들어 보낸다.** 서버에서 다시 매칭을 돌리면 같은 판정이
+ *  두 벌이 된다. 화면에는 이미 매칭 결과와 세무 기한이 있으니 그대로 쓴다.
+ *  「나에게 보내기」라 남의 카톡으로는 못 간다.
+ *
+ *  **보낸 기록을 안 남긴다.** 확인 한 번에 그날 진짜 알림이 사라지면 안 된다. */
+export const sendTestKakao = (text) =>
+  authed('/api/notify/kakao', 'POST', { action: 'test', text })
+
 /** 이 기기에 남은 것을 전부 지운다.
  *
  *  키를 하나씩 적어두면 새 키가 생겼을 때 빠뜨린다 — 실제로 로그아웃이
