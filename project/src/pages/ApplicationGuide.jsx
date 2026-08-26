@@ -278,8 +278,18 @@ export default function ApplicationGuide() {
   const [statusMsg,   setStatusMsg]   = useState('')
   const [drawerItem,  setDrawerItem]  = useState(null)
   const [showPrep,    setShowPrep]    = useState(false)
-  const [showApply,     setShowApply]     = useState(false)
+  const [showApply,       setShowApply]       = useState(false)
   const [showApplyDrawer, setShowApplyDrawer] = useState(false)
+  const [applied,         setApplied]         = useState(() => {
+    // 이미 신청한 공고면 바로 완료 단계로
+    try {
+      const raw = localStorage.getItem('mars-fit-selected-match')
+      const prog = raw ? JSON.parse(raw) : null
+      if (!prog?.notice_id) return false
+      const list = JSON.parse(localStorage.getItem(APPLIED_KEY) ?? '[]')
+      return list.some(p => p.notice_id === prog.notice_id)
+    } catch { return false }
+  })
   const [error,       setError]       = useState('')
   const [llmWarn,     setLlmWarn]     = useState('')   // LLM 실패 시 경고만 (에러 화면 아님)
 
@@ -529,7 +539,7 @@ export default function ApplicationGuide() {
           ) : (
             <>
               {/* 궤도 진행 바 */}
-              <OrbitProgressBar checked={checkedCount} total={totalCount} />
+              <OrbitProgressBar checked={checkedCount} total={totalCount} applied={applied} />
 
               {/* 진행 카운터 */}
               <div className="px-5 pb-1 flex items-center justify-between">
@@ -641,7 +651,7 @@ export default function ApplicationGuide() {
         <ApplyStepDrawer
           program={program}
           onClose={() => setShowApplyDrawer(false)}
-          onComplete={() => markApplied(program)}
+          onComplete={() => { markApplied(program); setApplied(true) }}
         />
       )}
     </div>

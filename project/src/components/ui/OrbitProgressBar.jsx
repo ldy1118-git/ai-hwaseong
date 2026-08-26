@@ -86,7 +86,7 @@ function Planet({ cx, cy, status, idx }) {
   )
 }
 
-export default function OrbitProgressBar({ checked, total }) {
+export default function OrbitProgressBar({ checked, total, applied = false }) {
   const pathRef  = useRef(null)
   const [len, setLen] = useState(338)
 
@@ -94,11 +94,12 @@ export default function OrbitProgressBar({ checked, total }) {
     if (pathRef.current) setLen(pathRef.current.getTotalLength())
   }, [])
 
-  const ratio     = total > 0 ? checked / total : 0
-  const fillRatio = Math.min(1 / 3 + ratio / 3, 2 / 3)
+  const ratio      = total > 0 ? checked / total : 0
+  const fillRatio  = applied ? 1 : Math.min(1 / 3 + ratio / 3, 2 / 3)
   const dashOffset = len - fillRatio * len
 
   function nodeStatus(i) {
+    if (applied) return i < 3 ? 'done' : 'current'
     if (i === 0) return 'done'
     if (i === 1) return ratio >= 1 ? 'done' : 'current'
     if (i === 2) return ratio >= 1 ? 'current' : 'future'

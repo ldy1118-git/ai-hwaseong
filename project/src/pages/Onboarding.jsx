@@ -5,6 +5,7 @@ import Button from '../components/ui/Button'
 import logoImg from '../../design/logo.png'
 import marsImg from '../../design/mars.png'
 import findImg from '../../design/find.png'
+import searchImg from '../../design/search.png'
 import { getToken, clearToken, saveOnboarding, patchOnboarding, apiUrl, mockOcrResult,
          deleteOnboarding, clearLocalData, fetchOcrReady} from '../utils/api'
 import { generateText } from '../utils/llm/llmProvider'
@@ -337,7 +338,7 @@ function DoneScreen({ count, onConfirm }) {
     return (
       <div className="min-h-screen bg-primary-bg flex flex-col items-center justify-center px-5 gap-5">
         <style>{`@keyframes doneFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}`}</style>
-        <img src={findImg} alt="" aria-hidden className="w-40 h-40 object-contain"
+        <img src={searchImg} alt="" aria-hidden className="w-40 h-40 object-contain"
              style={{ animation: 'doneFloat 2s ease-in-out infinite' }} />
         <div className="text-center">
           <p className="text-lg font-bold text-navy">마이다가 딱 맞는</p>
@@ -360,7 +361,7 @@ function DoneScreen({ count, onConfirm }) {
 
       {/* 마이다 + 말풍선 */}
       <div className="flex items-end gap-3 w-full max-w-sm">
-        <img src={marsImg} alt="마이다" className="w-16 h-16 object-contain flex-shrink-0"
+        <img src={findImg} alt="마이다" className="w-16 h-16 object-contain flex-shrink-0"
              style={{ filter: 'drop-shadow(0 4px 8px rgba(42,60,119,0.2))' }} />
         <div className="relative bg-white border border-warm-gray/30 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm flex-1">
           <p className="text-sm font-bold text-navy">

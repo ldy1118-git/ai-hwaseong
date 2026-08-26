@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Card from '../ui/Card'
 import { fetchMatches, lookupTerms, DEFAULT_PROFILE } from '../../utils/api'
 import { generateText } from '../../utils/llm/llmProvider'
 import findImg from '../../../design/find.png'
+import searchImg from '../../../design/search.png'
 import FavoriteButton from '../ui/FavoriteButton'
 import { useRememberedScroll } from '../../utils/scrollMemory'
 import { isVisited, markVisited, subscribeVisited } from '../../utils/visitedNotices'
@@ -508,14 +510,24 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
   // 목록은 언제나 전부 그린다. 「더보기」는 없앴다 — 어차피 칸 안에서
   // 스크롤하는데 버튼까지 두면 같은 일을 두 군데서 시키는 셈이다.
   const wide = useIsWide()
-  // 받아온 목록은 그대로 두고 그릴 때만 줄 세운다. 정렬을 바꿀 때마다
-  // 매칭을 다시 돌릴 이유가 없다.
   const compare = (SORTS[sortKey] ?? SORTS.score).compare
   const urgentSorted  = useMemo(() => [...urgent].sort(compare),  [urgent, sortKey])
   const regularSorted = useMemo(() => [...regular].sort(compare), [regular, sortKey])
 
-  const [urgentRef,  urgentCap]  = useCardCap([urgentSorted,  loading, aiDescs, termDefs])
-  const [regularRef, regularCap] = useCardCap([regularSorted, loading, aiDescs, termDefs])
+  const [urgentExpanded,  setUrgentExpanded]  = useState(false)
+  const [regularExpanded, setRegularExpanded] = useState(false)
+
+  // 정렬 바뀌면 접힌 상태로 리셋
+  useEffect(() => { setUrgentExpanded(false);  }, [sortKey])
+  useEffect(() => { setRegularExpanded(false); }, [sortKey])
+
+  const URGENT_INIT  = 1
+  const REGULAR_INIT = 3
+  const urgentVisible  = urgentExpanded  ? urgentSorted  : urgentSorted.slice(0,  URGENT_INIT)
+  const regularVisible = regularExpanded ? regularSorted : regularSorted.slice(0, REGULAR_INIT)
+
+  const [urgentRef,  urgentCap]  = useCardCap([urgentVisible,  loading, aiDescs, termDefs])
+  const [regularRef, regularCap] = useCardCap([regularVisible, loading, aiDescs, termDefs])
 
   // 넓은 화면에서는 이 목록이 카드 몇 장 높이로 잘려 안에서 굴러간다.
   // 공고를 보고 나오면 그 안쪽 위치도 되돌려준다 — 창 스크롤만 기억하면
@@ -553,7 +565,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
         `}</style>
         <div className="flex flex-col items-center py-10">
           <img
-            src={findImg}
+            src={searchImg}
             alt=""
             aria-hidden="true"
             className="w-40 h-40 object-contain"
@@ -587,14 +599,25 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             <h2 className="text-base font-bold text-sunset-orange tracking-wide uppercase">긴급 마감</h2>
           </div>
           <div ref={urgentRef} style={capStyle(wide, urgentCap)}
-               className="grid grid-cols-1 gap-2.5 mb-6 lg:pr-1.5">
+               className="grid grid-cols-1 gap-2.5 lg:pr-1.5">
             {loading
-              ? [1, 2].map(i => <SkeletonCard key={i} />)
-              : urgentSorted.map(item => (
+              ? [1].map(i => <SkeletonCard key={i} />)
+              : urgentVisible.map(item => (
                   <ProgramCard key={item.id} item={item} accent="orange" onDetail={() => handleDetail(item)} aiDesc={aiDescs[item.id]} termDefs={termDefs} />
                 ))
             }
           </div>
+          {!loading && urgentSorted.length > URGENT_INIT && (
+            <button type="button"
+              onClick={() => setUrgentExpanded(v => !v)}
+              className="w-full flex items-center justify-center gap-1 py-2 mt-1 mb-6
+                         border-t border-warm-gray/20
+                         text-[13px] font-semibold text-sunset-orange hover:underline">
+              {urgentExpanded ? '접기' : `${urgentSorted.length - URGENT_INIT}건 더보기`}
+              <ChevronDown size={13} className={`transition-transform duration-150 ${urgentExpanded ? 'rotate-180' : ''}`} />
+            </button>
+          )}
+          {!loading && urgentSorted.length <= URGENT_INIT && <div className="mb-6" />}
         </>
       )}
 
@@ -633,13 +656,23 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
       <div ref={regularRef} style={capStyle(wide, regularCap)}
            className="grid grid-cols-1 gap-2.5 lg:pr-1.5">
         {loading
-          ? [1, 2, 3, 4].map(i => <SkeletonCard key={i} />)
-          : regularSorted.map(item => (
+          ? [1, 2, 3].map(i => <SkeletonCard key={i} />)
+          : regularVisible.map(item => (
               <ProgramCard key={item.id} item={item} accent="navy"
                 onDetail={() => handleDetail(item)} aiDesc={aiDescs[item.id]} termDefs={termDefs} />
             ))
         }
       </div>
+      {!loading && regularSorted.length > REGULAR_INIT && (
+        <button type="button"
+          onClick={() => setRegularExpanded(v => !v)}
+          className="w-full flex items-center justify-center gap-1 py-2 mt-1
+                     border-t border-warm-gray/20
+                     text-[13px] font-semibold text-navy hover:underline">
+          {regularExpanded ? '접기' : `${regularSorted.length - REGULAR_INIT}건 더보기`}
+          <ChevronDown size={13} className={`transition-transform duration-150 ${regularExpanded ? 'rotate-180' : ''}`} />
+        </button>
+      )}
 
       {!loading && urgent.length === 0 && regular.length === 0 && (
         <p className="text-sm text-warm-text text-center py-8">현재 조건에 맞는 지원사업이 없어요.</p>
