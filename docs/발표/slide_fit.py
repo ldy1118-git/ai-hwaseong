@@ -87,13 +87,15 @@ for i, raw in enumerate(slides, 1):
         for x in re.finditer(r'<p class="v"[^>]*>(.*?)</p>', c, re.S): ch += lines_of(x.group(1),16,1.5,colw*.62)+10
         add("ai-col", ch)
     # 받아온 파일 표
-    for m in re.finditer(r'<table class="csvtbl">(.*?)</table>', sl, re.S):
+    for m in re.finditer(r'<table class="csvtbl[^"]*">(.*?)</table>', sl, re.S):
         tb = m.group(1); h2 = 0
         head = re.search(r'<tr><th>(.*?)</tr>', tb, re.S)
         if head: h2 += 14*1.3 + 7 + 9 + 2
         for r in re.findall(r'<tr><td>(.*?)</tr>', tb, re.S):
             tds = re.findall(r'(?:^|<td>)(.*?)(?=</td>)', r, re.S)
-            ws = [AVAIL_W*.32-14, AVAIL_W*.68-14, AVAIL_W*.48-14]
+            w3 = 'w3' in m.group(0) if False else ('class="csvtbl w3"' in sl)
+            ws = ([AVAIL_W*.15-14, AVAIL_W*.22-14, AVAIL_W*.63-14] if w3
+                  else [AVAIL_W*.32-14, AVAIL_W*.68-14, AVAIL_W*.48-14])
             hh = 0
             for ci, td in enumerate(tds[:3]):
                 it = re.search(r'<i>(.*?)</i>', td, re.S)
@@ -131,8 +133,10 @@ for i, raw in enumerate(slides, 1):
         v = m.group(1)
         for x in re.finditer(r'<p class="fact">(.*?)</p>', v, re.S): add("fact", lines_of(x.group(1),24,1.5,AVAIL_W))
         for x in re.finditer(r'<p class="then">(.*?)</p>', v, re.S): add("then", lines_of(x.group(1),34,1.3,AVAIL_W)+12)
+    for m in re.finditer(r'<p class="formula">(.*?)</p>', sl, re.S):
+        add("식", lines_of(m.group(1), 20, 1.4, AVAIL_W-32) + 22)
     for m in re.finditer(r'<p class="closing"[^>]*>(.*?)</p>', sl, re.S):
-        fs = 24 if 'font-size:24px' in m.group(0) else 26
+        fs = 23 if 'font-size:23px' in m.group(0) else (24 if 'font-size:24px' in m.group(0) else 26)
         t = m.group(1)
         src = re.search(r'<span class="srcline">(.*?)</span>', t, re.S)
         h2 = 0
