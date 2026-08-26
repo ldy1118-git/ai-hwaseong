@@ -63,20 +63,30 @@ async function classifyCategory(text) {
   return known.includes(parsed.category) ? parsed.category : '기타'
 }
 
-async function estimateIncomeGroup(text) {
+const INCOME_THRESHOLD = {
+  1: { low: 67,  mid: 111 },
+  2: { low: 110, mid: 183 },
+  3: { low: 141, mid: 235 },
+  4: { low: 172, mid: 286 },
+  5: { low: 201, mid: 335 },
+  6: { low: 229, mid: 382 },
+}
+
+async function estimateIncomeGroup(text, memberCount = 4) {
+  const n    = Math.min(Math.max(1, memberCount), 6)
+  const t    = INCOME_THRESHOLD[n]
   const raw = await generateText({
     jsonMode: true,
-    userPrompt: `가구 상황: "${text}"
+    userPrompt: `가구원수: ${memberCount}명
+가구 상황: "${text}"
 
-2026년 기준 중위소득 기준 (월 소득 기준):
-- 기초생활수급자: 기준 중위소득 30~50% 이하이고 실제 정부 수급 중인 가구
-  (예: 1인 약 67만원, 4인 약 172만원 이하)
-- 차상위계층: 기준 중위소득 50% 이하 (실제 수급은 아니어도 소득이 낮은 가구)
-  (예: 1인 약 111만원, 2인 약 183만원, 4인 약 286만원 이하)
-- 일반: 그 외 (중위소득 50% 초과)
+2026년 기준 중위소득 기준 (${memberCount}인 가구 월 소득):
+- 기초생활수급자: ${t.low}만원 이하이고 실제 정부 수급 중인 가구
+- 차상위계층: ${t.mid}만원 이하 (수급 여부 무관, 소득이 낮은 가구)
+- 일반: ${t.mid}만원 초과
 
-직업별 2025년 한국 평균 월 소득을 참고해서 합리적으로 가구 총 소득을 추정하세요.
-대학생·학생은 소득 0으로 계산하세요.
+직업별 2025년 한국 평균 월 소득을 참고해서 가구 총 소득을 추정하세요.
+대학생·학생·무직은 소득 0으로 계산하세요.
 
 JSON 형식으로만 답하세요:
 {"asset_group": "일반", "reason": "추정 근거 두 문장 이내", "estimated_monthly": "약 OOO만원"}`,
@@ -277,6 +287,38 @@ function Shell({ current, total, onBack, marsMessage, stageKey, children }) {
         {/* 단계마다 Shell 을 따로 그리기 때문에 여기가 모든 단계에
             공통으로 걸리는 유일한 자리다. */}
         <DemoSkip />
+      </div>
+    </div>
+  )
+}
+
+/* ───────────── 온보딩 환영 화면 ───────────── */
+function WelcomeScreen({ onStart }) {
+  return (
+    <div className="min-h-screen bg-primary-bg flex flex-col items-center justify-center px-5 gap-6"
+         style={{ animation: 'fadeIn 0.4s ease' }}>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+               @keyframes welcomeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}`}</style>
+
+      <img src={marsImg} alt="마이다" className="w-32 h-32 object-contain"
+           style={{ animation: 'welcomeFloat 3s ease-in-out infinite',
+                    filter: 'drop-shadow(0 6px 12px rgba(42,60,119,0.18))' }} />
+
+      <div className="w-full max-w-sm bg-white rounded-3xl border border-warm-gray/20 shadow-lg px-6 py-7 text-center">
+        <p className="text-base font-bold text-navy leading-relaxed mb-1">
+          안녕하세요! 저는 마이다예요 👋
+        </p>
+        <p className="text-sm text-warm-text leading-relaxed mt-2">
+          사장님의 몇 가지 정보만 입력해주시면<br />
+          마이다가 잘 기억하고<br />
+          딱 맞는 정책을 알려드릴게요!
+        </p>
+      </div>
+
+      <div className="w-full max-w-sm">
+        <Button variant="navy" size="lg" fullWidth onClick={onStart}>
+          입력하러 가기 →
+        </Button>
       </div>
     </div>
   )
@@ -507,6 +549,7 @@ function InlineEditDrawer({ field, profile, onSave, onClose }) {
   const [assetMode, setAssetMode] = useState('choice')  // 'choice'|'help'|'loading'|'result'
   const [assetHelpText, setAssetHelpText] = useState('')
   const [assetEstimate, setAssetEstimate] = useState(null)
+  const [assetMemberCount, setAssetMemberCount] = useState(4)
   // 가운데 창은 Esc 로 닫히는 게 기본 기대다. 시트일 때는 아래로 쓸어내려
   // 닫았지만 이제 그 동작이 없다.
   useEffect(() => {
@@ -600,12 +643,43 @@ function InlineEditDrawer({ field, profile, onSave, onClose }) {
 
               {assetMode === 'help' && (
                 <div className="mt-4">
+                  <p className="text-sm font-semibold text-navy mb-2">가구원수</p>
+                  <div className="flex gap-2 mb-3">
+                    {[1, 2, 3, 4, 5, 6].map(n => (
+                      <button key={n} type="button"
+                        onClick={() => setAssetMemberCount(n)}
+                        className={[
+                          'flex-1 py-2 rounded-xl border-2 text-sm font-semibold transition-all',
+                          assetMemberCount === n
+                            ? 'border-navy bg-navy/5 text-navy'
+                            : 'border-warm-gray/30 bg-white text-gray-600 hover:border-navy/40',
+                        ].join(' ')}>
+                        {n === 6 ? '6+' : n}
+                      </button>
+                    ))}
+                  </div>
+                  {/* 선택한 가구원수 기준 소득 분위 안내 */}
+                  <div className="mb-4 rounded-xl bg-primary-bg border border-warm-gray/30 px-3 py-2.5 text-xs text-warm-text space-y-1.5">
+                    <p className="font-bold text-navy mb-1">{assetMemberCount}인 가구 기준 (월 소득)</p>
+                    <div className="flex justify-between">
+                      <span>기초생활수급자</span>
+                      <span className="font-semibold text-navy">{INCOME_THRESHOLD[Math.min(assetMemberCount,6)].low}만원 이하 + 수급 중</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>차상위계층</span>
+                      <span className="font-semibold text-navy">{INCOME_THRESHOLD[Math.min(assetMemberCount,6)].mid}만원 이하</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>일반</span>
+                      <span className="font-semibold text-navy">{INCOME_THRESHOLD[Math.min(assetMemberCount,6)].mid}만원 초과</span>
+                    </div>
+                  </div>
                   <p className="text-sm font-semibold text-navy mb-2">가족 구성과 직업을 적어주세요</p>
                   <textarea
                     value={assetHelpText}
                     onChange={e => setAssetHelpText(e.target.value)}
-                    placeholder="예) 우리 가족은 4명이에요. 아버지는 택시 운전을 하시고, 어머니는 간호사로 일하세요. 동생은 대학생이에요."
-                    rows={4}
+                    placeholder="예) 아버지는 택시 운전을 하시고, 어머니는 간호사로 일하세요. 동생은 대학생이에요."
+                    rows={3}
                     className="w-full border border-warm-gray/50 bg-white rounded-xl px-4 py-3 text-sm
                                text-navy placeholder:text-warm-gray/50 resize-none
                                focus:outline-none focus:border-navy/50 focus:ring-1 focus:ring-navy/20"
@@ -615,7 +689,7 @@ function InlineEditDrawer({ field, profile, onSave, onClose }) {
                     onClick={async () => {
                       setAssetMode('loading')
                       try {
-                        const result = await estimateIncomeGroup(assetHelpText.trim())
+                        const result = await estimateIncomeGroup(assetHelpText.trim(), assetMemberCount)
                         setAssetEstimate(result)
                         setDraft(result.asset_group)
                         setAssetMode('result')
@@ -1061,6 +1135,15 @@ export default function Onboarding() {
     if (!saved) return false
     try { JSON.parse(saved); return true } catch { return false }
   })
+  // 프로필이 없는 첫 방문자에게만 환영 화면 표시
+  // 개발자 도구에서 'mars-fit-dev-welcome' 플래그를 세우면 강제 표시 (프로필 유지)
+  const [showWelcome, setShowWelcome] = useState(() => {
+    if (localStorage.getItem('mars-fit-dev-welcome') === '1') {
+      localStorage.removeItem('mars-fit-dev-welcome')
+      return true
+    }
+    return !localStorage.getItem('mars-fit-profile')
+  })
   const savedProfile = (() => {
     try { return JSON.parse(localStorage.getItem('mars-fit-profile') || 'null') } catch { return null }
   })()
@@ -1075,9 +1158,10 @@ export default function Onboarding() {
   const [error, setError]     = useState('')
   const [done, setDone]       = useState(false)
   // 소득분위 LLM 추정 상태
-  const [assetMode, setAssetMode]         = useState('choice')  // 'choice'|'help'|'loading'|'result'
-  const [assetHelpText, setAssetHelpText] = useState('')
-  const [assetEstimate, setAssetEstimate] = useState(null)
+  const [assetMode, setAssetMode]               = useState('choice')  // 'choice'|'help'|'loading'|'result'
+  const [assetHelpText, setAssetHelpText]       = useState('')
+  const [assetEstimate, setAssetEstimate]       = useState(null)
+  const [assetMemberCount, setAssetMemberCount] = useState(4)
   // Path C — OCR
   const [bizMode, setBizMode]     = useState('upload')   // 'upload'|'loading'|'review'|'manual'
   // null = 아직 모름. 모르는 동안에는 사진 쪽을 그대로 둔다.
@@ -1101,6 +1185,17 @@ export default function Onboarding() {
   useEffect(() => {
     if (ocrReady === false) setBizMode(m => (m === 'upload' ? 'manual' : m))
   }, [ocrReady, bizMode])
+
+  // DevTools에서 이미 마운트된 상태에서 환영 화면 강제 표시
+  useEffect(() => {
+    const handler = () => {
+      localStorage.removeItem('mars-fit-dev-welcome')
+      setShowDashboard(false)
+      setShowWelcome(true)
+    }
+    window.addEventListener('dev:show-welcome', handler)
+    return () => window.removeEventListener('dev:show-welcome', handler)
+  }, [])
 
   // 운영중이면 세무 질문 3개가 붙는다
   // 원천세 반기납부는 **직원이 있다고 답한 사람에게만** 묻는다. 혼자
@@ -1216,10 +1311,15 @@ export default function Onboarding() {
     return (
       <ProfileDashboard
         profile={savedProfile}
-        onReset={() => setShowDashboard(false)}
+        onReset={() => { setShowDashboard(false); setShowWelcome(false) }}
         navigate={navigate}
       />
     )
+  }
+
+  /* ── 환영 화면 (첫 방문자) ── */
+  if (showWelcome) {
+    return <WelcomeScreen onStart={() => setShowWelcome(false)} />
   }
 
   /* ── 완료 화면 ── */
@@ -1672,14 +1772,45 @@ export default function Onboarding() {
           {/* help 모드: 가족 상황 입력 */}
           {assetMode === 'help' && (
             <div className="mt-4">
+              <p className="text-sm font-semibold text-navy mb-2">가구원수</p>
+              <div className="flex gap-2 mb-3">
+                {[1, 2, 3, 4, 5, 6].map(n => (
+                  <button key={n} type="button"
+                    onClick={() => setAssetMemberCount(n)}
+                    className={[
+                      'flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all',
+                      assetMemberCount === n
+                        ? 'border-navy bg-navy/5 text-navy'
+                        : 'border-warm-gray/30 bg-white text-gray-600 hover:border-navy/40',
+                    ].join(' ')}>
+                    {n === 6 ? '6+' : n}
+                  </button>
+                ))}
+              </div>
+              {/* 선택한 가구원수 기준 소득 분위 안내 */}
+              <div className="mb-4 rounded-xl bg-primary-bg border border-warm-gray/30 px-3 py-2.5 text-xs text-warm-text space-y-1.5">
+                <p className="font-bold text-navy mb-1">{assetMemberCount}인 가구 기준 (월 소득)</p>
+                <div className="flex justify-between">
+                  <span>기초생활수급자</span>
+                  <span className="font-semibold text-navy">{INCOME_THRESHOLD[Math.min(assetMemberCount,6)].low}만원 이하 + 수급 중</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>차상위계층</span>
+                  <span className="font-semibold text-navy">{INCOME_THRESHOLD[Math.min(assetMemberCount,6)].mid}만원 이하</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>일반</span>
+                  <span className="font-semibold text-navy">{INCOME_THRESHOLD[Math.min(assetMemberCount,6)].mid}만원 초과</span>
+                </div>
+              </div>
               <p className="text-sm font-semibold text-navy mb-2">
                 가족 구성과 직업을 적어주세요
               </p>
               <textarea
                 value={assetHelpText}
                 onChange={e => setAssetHelpText(e.target.value)}
-                placeholder="예) 우리 가족은 4명이에요. 아버지는 택시 운전을 하시고, 어머니는 간호사로 일하세요. 동생은 대학생이에요."
-                rows={4}
+                placeholder="예) 아버지는 택시 운전을 하시고, 어머니는 간호사로 일하세요. 동생은 대학생이에요."
+                rows={3}
                 className="w-full border border-warm-gray/50 bg-white rounded-xl px-4 py-3 text-sm
                            text-navy placeholder:text-warm-gray/50 resize-none
                            focus:outline-none focus:border-navy/50 focus:ring-1 focus:ring-navy/20"
@@ -1689,7 +1820,7 @@ export default function Onboarding() {
                 onClick={async () => {
                   setAssetMode('loading')
                   try {
-                    const result = await estimateIncomeGroup(assetHelpText.trim())
+                    const result = await estimateIncomeGroup(assetHelpText.trim(), assetMemberCount)
                     setAssetEstimate(result)
                     set('asset_group', result.asset_group)
                     setAssetMode('result')

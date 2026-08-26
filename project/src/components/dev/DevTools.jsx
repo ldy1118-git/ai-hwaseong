@@ -345,6 +345,22 @@ export default function DevTools() {
                     <span className="ml-auto text-warm-text text-[12px]">{p.label}</span>
                   </button>
                 ))}
+                <div className="pt-2 border-t border-warm-gray/20 mt-2">
+                  <p className="text-[11px] text-warm-text font-semibold uppercase tracking-wide mb-1.5">화면 시뮬레이션</p>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('mars-fit-dev-welcome', '1')
+                      window.dispatchEvent(new CustomEvent('dev:show-welcome'))
+                      navigate('/onboarding')
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left
+                               text-xs hover:bg-primary-bg text-navy transition-colors"
+                  >
+                    <span>🎉</span>
+                    <span className="font-mono">/onboarding</span>
+                    <span className="ml-auto text-warm-text text-[12px]">첫 로그인 환영</span>
+                  </button>
+                </div>
               </div>
             )}
 
