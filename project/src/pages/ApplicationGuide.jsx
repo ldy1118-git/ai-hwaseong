@@ -4,6 +4,7 @@ import Header from '../components/layout/Header'
 import OrbitProgressBar from '../components/ui/OrbitProgressBar'
 import ChecklistSection from '../components/sections/ChecklistSection'
 import DocumentStepDrawer from '../components/ui/DocumentStepDrawer'
+import ApplyStepDrawer from '../components/ui/ApplyStepDrawer'
 import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
 import { generateChecklistV1 } from '../utils/llm/generateChecklist'
 import { cleanDocName } from '../utils/docName'
@@ -277,7 +278,8 @@ export default function ApplicationGuide() {
   const [statusMsg,   setStatusMsg]   = useState('')
   const [drawerItem,  setDrawerItem]  = useState(null)
   const [showPrep,    setShowPrep]    = useState(false)
-  const [showApply,   setShowApply]   = useState(false)
+  const [showApply,     setShowApply]     = useState(false)
+  const [showApplyDrawer, setShowApplyDrawer] = useState(false)
   const [error,       setError]       = useState('')
   const [llmWarn,     setLlmWarn]     = useState('')   // LLM 실패 시 경고만 (에러 화면 아님)
 
@@ -598,16 +600,11 @@ export default function ApplicationGuide() {
             {/* 정책 신청 버튼 – 모든 서류 완료 시 노출 */}
             {allDone && (
               <button
-                onClick={() => {
-                  markApplied(program)
-                  const url = program?.apply_url
-                  if (url) window.open(url, '_blank')
-                  setShowApply(true)
-                }}
+                onClick={() => setShowApplyDrawer(true)}
                 className="w-full py-3.5 rounded-2xl bg-navy text-white text-sm font-bold shadow-lg
                            hover:bg-navy/90 active:scale-[0.98] transition-all"
               >
-                정책 신청하러 가기 →
+                🚀 신청 동행 시작하기
               </button>
             )}
 
@@ -638,6 +635,15 @@ export default function ApplicationGuide() {
 
       {/* 정책 신청 바텀시트 */}
       {showApply && <ApplySheet program={program} onClose={() => setShowApply(false)} />}
+
+      {/* 신청 동행 드로어 */}
+      {showApplyDrawer && (
+        <ApplyStepDrawer
+          program={program}
+          onClose={() => setShowApplyDrawer(false)}
+          onComplete={() => markApplied(program)}
+        />
+      )}
     </div>
   )
 }
