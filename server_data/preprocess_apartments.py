@@ -25,18 +25,29 @@ CACHE = _HERE / "_apt_geocache.json"
 
 
 def _geocode(query):
-    params = urllib.parse.urlencode({"q": query, "format": "json", "limit": 1, "countrycodes": "kr"})
-    req = urllib.request.Request(
-        f"https://nominatim.openstreetmap.org/search?{params}",
-        headers={"User-Agent": _UA},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=10) as res:
-            data = json.loads(res.read())
-        if data:
-            return float(data[0]["lat"]), float(data[0]["lon"])
-    except Exception as e:
-        print(f"  geocode error: {e}")
+    """Photon (komoot) 으로 지오코딩. 429 시 10초 대기 후 1회 재시도."""
+    params = urllib.parse.urlencode({"q": query, "limit": 1, "lang": "ko"})
+    url = f"https://photon.komoot.io/api/?{params}"
+    for attempt in range(2):
+        req = urllib.request.Request(url, headers={"User-Agent": _UA})
+        try:
+            with urllib.request.urlopen(req, timeout=10) as res:
+                data = json.loads(res.read())
+            features = data.get("features", [])
+            if features:
+                coords = features[0]["geometry"]["coordinates"]  # [lng, lat]
+                return float(coords[1]), float(coords[0])
+            return None
+        except urllib.error.HTTPError as e:
+            if e.code == 429:
+                print(f"  429 rate limit — waiting 10s ...")
+                time.sleep(10)
+            else:
+                print(f"  geocode error: {e}")
+                return None
+        except Exception as e:
+            print(f"  geocode error: {e}")
+            return None
     return None
 
 
@@ -180,11 +191,11 @@ def main():
 
     result = []
     for code, info in complexes.items():
-        if code in cache:
+        if code in cache and cache[code] is not None:
             coords = cache[code]
-            if coords:
-                result.append({"name": info["name"], "units": info["units"],
-                               "lat": coords[0], "lng": coords[1]})
+            result.append({"name": info["name"], "units": info["units"],
+                           "dong": info["dong"], "eup": info["eup"],
+                           "lat": coords[0], "lng": coords[1]})
             continue
 
         parts = ["경기도", "화성시"]  # 경기도, 화성시
