@@ -356,16 +356,6 @@
   .pair .figure { font-size: 66px; color: var(--ink); }
   .pair .label { margin: 0; font-family: 'Noto Sans KR', sans-serif; font-size: 17px; font-weight: 700; line-height: 1.4; color: var(--muted); }
 
-  .bench { border-collapse: collapse; width: 100%; font-family: 'Noto Sans KR', sans-serif; }
-  .bench th, .bench td { padding: 7px 10px; text-align: right; font-size: 17px;
-                         border-bottom: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
-  .bench th:first-child, .bench td:first-child { text-align: left; }
-  .bench th { font-size: 14px; font-weight: 800; color: var(--sand); letter-spacing: .04em;
-              border-bottom-color: var(--ink); }
-  .bench td { font-weight: 700; color: var(--muted); }
-  .bench tr:last-child td { border-bottom: 0; }
-  .bench tr.win td { color: var(--ink); font-weight: 900; background: rgba(251,226,129,.35); }
-
   .crew-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 30px; }
   .crew-col > h4 { margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--ink);
                    font-family: 'Noto Sans KR', sans-serif; font-size: 20px; font-weight: 900; color: var(--ink); }
@@ -734,7 +724,7 @@
                 <div class="step-row"><p class="i">①</p><p class="what">온보딩 키워드</p>
                   <p class="how">「동탄에서 카페 열고 싶어요」 같은 <b>자유 문장을 조건으로</b> 읽는다</p></div>
                 <div class="step-row"><p class="i">②</p><p class="what">공고문 요약</p>
-                  <p class="how">행정 문투 원문을 <b>15~35자 쉬운 한 줄</b>로</p></div>
+                  <p class="how">딱딱한 공고문을 <b>15~35자 쉬운 한 줄</b>로</p></div>
                 <div class="step-row"><p class="i">③</p><p class="what">서류 발급 절차</p>
                   <p class="how">서류 이름 → <b>단계 · 수수료 · 소요시간</b></p></div>
                 <div class="step-row"><p class="i">④</p><p class="what">서류 체크리스트</p>
@@ -742,6 +732,9 @@
                 <div class="step-row"><p class="i">⑤</p><p class="what">마이다 챗봇</p>
                   <p class="how"><b>용어 사전에서 찾은 것을 붙여서</b>(RAG) 답한다 — 행정용어 43개 · 서류 26종</p></div>
               </div>
+              <p class="closing" style="font-size:24px">사전을 붙이는 이유는 정확도만이 아닙니다 —
+                <u>붙이지 않으면 없는 숫자를 지어냅니다.</u>
+                <span style="font-weight:700;color:var(--muted)">사전 없이 물었더니 <b style="color:var(--alarm)">대출 금리를 만들어서</b> 답했습니다.</span></p>
               <div class="aside-note">
                 <b>1.4GB</b>
                 <span>사진 읽기(easyocr)는 torch 까지 1.4GB 라 <u>Vercel 함수 한도 250MB 를 넘습니다.</u>
@@ -753,47 +746,7 @@
         </section>
       </div>
 
-      <!-- 5장 · 재보고 골랐다 -->
-      <div class="box">
-        <section class="slide">
-          <div class="body">
-            <div class="col" style="gap:14px">
-              <p class="eyebrow">그래서 — 그 선택을 재봤습니다</p>
-              <p class="kicker" style="margin:-8px 0 0">붙였으니 됐다고 하지 않았습니다. 틀릴 만한 자리를 <b>함정으로 만들어</b> <b>RAG 를 붙이기 전과 후</b>를 재봤습니다.</p>
-              <hr class="rule">
-              <div class="ai-cols">
-                <div class="ai-col">
-                  <h4>RAG 를 붙이기 전 → 후 · 2026.08</h4>
-                  <div class="ai-row"><p class="k">조건 줄글 해석</p>
-                    <p class="v"><b>6/6</b> 통과. 자유 문장에서 없는 정보를 <b>지어내지 않고 비워두는지</b>까지 봤다</p></div>
-                  <div class="ai-row"><p class="k">공고문 요약</p>
-                    <p class="v">RAG 없이 <b>4/5</b> → 붙여서 <b>5/5</b><br>못 잡던 함정 — <b>기간이 끝난 공고</b>를 신청할 수 있는 것처럼 요약했다</p></div>
-                  <div class="ai-row"><p class="k">챗봇</p>
-                    <p class="v">다섯 항목 <b>전부</b> RAG 없이는 실패, 붙이면 통과</p></div>
-                </div>
-                <div class="ai-col off">
-                  <h4>검색은 임베딩 대신 키워드로</h4>
-                  <table class="bench">
-                    <tr><th>검색 방식</th><th>Hit@1</th><th>인코딩</th></tr>
-                    <tr class="win"><td>키워드</td><td>1.000</td><td>0 ms</td></tr>
-                    <tr><td>BGE-M3</td><td>0.800</td><td>2,129 ms</td></tr>
-                    <tr><td>KoSimCSE</td><td>0.800</td><td>172 ms</td></tr>
-                    <tr><td>KR-SBERT</td><td>0.800</td><td>158 ms</td></tr>
-                  </table>
-                  <p class="v" style="margin-top:10px">더 무거운 쪽이 더 나을 거라 봤는데 <b>아니었다.</b>
-                    재보지 않았으면 2초를 더 쓰고 정확도를 잃을 뻔했다.</p>
-                </div>
-              </div>
-              <hr class="rule">
-              <p class="closing">제일 큰 것은 <u>환각이 멈춘다</u>는 점입니다 —
-                RAG 없이 물으면 <b>대출 금리 수치를 지어내서</b> 답합니다.</p>
-            </div>
-          </div>
-          <p class="pagenum">5 · AI 를 재봤다</p>
-        </section>
-      </div>
-
-      <!-- 6장 · 상권분석 (심사 의견) -->
+      <!-- 5장 · 상권분석 (심사 의견) -->
       <div class="box">
         <section class="slide">
           <div class="body">
@@ -827,11 +780,11 @@
                 <u>목업이었던 아파트를 이번에 실데이터로 바꿨습니다.</u></p>
             </div>
           </div>
-          <p class="pagenum">6 · 상권분석</p>
+          <p class="pagenum">5 · 상권분석</p>
         </section>
       </div>
 
-      <!-- 7장 · 예비창업자 -->
+      <!-- 6장 · 예비창업자 -->
       <div class="box">
         <section class="slide">
           <div class="body">
@@ -855,11 +808,11 @@
               </div>
             </div>
           </div>
-          <p class="pagenum">7 · 예비창업자</p>
+          <p class="pagenum">6 · 예비창업자</p>
         </section>
       </div>
 
-      <!-- 8장 · 사업자 -->
+      <!-- 7장 · 사업자 -->
       <div class="box">
         <section class="slide">
           <div class="body">
@@ -883,7 +836,7 @@
               </div>
             </div>
           </div>
-          <p class="pagenum">8 · 사업자</p>
+          <p class="pagenum">7 · 사업자</p>
         </section>
       </div>
 
@@ -916,11 +869,11 @@
               </div>
             </div>
           </div>
-          <p class="pagenum">9 · 원칙</p>
+          <p class="pagenum">8 · 원칙</p>
         </section>
       </div>
 
-      <!-- 10장 · 마무리 -->
+      <!-- 9장 · 마무리 -->
       <div class="box">
         <section class="slide on-night">
           <div class="orbit a"></div>
@@ -942,7 +895,7 @@
               <p class="meta-line kr" style="position:static;color:var(--accent);font-size:22px;font-weight:900">ai-hwaseong-ten.vercel.app</p>
             </div>
           </div>
-          <p class="pagenum">10 · 마무리</p>
+          <p class="pagenum">9 · 마무리</p>
         </section>
       </div>
 
@@ -953,7 +906,7 @@
     <aside class="notes" id="notes" aria-live="polite"></aside>
     <div class="controls">
       <button class="btn" id="prev" type="button">← 이전</button>
-      <span class="counter" id="counter">1 / 10</span>
+      <span class="counter" id="counter">1 / 9</span>
       <button class="btn" id="next" type="button">다음 →</button>
       <button class="btn" id="gridBtn" type="button" aria-pressed="false">전체 보기</button>
       <button class="btn" id="scriptBtn" type="button" aria-pressed="false">발표 대본</button>
@@ -1001,15 +954,10 @@
                    '**이 장에서 제일 센 문장은 「판정에는 안 씁니다」다.** AI 대회에서 AI 를 안 쓴 이유를 대는 팀이 드물다',
                    '그 이유 두 개(재현된다 · 근거를 댈 수 있다)를 또박또박 말할 것',
                    '주황 줄(1.4GB)은 3장 「약속대로 OCR」과 짝이다 — 왜 1차엔 못 냈는지가 여기서 풀린다',
-                   '다음 장이 이 장의 연장이다. 「그래서 재봤습니다」로 넘어갈 것'] },
-    5: { say: '"붙였으니 됐다고 하지 않았습니다. 붙이기 전과 후를 재봤습니다."',
-         bullets: ['4장의 연장이다. 「어디에 썼나」 다음이 「그 선택이 맞았나」다',
-                   '**표를 읽어주지 말 것.** 「키워드가 1.000, 임베딩이 0.800」 한 마디면 노란 줄이 눈에 들어온다',
-                   '이 장의 힘은 「무거운 쪽이 나을 줄 알았는데 아니었다」는 문장이다 — 재봤다는 증거가 되니까',
-                   '마지막 줄(환각 · 금리 수치)이 9장 「지어내지 않는다」로 이어진다',
-                   '전부 2026년 8월에 실제로 돌린 결과다. 리포트는 llm/report/ 에 있다',
-                   '질문받으면: 서류 체크리스트(F2B)는 일일 쿼터가 떨어져 한 건만 돌렸다. 그래서 이 장에 안 넣었다'] },
-    6: { say: '"넷 다 붙였습니다. 다만 유동인구는 추정치라고 먼저 말씀드립니다."',
+                   '「지어냅니다」 줄은 8장 「숫자를 지어내지 않는다」의 예고편이다',
+                   '질문받으면 재본 값이 있다 — RAG 없이 공고 요약 4/5, 붙여서 5/5. 조건 해석은 6/6.',
+                   '  검색을 임베딩 대신 키워드로 한 것도 재보고 정했다. 화면에는 안 올렸다'] },
+    5: { say: '"넷 다 붙였습니다. 다만 유동인구는 추정치라고 먼저 말씀드립니다."',
          bullets: ['화면은 **발췌다.** 원문 — 「현재 대시보드는 상권분석보다는 상점의 위치정보를 표시하는 수준으로 보임. 유동인구, 매출, 업종 분포, 경쟁 현황 등 실질적인 상권분석 기능을 보완한다면 창업을 준비하는 시민에게 큰 도움이 될 것으로 판단됨.」',
                    '**읽어드리지 말고 손으로 짚기만 할 것** — 심사위원이 쓴 말이라 읽으면 어색하다',
                    '유동인구가 추정치라는 걸 **우리가 먼저 말한다.** 질문받고 답하면 변명이 되고, 먼저 말하면 신뢰가 된다',
@@ -1017,20 +965,20 @@
                    '「반경을 끌면 숫자가 같이 움직입니다」는 다음 장 영상에서 실제로 보인다 — 미리 걸어두는 말이다',
                    '질문받으면: 상가 CSV 는 소상공인시장진흥공단 2026년 6월판, 화성시 17,073곳이다',
                    '유동인구 계산식 — 학교×220 + 음식점×55 + 카페×90 + 아파트세대×0.08 + 역승하차×0.15'] },
-    7: { say: '"같은 앱인데 사람이 바뀌면 첫 화면이 통째로 바뀝니다."',
+    6: { say: '"같은 앱인데 사람이 바뀌면 첫 화면이 통째로 바뀝니다."',
          bullets: ['영상 틀기 전에 무엇을 볼지 셋을 먼저 말한다. 안 그러면 화면만 지나간다',
                    '「신청가능 11건」은 지금 실제로 도는 값이다. 어제 잰 것',
                    '영상이 끝나면 군더더기 없이 바로 7장으로 넘어간다'] },
-    8: { say: '"이미 하고 있는 사장님에게 급한 건 기한입니다."',
+    7: { say: '"이미 하고 있는 사장님에게 급한 건 기한입니다."',
          bullets: ['6장과 짝이라는 걸 말로 이어줄 것 — "같은 앱, 사람만 바꿉니다"',
                    '세무 18건은 국세청 원문으로 전부 대조했다. 공휴일이면 다음 날로 미는 규칙까지 계산한다',
                    '③ 신청 완료까지가 우리 서비스의 한 문장이다. 여기서 힘줄 것',
                    '영상이 2분으로 제일 길다. 끝나고 바로 8장으로'] },
-    9: { say: '"화면에 안 보이는 곳에서도 같은 원칙으로 만들었습니다."',
+    8: { say: '"화면에 안 보이는 곳에서도 같은 원칙으로 만들었습니다."',
          bullets: ['셋 다 실제로 겪고 고친 것이다 — 사진 넉 장이 서버에 남아 있었다고 그대로 말할 것',
                    '개인정보는 심사에서 자주 나오는 질문이다. 먼저 말해두면 질문이 줄어든다',
                    '「지어내지 않는다」는 매출 그래프를 지운 이야기와 같이 말해야 힘이 있다'] },
-    10: { say: '"찾아주는 데서 끝내지 않고, 신청 완료까지 같이 갑니다."',
+    9: { say: '"찾아주는 데서 끝내지 않고, 신청 완료까지 같이 갑니다."',
          bullets: ['새로운 내용을 넣지 말 것. 30초 안에 닫는다',
                    '남은 셋은 「못 한다」가 아니라 「무엇이 있으면 되는지」로 말할 것',
                    '주소를 띄운 채로 끝낸다 — 질의응답 동안 심사위원이 직접 열어볼 수 있다'] },
@@ -1056,20 +1004,13 @@
     ]},
     { n: 4, t: 'AI 를 어디에', sec: 48, lines: [
       'AI 를 어디에 썼는지 말씀드리겠습니다. LLM 은 **다섯 군데**서 돕니다.',
-      '자유 문장을 조건으로 읽고, 공고문을 쉬운 한 줄로 줄이고, 서류 발급 절차를 알려주고, 낼 서류만 남기고, 챗봇이 답합니다.',
+      '자유 문장을 조건으로 읽고, 딱딱한 공고문을 쉬운 한 줄로 줄이고, 서류 발급 절차를 알려주고, 낼 서류만 남기고, 챗봇이 답합니다.',
       '챗봇은 **용어 사전에서 찾은 것을 붙여서** 답합니다. RAG 입니다. 행정용어 43개, 서류 26종입니다.',
       '그런데 **자격요건 판정에는 안 씁니다.** 같은 조건이면 같은 답이 나와야 하고, 왜 그렇게 나왔는지 근거를 댈 수 있어야 하기 때문입니다.',
+      '사전을 붙이는 이유는 정확도만이 아닙니다. **붙이지 않으면 없는 숫자를 지어냅니다.** 사전 없이 물었더니 **대출 금리를 만들어서** 답했습니다.',
       '하나는 아예 밖에서 돕니다. 사진 읽기는 **torch 까지 1.4GB** 라 Vercel 함수 한도 250MB 를 넘습니다. **1차에 OCR 을 못 낸 이유가 이것**이고, 밖으로 빼서 이번에 됐습니다.'
     ]},
-    { n: 5, t: 'AI 를 재봤다', sec: 45, lines: [
-      '**붙였으니 됐다고 하지 않았습니다.** 틀릴 만한 자리를 함정으로 만들어 **RAG 를 붙이기 전과 후**를 재봤습니다.',
-      '조건 줄글 해석은 **6대 6** 통과했습니다. 없는 정보를 지어내지 않고 비워두는지까지 봤습니다.',
-      '공고문 요약은 RAG 없이 **4대 5**, 붙여서 **5대 5** 였습니다. 못 잡던 함정이 **기간이 끝난 공고를 신청할 수 있는 것처럼** 요약한 것이었습니다.',
-      '검색은 **임베딩 대신 키워드**를 씁니다. 키워드가 Hit@1 **1.000**, BGE-M3 가 **0.800** 이었습니다. 인코딩도 0초 대 2초입니다.',
-      '무거운 쪽이 나을 거라 봤는데 아니었습니다. **재보지 않았으면 2초를 더 쓰고 정확도를 잃을 뻔했습니다.**',
-      '제일 큰 것은 **환각이 멈춘다**는 점입니다. RAG 없이 물으면 **대출 금리 수치를 지어내서** 답합니다.'
-    ]},
-    { n: 6, t: '상권분석', sec: 48, lines: [
+    { n: 5, t: '상권분석', sec: 55, lines: [
       '상권분석은 1차 심사에서 의견을 받았습니다. **위치정보를 표시하는 수준으로 보인다**, 유동인구·매출·업종 분포·경쟁 현황을 보완하라는 말씀이었습니다.',
       '**넷 다 붙였습니다.** 다만 하나는 먼저 말씀드리겠습니다. **유동인구는 실측이 아니라 추정치입니다.**',
       '학교·음식점·카페 수에 아파트 세대와 역 승하차를 더해 계산합니다. 센 값이 아니라서 **화면에도 「예측」이라고 씁니다.**',
@@ -1077,23 +1018,23 @@
       '업종 분포와 경쟁 현황은 **여섯 업종**을 셉니다. 반경을 끌면 숫자가 같이 움직입니다. 동탄역 500미터 안에 음식점 287, 카페 47입니다.',
       '학교는 경기도교육청, 역은 한국철도공사, 아파트는 **K-apt** 입니다. **목업이던 아파트를 실데이터로 바꿨습니다.**'
     ]},
-    { n: 7, t: '예비창업자', sec: 34, video: 90, videoName: '시연 영상 ①', lines: [
+    { n: 6, t: '예비창업자', sec: 44, video: 90, videoName: '시연 영상 ①', lines: [
       '이제 실제 화면입니다. **같은 앱인데 사람이 바뀌면 첫 화면이 통째로 바뀝니다.**',
       '아직 가게가 없는 분은 **어디에 낼까**를 묻습니다. 세 가지만 보시면 됩니다.',
       '**조건을 답하면 신청가능 11건**이 남고, 모르는 낱말은 눌러서 뜻을 보고, 지도에 찍으면 반경 안 경쟁을 셉니다.'
     ]},
-    { n: 8, t: '사업자', sec: 38, video: 120, videoName: '시연 영상 ②', lines: [
+    { n: 7, t: '사업자', sec: 50, video: 120, videoName: '시연 영상 ②', lines: [
       '같은 앱에 **사람만 바꾸겠습니다.** 이미 하고 있는 사장님은 **언제까지 뭘 해야 하나**를 묻습니다.',
       '다음 세무일정이 **D-day** 로 뜹니다. 18건 전부 국세청 원문으로 대조했고, 기한이 공휴일이면 다음 날로 미는 규칙까지 계산합니다.',
       '지원사업은 **29건**이 신청가능으로 걸립니다. 그리고 서류 체크리스트에서 접수처를 거쳐 **신청 완료까지** 갑니다.'
     ]},
-    { n: 9, t: '원칙', sec: 34, lines: [
+    { n: 8, t: '원칙', sec: 42, lines: [
       '화면에 안 보이는 곳도 말씀드리겠습니다.',
       '조건에 맞는 새 공고와 세무 신고기한을 **한 통으로 묶어** 카카오톡으로 보냅니다. 앱을 안 열어도 알게 됩니다.',
       '**사업자등록증 사진은 저장하지 않습니다.** 메모리에서 읽고 필요한 항목만 돌려줍니다. 실제로 넉 장이 남아 있어서 고쳤습니다.',
       '그리고 **출처 없는 숫자를 화면에 두지 않습니다.** 매출과 재방문율을 그렸다가 전부 지웠습니다.'
     ]},
-    { n: 10, t: '마무리', sec: 38, lines: [
+    { n: 9, t: '마무리', sec: 46, lines: [
       '정리하겠습니다. 찾는다, 읽는다, 낸다, 관리한다.',
       '**정보만 던져주고 알아서 신청하세요 하지 않습니다. 신청 완료까지 같이 갑니다.**',
       '남은 것도 말씀드리겠습니다. 주변 동종업체는 **데이터가 이미 서버에 있어서 매장 위치만 받으면** 됩니다. 신규개업·폐업은 인허가 데이터를 붙이면 되고, 매출 추이는 POS 가 있어야 합니다.',
