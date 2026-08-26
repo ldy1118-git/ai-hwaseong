@@ -1219,13 +1219,23 @@ export default function Onboarding() {
   useEffect(() => { dataRef.current = data }, [data])
   useEffect(() => { stepsRef.current = steps }, [steps])
 
-  // 진행률: 경로마다 화면 수가 다르다
-  const total = useMemo(() => (path === 'A' ? 2 : 1) + steps.length + 1, [path, steps])
+  /* 진행률: 경로마다 화면 수가 다르다.
+     **칸 수는 바를 실제로 그리는 화면 수와 같아야 한다.** 전에는 뒤에 +1 이
+     붙어 있었는데 그 몫이 완료 화면이었다. 완료 화면은 Shell 을 안 써서
+     바가 아예 없다 — 그래서 마지막 칸이 네 갈래 전부에서 영영 회색이었다.
+
+     공통 질문 앞에 오는 화면 수도 경로마다 다르다. A 는 q1·분야·세부 셋,
+     B·C 는 q1 과 하나씩 둘이다. 이 수를 안 더해줘서 「하고 싶은 게 있어요」
+     (B)와 사업자등록증(C) 화면이 첫 공통 질문과 **같은 칸을 썼다.** 등록증
+     사진을 올리고 읽는 내내 2번에 머물다가 나이 질문에서도 2번이라,
+     진행이 멈춘 것처럼 보였다. */
+  const lead = path === 'A' ? 3 : 2          // 공통 질문 앞 화면 수
+  const total = useMemo(() => lead + steps.length, [lead, steps])
   const current = useMemo(() => {
     if (stage === 'q1') return 1
-    if (stage === 'common') return (path === 'A' ? 3 : 2) + common
+    if (stage === 'common') return lead + 1 + common
     return path === 'A' && stage === 'sub' ? 3 : 2
-  }, [stage, common, path])
+  }, [stage, common, path, lead])
 
   // 읽어낸 값을 프로필에 옮긴다. mock 과 실제가 같은 것을 쓰게 한 곳이다.
   // 예전에는 두 벌로 적혀 있었고, mock 쪽만 키가 영문이라 조용히 아무것도
