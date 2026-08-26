@@ -158,41 +158,71 @@ function fmtWon(won) {
   return `약 ${Math.round(won / 10000).toLocaleString()}만원`
 }
 
-async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPassengersTotal, radii }) {
-  const aptLine = aptDong && aptDong.total_units > 0
-    ? `아파트: ${aptDong.dong} 내 ${aptDong.complexes}개 단지, ${aptDong.total_units.toLocaleString()}세대`
-    : '아파트 정보: 없음'
-  const stationLine = amenities.stations > 0
-    ? `역: ${amenities.stations}개${stationPassengersTotal > 0 ? ` (일 평균 ${stationPassengersTotal.toLocaleString()}명)` : ''}`
-    : '역: 없음'
-  let salesLine = ''
+async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPassengersTotal, radii, ftScore, ftLevel }) {
+  const lines = []
+
+  lines.push(`유동인구 예측: 약 ${ftScore.toLocaleString()}명/일 (${ftLevel.text} — ${ftLevel.desc})`)
+
   if (cardSales) {
-    salesLine = `이 지역 카드매출: 월 약 ${Math.round(cardSales.total_sales / 1e8)}억원 / 피크: ${TZ_LABELS[cardSales.peak_tz] || cardSales.peak_tz}`
+    lines.push(
+      `지역 카드매출: 월 약 ${Math.round(cardSales.total_sales / 1e8)}억원` +
+      ` / 피크 ${TZ_LABELS[cardSales.peak_tz] || cardSales.peak_tz} (${cardSales.peak_pct.toFixed(1)}%)`
+    )
   }
-  const bizTotal = amenities.restaurants + amenities.cafes + amenities.academies +
-    (amenities.retail || 0) + (amenities.beauty || 0) + (amenities.medical || 0)
-  const distLine = bizTotal > 0
-    ? `업종 분포: 음식점 ${amenities.restaurants}개, 카페 ${amenities.cafes}개, 학원 ${amenities.academies}개` +
-      (amenities.retail  > 0 ? `, 소매점 ${amenities.retail}개`   : '') +
-      (amenities.beauty  > 0 ? `, 이용·미용 ${amenities.beauty}개` : '') +
-      (amenities.medical > 0 ? `, 보건의료 ${amenities.medical}개` : '')
-    : ''
-  const prompt = [
-    `반경 ${radii.schools}m 내 학교: ${amenities.schools}개`,
-    `반경 ${radii.restaurants}m 내 ${distLine}`,
-    stationLine, aptLine, salesLine,
-  ].filter(Boolean).join('\n')
+
+  if (aptDong?.total_units > 0) {
+    lines.push(`주변 아파트: ${aptDong.dong} ${aptDong.complexes}개 단지 ${aptDong.total_units.toLocaleString()}세대`)
+  } else {
+    lines.push('주변 아파트: 해당 동 집계 없음')
+  }
+
+  if (amenities.stations > 0) {
+    const passTxt = stationPassengersTotal > 0
+      ? ` / 일 평균 ${stationPassengersTotal.toLocaleString()}명` : ''
+    lines.push(`지하철역: ${amenities.stations}개역${passTxt}`)
+  } else {
+    lines.push('지하철역: 반경 내 없음')
+  }
+
+  if (amenities.schools > 0) {
+    lines.push(`학교: ${amenities.schools}개 (하교 시간대 고객 유입 기대)`)
+  }
+
+  const bizCategories = [
+    { key: 'restaurants', label: '음식점' },
+    { key: 'cafes',       label: '카페' },
+    { key: 'academies',   label: '학원' },
+    { key: 'retail',      label: '소매점' },
+    { key: 'beauty',      label: '이용·미용' },
+    { key: 'medical',     label: '보건의료' },
+  ]
+  const bizLines = bizCategories
+    .filter(({ key }) => amenities[key] > 0)
+    .map(({ key, label }) => {
+      const count  = amenities[key]
+      const lvl    = competitionLevel(key, count)
+      const perStore = cardSales ? Math.round(cardSales.total_sales / count / 10000) : null
+      const salesTxt = perStore ? ` / 가게당 추정 ${perStore.toLocaleString()}만원/월` : ''
+      return `${label}: ${count}개 (${lvl.label})${salesTxt}`
+    })
+  if (bizLines.length > 0) lines.push('업종별 경쟁 현황:\n' + bizLines.join('\n'))
+
+  const prompt = lines.join('\n')
 
   const res = await fetch(apiUrl('/api/llm'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       system: `당신은 마이다(Mar-DA)입니다. 화성시 소상공인을 응원하는 상권 분석 도우미예요.
-아래 JSON 형식으로만 답하세요. 다른 텍스트 없이 JSON만:
-{"bullets":["특징1","특징2","특징3"],"advice":"핵심 조언 한 줄"}
-• bullets: 3개 이내, 각 항목 30자 이내, 구체적 숫자 포함
-• advice: 30자 이내, "~해요" 말투
-• 불필요한 수식어 없이 핵심만`,
+주어진 데이터를 바탕으로 창업자에게 유용한 인사이트를 제공하세요.
+반드시 아래 JSON 형식으로만 답하세요:
+{"bullets":["분석1","분석2","분석3","분석4","분석5"],"advice":"핵심 조언"}
+규칙:
+• bullets 4-6개, 각 항목 60자 이내
+• 구체적 숫자(개수·금액·명수 등)를 반드시 포함
+• 유동인구·매출·경쟁·역세권·아파트 항목을 골고루 다룰 것
+• advice 50자 이내, "~해요" 말투, 가장 중요한 창업 포인트 한 줄
+• 수식어 없이 사실+해석 위주`,
       prompt,
       json: true,
     }),
@@ -204,6 +234,20 @@ async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPa
   } catch {
     return { bullets: [data.text || '분석 결과를 가져오지 못했어요.'], advice: '' }
   }
+}
+
+// ── 숫자 강조 ─────────────────────────────────────────────────────
+function HighlightedText({ text }) {
+  const parts = text.split(/(\d[\d,]*(?:\.\d+)?(?:개|만원|억원|%|명|곳|역|단지|세대|km|m)?)/g)
+  return (
+    <>
+      {parts.map((part, i) =>
+        /^\d/.test(part)
+          ? <strong key={i} className="text-navy font-extrabold">{part}</strong>
+          : part
+      )}
+    </>
+  )
 }
 
 // ── 단계 번호 뱃지 ────────────────────────────────────────────────
@@ -344,14 +388,14 @@ export default function CommercialAnalysisView() {
     setLlmSummary(null)
     setLlmAsked(true)
     try {
-      const result = await fetchCommercialSummary({ amenities, aptDong, cardSales, stationPassengersTotal, radii })
+      const result = await fetchCommercialSummary({ amenities, aptDong, cardSales, stationPassengersTotal, radii, ftScore, ftLevel })
       setLlmSummary(result)
     } catch {
       setLlmSummary({ bullets: ['마이다가 잠깐 연결이 끊겼어요. 다시 시도해주세요.'], advice: '' })
     } finally {
       setLlmLoading(false)
     }
-  }, [amenities, aptDong, cardSales, stationPassengersTotal, radii])
+  }, [amenities, aptDong, cardSales, stationPassengersTotal, radii, ftScore, ftLevel])
 
   return (
     <div className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
@@ -743,20 +787,24 @@ export default function CommercialAnalysisView() {
                   <div className="mt-3 h-3 bg-navy/10 rounded-full w-4/5" />
                 </div>
               ) : llmSummary && (
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {llmSummary.bullets?.map((b, i) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-navy/10 text-navy text-xs font-bold
+                    <div key={i} className="flex items-start gap-3">
+                      <span className="w-6 h-6 rounded-full bg-navy text-white text-xs font-bold
                                        flex items-center justify-center flex-shrink-0 mt-0.5">
                         {i + 1}
                       </span>
-                      <p className="text-sm text-gray-700 leading-snug">{b}</p>
+                      <p className="text-sm text-gray-700 leading-relaxed">
+                        <HighlightedText text={b} />
+                      </p>
                     </div>
                   ))}
                   {llmSummary.advice && (
-                    <div className="mt-3 pt-3 border-t border-warm-gray/15 flex items-start gap-2">
-                      <span className="text-base flex-shrink-0">💡</span>
-                      <p className="text-sm font-semibold text-navy leading-snug">{llmSummary.advice}</p>
+                    <div className="mt-4 pt-3 border-t border-warm-gray/20 flex items-start gap-2.5 bg-navy/4 rounded-xl p-3">
+                      <span className="text-lg flex-shrink-0">💡</span>
+                      <p className="text-sm font-bold text-navy leading-snug">
+                        <HighlightedText text={llmSummary.advice} />
+                      </p>
                     </div>
                   )}
                 </div>
