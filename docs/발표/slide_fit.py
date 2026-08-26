@@ -136,15 +136,10 @@ for i, raw in enumerate(slides, 1):
         for x in re.finditer(r'<p class="then">(.*?)</p>', v, re.S): add("then", lines_of(x.group(1),34,1.3,AVAIL_W)+12)
     for m in re.finditer(r'<div class="kkcols">(.*?)\n              </div>', sl, re.S):
         blk = m.group(1)
-        bub = re.search(r'<div class="kk-bubble">(.*?)</div>', blk, re.S)
-        bh = 8 + 13*1.3 + 34
-        if bub:
-            for x in re.finditer(r'<p[^>]*>(.*?)</p>', bub.group(1), re.S):
-                bh += lines_of(x.group(1), 17, 1.5, 390-36)
-            bh += 20 + 23   # sep 여백 + 버튼 위 여백
+        bh = 15*1.4 + 9 + (307 * 344/378) + 2   # 머리글 + 캡처(344px 로 줄임)
         wh = 0
         for x in re.finditer(r'<p class="w">(.*?)</p>', blk, re.S):
-            wh += lines_of(x.group(1), 18, 1.5, AVAIL_W-390-36-15) + 13
+            wh += lines_of(x.group(1), 18, 1.5, AVAIL_W-344-36-15) + 13
         add("카톡", max(bh, wh))
     for m in re.finditer(r'<p class="formula">(.*?)</p>', sl, re.S):
         add("식", lines_of(m.group(1), 20, 1.4, AVAIL_W-32) + 22)
