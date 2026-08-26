@@ -137,14 +137,8 @@ function mapMatch(r) {
  * 마감이 가까운 순이고, 마감일이 없는 것은 뒤로 보낸다 — 「상시 접수」
  * 묶음이 아래에 따로 있어서 거기서 다시 만난다.
  */
-function Favorites({ matches, open, onToggle }) {
+function Favorites({ matches, favSet, open, onToggle }) {
   const navigate = useNavigate()
-  // listFavorites() 는 **공고 객체**를 준다. 번호만 뽑아서 견준다.
-  const ids = () => new Set(listFavorites().map(f => f.notice_id))
-  const [favSet, setFavSet] = useState(ids)
-
-  // 이 화면 안에서 ★ 를 껐다 켜면 목록도 따라 움직여야 한다.
-  useEffect(() => subscribeFavorites(() => setFavSet(ids())), [])
 
   const list = matches
     .filter(m => favSet.has(m.id))
@@ -202,9 +196,10 @@ function Favorites({ matches, open, onToggle }) {
  * 조용히 버린다. 그런데 지금 공고 59건 중 30건이 「예산 소진시까지」
  * 처럼 문구로만 적혀 있다. 절반이 넘는 공고가 이 화면에서 통째로
  * 사라지는데 화면에는 그런 티가 안 났다. 아래에 따로 세운다. */
-function AlwaysOpen({ matches, open, onToggle }) {
+function AlwaysOpen({ matches, hideIds, open, onToggle }) {
   const navigate = useNavigate()
-  const list = matches.filter(m => m.dDay === null && m.raw?.apply_period?.note)
+  const list = matches.filter(m =>
+    m.dDay === null && m.raw?.apply_period?.note && !hideIds?.has(m.id))
   if (list.length === 0) return null
 
   return (
@@ -573,16 +568,24 @@ export default function Schedule() {
             {selectedDay && (
               <DayPanel dateKey={selectedDay} matches={shown} taxEvents={shownTax} />
             )}
-            <Favorites
-              matches={matches}
-              open={sections.fav} onToggle={() => toggleSection('fav')}
-            />
+            {/* 층 칩을 끄면 이 묶음도 같이 사라진다. 달력에서 뺐는데
+                옆에 목록이 남아 있으면 껐다는 말이 아니다. */}
+            {layers.fav && (
+              <Favorites
+                matches={matches} favSet={favSet}
+                open={sections.fav} onToggle={() => toggleSection('fav')}
+              />
+            )}
             <TaxSchedule
               events={shownTax} profile={profile} onPick={pickDate}
               open={sections.tax} onToggle={() => toggleSection('tax')}
             />
+            {/* 담아둔 것은 위 「관심공고」 묶음에 이미 있다. 여기 또 그리면
+                같은 공고가 한 화면에 두 번 뜬다. 단 관심공고 층이 꺼져 있으면
+                위 묶음이 없으므로 빼지 않는다 — 빼면 아예 안 보인다. */}
             <AlwaysOpen
               matches={shown}
+              hideIds={layers.fav ? favSet : null}
               open={sections.always} onToggle={() => toggleSection('always')}
             />
           </div>
