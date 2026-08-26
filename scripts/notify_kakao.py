@@ -69,7 +69,15 @@ KST = ZoneInfo("Asia/Seoul")
 
 # 사장님이 안 고쳤을 때 쓰는 값. notifySettings.js 의 DEFAULTS 와 같아야 한다.
 SEND_HOUR = 8
+SEND_MINUTE = 0
 SEND_DAYS = [0, 1, 2, 3, 4, 5, 6]
+
+# 발송 cron 이 도는 간격(분). **crontab 의 */5 와 같아야 한다.**
+#
+# 정한 시각과 딱 맞을 때만 보내면 안 된다. 이 스크립트는 수집과 잠금을
+# 나눠 쓰기 때문에 최대 3분까지 기다릴 수 있고, 그 사이 분이 넘어간다.
+# 그래서 「정한 시각부터 다음 회차 전까지」를 창으로 본다.
+SEND_WINDOW_MIN = 5
 
 
 def js_weekday(when: datetime) -> int:
@@ -85,9 +93,14 @@ def js_weekday(when: datetime) -> int:
 def due_now(settings: dict, when: datetime) -> bool:
     """지금이 이 사장님이 정해둔 시각·요일인가.
 
-    cron 이 매시 정각에 부르고, 사람마다 정해둔 시각에만 실제로 보낸다.
+    cron 이 5분마다 부르고, 사람마다 정해둔 시각에만 실제로 보낸다.
     공고를 받아오는 일(06:11)과는 갈라져 있다 — 받자마자 보내면 새벽에
     카톡이 울린다.
+
+    **딱 맞을 때만 보내면 안 된다.** 수집과 잠금을 나눠 써서 최대 3분까지
+    기다릴 수 있고, 그 사이 분이 넘어간다. 8시 0분으로 정해둔 사람에게
+    8시 3분에 깨어나면 영영 못 보낸다. 그래서 정한 시각부터 다음 회차
+    전까지를 창으로 본다.
     """
     try:
         hour = int(settings.get("sendHour", SEND_HOUR))
@@ -95,6 +108,13 @@ def due_now(settings: dict, when: datetime) -> bool:
         hour = SEND_HOUR
     if not 0 <= hour <= 23:
         hour = SEND_HOUR
+
+    try:
+        minute = int(settings.get("sendMinute", SEND_MINUTE))
+    except (TypeError, ValueError):
+        minute = SEND_MINUTE
+    if not 0 <= minute <= 59:
+        minute = SEND_MINUTE
 
     raw = settings.get("sendDays")
     days = set()
@@ -111,7 +131,12 @@ def due_now(settings: dict, when: datetime) -> bool:
     if not days:
         days = set(SEND_DAYS)
 
-    return when.hour == hour and js_weekday(when) in days
+    if js_weekday(when) not in days:
+        return False
+    # 자정을 넘겨 늦어진 경우는 창 밖으로 본다. 어제 23시 55분 것을 오늘
+    # 0시 2분에 보내면 요일도 이미 바뀌어 있다.
+    gap = (when.hour * 60 + when.minute) - (hour * 60 + minute)
+    return 0 <= gap < SEND_WINDOW_MIN
 
 
 def load_env() -> None:
@@ -415,8 +440,8 @@ def main() -> int:
         # 잡는다** — 잡아버리면 처음 켠 날 8시가 오기 전에 「보냄」으로 적혀서
         # 그날 공고를 통째로 놓친다.
         if not ignore_clock and not due_now(settings, now):
-            hour = settings.get("sendHour", SEND_HOUR)
-            print(f"  아직 아님 user={user_id} — {hour}시로 정해두었다")
+            when = f"{settings.get('sendHour', SEND_HOUR)}시 {settings.get('sendMinute', SEND_MINUTE)}분"
+            print(f"  아직 아님 user={user_id} — {when}으로 정해두었다")
             continue
 
         # 새 공고를 껐어도 세무 알림은 받을 수 있다. 여기서 끊지 않고

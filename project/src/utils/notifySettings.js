@@ -46,7 +46,8 @@ export const DEFAULTS = {
    * 줄이면 세무 신고기한 알림이 하루 늦게 갈 수 있어서다. 완전히 놓치지는
    * 않는다 — 기한 자체가 늘 평일이고(휴일이면 다음 날로 미는 규칙),
    * 최악이라도 기한 당일 아침에는 간다. */
-  sendHour: 8,                     // 0~23, 정시
+  sendHour: 8,                     // 0~23
+  sendMinute: 0,                   // 0·5·10 … 55. 5분 단위다
   sendDays: [0, 1, 2, 3, 4, 5, 6], // 0=일 … 6=토. **JS Date.getDay() 와 같은 번호다**
 }
 
@@ -65,14 +66,24 @@ export const TAX_LEAD_CHOICES = [
 /** 요일 이름. 번호는 Date.getDay() 와 같다 — 0 이 일요일이다. */
 export const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
-/** 보낼 시각. 정시만 고른다 — 분 단위까지 두면 고르기만 번거롭다. */
 export const SEND_HOURS = Array.from({ length: 24 }, (_, h) => h)
+
+/* 분은 **5분 단위**다. 1분 단위로 두면 고르기만 번거롭고, 서버가 그만큼
+   자주 깨어나야 한다. 지금 발송 cron 이 5분마다 도는 것과 짝이다 —
+   여기를 1분으로 바꾸려면 crontab 도 같이 바꿔야 한다. */
+export const SEND_MINUTE_STEP = 5
+export const SEND_MINUTES = Array.from({ length: 60 / SEND_MINUTE_STEP }, (_, i) => i * SEND_MINUTE_STEP)
 
 /** 「오전 8시」처럼 읽히게. 24시간제로 적으면 아침·저녁이 한눈에 안 온다. */
 export function hourLabel(h) {
   if (h === 0) return '밤 12시'
   if (h === 12) return '낮 12시'
   return h < 12 ? `오전 ${h}시` : `오후 ${h - 12}시`
+}
+
+/** 「오전 8시 30분」. 정각이면 분을 안 붙인다 — 「8시 0분」은 어색하다. */
+export function timeLabel(h, m) {
+  return m ? `${hourLabel(h)} ${m}분` : hourLabel(h)
 }
 
 export const SCORE_CHOICES = [
@@ -97,6 +108,12 @@ function read() {
     if (!Number.isInteger(merged.sendHour) || merged.sendHour < 0 || merged.sendHour > 23) {
       merged.sendHour = DEFAULTS.sendHour
     }
+    // 5분 단위로 맞춘다. 어디선가 7분 같은 값이 들어오면 서버가 도는 시각과
+    // 영영 안 맞아서 알림이 안 간다.
+    if (!Number.isInteger(merged.sendMinute) || merged.sendMinute < 0 || merged.sendMinute > 59) {
+      merged.sendMinute = DEFAULTS.sendMinute
+    }
+    merged.sendMinute -= merged.sendMinute % SEND_MINUTE_STEP
     if (!Array.isArray(merged.sendDays)) merged.sendDays = [...DEFAULTS.sendDays]
     merged.sendDays = [...new Set(
       merged.sendDays.filter(n => Number.isInteger(n) && n >= 0 && n <= 6),

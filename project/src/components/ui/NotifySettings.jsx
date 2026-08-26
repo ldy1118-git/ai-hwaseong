@@ -3,9 +3,10 @@ import { Sparkles, CalendarClock, Receipt, Clock } from 'lucide-react'
 import {
   getNotifySettings, setNotifySettings, subscribeNotifySettings,
   SCORE_CHOICES, TAX_LEAD_CHOICES, DEFAULTS,
-  DAY_LABELS, SEND_HOURS, hourLabel,
+  DAY_LABELS, SEND_HOURS, SEND_MINUTES, hourLabel, timeLabel,
 } from '../../utils/notifySettings'
 import KakaoNotifyCard from './KakaoNotifyCard'
+import WheelPicker from './WheelPicker'
 
 /** 켜고 끄는 줄 하나. */
 function Row({ icon: Icon, title, desc, on, onToggle, children, showChildren }) {
@@ -192,20 +193,24 @@ export default function NotifySettings({ profile, className = '' }) {
         </div>
 
         <div className="mt-2.5 pl-[27px] space-y-2.5">
-          <label className="flex items-center gap-2">
-            <span className="text-[13px] font-bold text-navy">시각</span>
-            <select
-              value={s.sendHour}
-              onChange={e => set({ sendHour: Number(e.target.value) })}
-              className="flex-1 max-w-[160px] rounded-lg border border-warm-gray/40 bg-white
-                         px-2.5 py-1.5 text-[13px] font-bold text-navy
-                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/40"
-            >
-              {SEND_HOURS.map(h => (
-                <option key={h} value={h}>{hourLabel(h)}</option>
-              ))}
-            </select>
-          </label>
+          <p className="text-[13px] font-bold text-navy">시각</p>
+          {/* 돌려서 고른다. 아래위로 흐려지는 덮개가 카드 바탕색과 같아야
+              원통처럼 보여서, 그 색을 여기서 내려준다. */}
+          <div
+            className="flex items-center justify-center gap-1 rounded-xl bg-warm-gray/[0.07] py-1"
+            style={{ '--wheel-fade': '#fbfaf7' }}
+          >
+            <WheelPicker
+              values={SEND_HOURS} value={s.sendHour}
+              onChange={h => set({ sendHour: h })}
+              label="보낼 시각 — 시" format={hourLabel} width={104}
+            />
+            <WheelPicker
+              values={SEND_MINUTES} value={s.sendMinute}
+              onChange={m => set({ sendMinute: m })}
+              label="보낼 시각 — 분" format={m => `${m}분`} width={72}
+            />
+          </div>
 
           <div>
             <p className="text-[13px] font-bold text-navy mb-1.5">요일</p>
@@ -240,8 +245,8 @@ export default function NotifySettings({ profile, className = '' }) {
             </div>
             <p className="text-[13px] text-warm-text mt-1.5 leading-relaxed">
               {(s.sendDays ?? []).length === 7
-                ? `매일 ${hourLabel(s.sendHour)}에 보내드려요.`
-                : `${(s.sendDays ?? []).map(d => DAY_LABELS[d]).join('·')}요일 ${hourLabel(s.sendHour)}에 보내드려요.`}
+                ? `매일 ${timeLabel(s.sendHour, s.sendMinute)}에 보내드려요.`
+                : `${(s.sendDays ?? []).map(d => DAY_LABELS[d]).join('·')}요일 ${timeLabel(s.sendHour, s.sendMinute)}에 보내드려요.`}
             </p>
           </div>
         </div>
