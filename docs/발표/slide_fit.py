@@ -95,7 +95,13 @@ for i, raw in enumerate(slides, 1):
         for x in re.finditer(r'<p class="then">(.*?)</p>', v, re.S): add("then", lines_of(x.group(1),34,1.3,AVAIL_W)+12)
     for m in re.finditer(r'<p class="closing"[^>]*>(.*?)</p>', sl, re.S):
         fs = 24 if 'font-size:24px' in m.group(0) else 26
-        add("closing", lines_of(m.group(1), fs, 1.45, AVAIL_W))
+        t = m.group(1)
+        src = re.search(r'<span class="srcline">(.*?)</span>', t, re.S)
+        h2 = 0
+        if src:
+            t = re.sub(r'<span class="srcline">.*?</span>', '', t, flags=re.S)
+            h2 = lines_of(src.group(1), 17, 1.5, AVAIL_W) + 9
+        add("closing", lines_of(t, fs, 1.45, AVAIL_W) + h2)
     for m in re.finditer(r'<div class="strip">(.*?)</div>\s*</div>', sl, re.S):
         add("strip", 36 + 7 + 17*1.4*2)
     for m in re.finditer(r'<div class="pairs">(.*?)</div>\s*<hr', sl, re.S):
