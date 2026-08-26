@@ -212,6 +212,32 @@ def _load_apartments() -> list[dict]:
     return [d for d in data if d.get("lat") and d.get("lng")]
 
 
+def _apt_dong_summary(lat: float, lng: float) -> dict | None:
+    """핀 위치에서 가장 가까운 아파트 단지의 동을 찾아 동 전체 집계를 반환."""
+    if not _APARTMENTS:
+        return None
+    nearest = None
+    nearest_dist = 5_000.0  # 5 km 이상이면 의미 없음
+    for a in _APARTMENTS:
+        if not a.get("dong"):
+            continue
+        d = _haversine(lat, lng, a["lat"], a["lng"])
+        if d < nearest_dist:
+            nearest_dist = d
+            nearest = a
+    if nearest is None:
+        return None
+    dong = nearest["dong"]
+    eup  = nearest.get("eup", "")
+    same = [a for a in _APARTMENTS if a.get("dong") == dong]
+    return {
+        "dong":        dong,
+        "eup":         eup,
+        "complexes":   len(same),
+        "total_units": sum(a.get("units", 0) for a in same),
+    }
+
+
 def _load_commercial_data() -> None:
     global _STORES, _SCHOOLS, _STATIONS, _APARTMENTS
     data_dir = _data_dir()
@@ -418,7 +444,6 @@ class Handler(BaseHTTPRequestHandler):
             "restaurants": int(radii.get("restaurants") or 500),
             "cafes":       int(radii.get("cafes")       or 500),
             "academies":   int(radii.get("academies")   or 500),
-            "apartments":  int(radii.get("apartments")  or 500),
             "stations":    int(radii.get("stations")    or 500),
         }
 
@@ -444,11 +469,6 @@ class Handler(BaseHTTPRequestHandler):
             s for s in _SCHOOLS
             if _haversine(lat, lng, s["lat"], s["lng"]) <= r["schools"]
         ]
-        apartments = [
-            {"name": a["name"], "units": a["units"], "lat": a["lat"], "lng": a["lng"]}
-            for a in _APARTMENTS
-            if _haversine(lat, lng, a["lat"], a["lng"]) <= r["apartments"]
-        ]
         stations = [
             s for s in _STATIONS
             if _haversine(lat, lng, s["lat"], s["lng"]) <= r["stations"]
@@ -460,13 +480,15 @@ class Handler(BaseHTTPRequestHandler):
             step = math.ceil(len(lst) / n)
             return lst[::step][:n]
 
+        # 아파트: 반경 개수가 아닌 핀 위치 동 단위 집계
+        apt_dong = _apt_dong_summary(lat, lng)
+
         return _send(self, {
             "counts": {
                 "schools":     len(schools),
                 "restaurants": len(restaurants),
                 "cafes":       len(cafes),
                 "academies":   len(academies),
-                "apartments":  len(apartments),
                 "stations":    len(stations),
             },
             "markers": {
@@ -474,9 +496,9 @@ class Handler(BaseHTTPRequestHandler):
                 "restaurants": sample(restaurants),
                 "cafes":       sample(cafes),
                 "academies":   sample(academies),
-                "apartments":  apartments,
                 "stations":    stations,
             },
+            "apt_dong": apt_dong,
         })
 
 

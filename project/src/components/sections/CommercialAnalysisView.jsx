@@ -113,12 +113,13 @@ function LeafletMap({ position, onMove, radii, markers }) {
 
 const HWS_CENTER = { lat: 37.1999, lng: 126.8317 }
 
-function getFootTrafficText(am, stationPassengers) {
+function getFootTrafficText(am, stationPassengers, aptDong) {
   const stationScore = stationPassengers != null
     ? stationPassengers * 0.15
     : am.stations * 650
+  const aptScore = Math.round((aptDong?.total_units || 0) * 0.08)
   const score = am.schools * 220 + am.restaurants * 55 + am.cafes * 90
-              + am.apartments * 160 + stationScore
+              + aptScore + stationScore
   if (score >= 8000) {
     return `일 평균 ${(score / 10000).toFixed(1)}만명 이상이 지나갈 것으로 예상해요! 역세권·학교·아파트가 많아 출퇴근 피크가 뚜렷해요`
   }
@@ -129,15 +130,14 @@ function getFootTrafficText(am, stationPassengers) {
 }
 
 const AMENITY_CONFIG = [
-  { key: 'schools',     label: '학교',       Icon: School,    color: '#3B82F6', char: '학' },
-  { key: 'restaurants', label: '음식점',     Icon: Utensils,  color: '#F97316', char: '식' },
-  { key: 'academies',   label: '학원',       Icon: BookOpen,  color: '#8B5CF6', char: '원' },
-  { key: 'cafes',       label: '카페',       Icon: Coffee,    color: '#92400E', char: '카' },
-  { key: 'apartments',  label: '아파트 단지', Icon: Building2, color: '#10B981', char: '아' },
-  { key: 'stations',    label: '역',         Icon: Train,     color: '#1E3A5F', char: '역' },
+  { key: 'schools',     label: '학교',   Icon: School,    color: '#3B82F6', char: '학' },
+  { key: 'restaurants', label: '음식점', Icon: Utensils,  color: '#F97316', char: '식' },
+  { key: 'academies',   label: '학원',   Icon: BookOpen,  color: '#8B5CF6', char: '원' },
+  { key: 'cafes',       label: '카페',   Icon: Coffee,    color: '#92400E', char: '카' },
+  { key: 'stations',    label: '역',     Icon: Train,     color: '#1E3A5F', char: '역' },
 ]
 
-const DEFAULT_RADII = { schools: 500, restaurants: 500, academies: 500, cafes: 500, apartments: 500, stations: 500 }
+const DEFAULT_RADII = { schools: 500, restaurants: 500, academies: 500, cafes: 500, stations: 500 }
 
 export default function CommercialAnalysisView() {
   const [position, setPosition]   = useState(HWS_CENTER)
@@ -163,7 +163,7 @@ export default function CommercialAnalysisView() {
     }, 300)
   }, [position.lat, position.lng, radii])
 
-  const { amenities, displayMarkers, stationPassengersTotal } = useMemo(() => {
+  const { amenities, displayMarkers, stationPassengersTotal, aptDong } = useMemo(() => {
     const counts  = apiData?.counts  || {}
     const markers = apiData?.markers || {}
 
@@ -172,7 +172,6 @@ export default function CommercialAnalysisView() {
       restaurants: counts.restaurants ?? 0,
       academies:   counts.academies   ?? 0,
       cafes:       counts.cafes       ?? 0,
-      apartments:  counts.apartments  ?? 0,
       stations:    counts.stations    ?? 0,
     }
 
@@ -180,8 +179,9 @@ export default function CommercialAnalysisView() {
       ? markers.stations.reduce((sum, s) => sum + (s.passengers || 0), 0)
       : null
 
-    const displayMarkers = []
+    const aptDong = apiData?.apt_dong ?? null
 
+    const displayMarkers = []
     ;(markers.schools || []).forEach(s =>
       displayMarkers.push({ lat: s.lat, lng: s.lng, key: 'schools', popup: `<b>${s.name}</b><br>${s.level}` })
     )
@@ -191,20 +191,14 @@ export default function CommercialAnalysisView() {
         popup: `<b>${s.name}역</b> (${s.line})${s.passengers > 0 ? `<br>일 평균 ${s.passengers.toLocaleString()}명 이용` : ''}`,
       })
     )
-    ;(markers.apartments || []).forEach(s =>
-      displayMarkers.push({
-        lat: s.lat, lng: s.lng, key: 'apartments',
-        popup: `<b>${s.name}</b>${s.units ? `<br>${s.units.toLocaleString()}세대` : ''}`,
-      })
-    )
     ;['restaurants', 'cafes', 'academies'].forEach(key => {
       ;(markers[key] || []).forEach(s => displayMarkers.push({ lat: s.lat, lng: s.lng, key }))
     })
 
-    return { amenities, displayMarkers, stationPassengersTotal }
+    return { amenities, displayMarkers, stationPassengersTotal, aptDong }
   }, [apiData])
 
-  const footTraffic = useMemo(() => getFootTrafficText(amenities, stationPassengersTotal), [amenities, stationPassengersTotal])
+  const footTraffic = useMemo(() => getFootTrafficText(amenities, stationPassengersTotal, aptDong), [amenities, stationPassengersTotal, aptDong])
 
   const applyPosition = useCallback((pos) => setPosition(pos), [])
 
@@ -253,7 +247,7 @@ export default function CommercialAnalysisView() {
           음식점·카페·학원은 <strong className="text-navy">소상공인시장진흥공단</strong>(2026.06),
           학교는 <strong className="text-navy">경기도교육청</strong>,
           역은 <strong className="text-navy">한국철도공사</strong>,
-          아파트 단지는 <strong className="text-navy">경기도경기부동산포털</strong> 실제 데이터예요.
+          아파트 단지는 <strong className="text-navy">K-apt 공동주택관리정보시스템</strong> 실제 데이터예요.
         </p>
       </div>
 
@@ -338,6 +332,25 @@ export default function CommercialAnalysisView() {
           <p className="text-[10px] text-warm-text mt-2">가 있어요</p>
         </div>
       </div>
+
+      {/* 아파트 단지 동 현황 */}
+      {aptDong ? (
+        <div className="flex items-center gap-3 bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-3">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: '#10B98122', border: '1.5px solid #10B981' }}>
+            <Building2 size={14} style={{ color: '#10B981' }} />
+          </div>
+          <div>
+            <p className="text-[10px] text-warm-text">
+              {aptDong.eup && <>{aptDong.eup} </>}
+              <strong className="text-navy">{aptDong.dong}</strong> 아파트
+            </p>
+            <p className="text-xs font-bold text-navy">
+              {aptDong.complexes}개 단지 · 총 {aptDong.total_units.toLocaleString()}세대
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       {/* 유동인구 예측 */}
       <div className="bg-navy rounded-2xl px-4 py-4">

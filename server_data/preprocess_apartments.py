@@ -208,6 +208,7 @@ def main():
 
         if coords:
             result.append({"name": info["name"], "units": info["units"],
+                           "dong": info["dong"], "eup": info["eup"],
                            "lat": coords[0], "lng": coords[1]})
         else:
             print(f"    -> failed")
