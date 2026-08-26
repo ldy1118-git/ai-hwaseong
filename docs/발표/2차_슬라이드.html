@@ -256,6 +256,8 @@
   .move .text { margin: 0; font-family: 'Noto Sans KR', sans-serif; font-size: 21px; font-weight: 700; line-height: 1.45; color: var(--ink); }
   .move .text s { text-decoration: none; color: var(--sand); }
   .move .text em { font-style: normal; color: var(--alarm); font-weight: 900; }
+  .move .text .who { margin-left: 10px; font-size: 15px; font-weight: 800; color: var(--sand);
+                     letter-spacing: .02em; white-space: nowrap; }
 
   .bridge { margin: 0; font-family: 'Noto Sans KR', sans-serif; font-size: 22px; font-weight: 900; color: var(--ink); }
 
@@ -635,28 +637,33 @@
       <div class="box">
         <section class="slide">
           <div class="body">
-            <div class="col" style="gap:18px">
-              <p class="eyebrow">지난 일주일</p>
-              <p class="kicker" style="margin:-6px 0 0">기능을 늘린 일주일이 아닙니다.
-                사장님이 <b>못 쓰던 것</b>을 하나씩 없앤 일주일입니다.</p>
+            <div class="col" style="gap:16px">
+              <p class="eyebrow">지난 일주일 — 셋이 나눠서</p>
+              <p class="kicker" style="margin:-6px 0 0">다섯 가지를 <b>더했고</b>, 사장님이 못 쓰던 것 셋을 <b>없앴습니다.</b></p>
               <hr class="rule">
               <div class="moves">
-                <div class="move done"><p class="kind">고쳤다</p>
-                  <p class="text">사업자등록증 <s>사진 넉 장이 서버에 남아 있었다</s> <em>→ 이제 메모리에서만 읽습니다</em></p></div>
-                <div class="move done"><p class="kind">고쳤다</p>
-                  <p class="text">되는 기능을 <s>「안 됩니다」라고 적어두고 있었다</s> <em>→ 서버에 물어보고 답합니다</em></p></div>
-                <div class="move done"><p class="kind">고쳤다</p>
-                  <p class="text">직원 있는 사장님에게 <s>원천세 하나만 보여주고 있었다</s> <em>→ 넷을 더 찾아 넣었습니다</em></p></div>
-                <div class="move done"><p class="kind">고쳤다</p>
+                <div class="move wide"><p class="kind">더했다</p>
+                  <p class="text">카카오톡 알림 — 조건에 맞는 새 공고와 세무 신고기한이 <em>앱을 안 열어도</em> 옵니다<span class="who">임대윤</span></p></div>
+                <div class="move wide"><p class="kind">더했다</p>
+                  <p class="text">관심공고 ★ — 담아두면 <em>달력에서 다시</em> 만납니다. 상시 접수 공고까지<span class="who">임대윤</span></p></div>
+                <div class="move wide"><p class="kind">더했다</p>
+                  <p class="text">서류준비 창 — 서류별 <em>발급 절차를 옆에 띄우고</em> 어디까지 했는지 남깁니다<span class="who">전서희</span></p></div>
+                <div class="move wide"><p class="kind">더했다</p>
+                  <p class="text">소득분위 — 「4인 가구 월 500」 같은 <em>자유 문장을 LLM 이</em> 분위로 읽습니다<span class="who">전서희</span></p></div>
+                <div class="move wide"><p class="kind">더했다</p>
+                  <p class="text">상권분석 — <em>4단계 가이드</em>로 다시 짰고, 아파트를 <em>K-apt 실데이터</em>로 바꿨습니다<span class="who">전성현</span></p></div>
+                <div class="move done"><p class="kind">없앴다</p>
+                  <p class="text">사업자등록증 <s>사진 넉 장이 서버에 남아 있었다</s> <em>→ 메모리에서만 읽습니다</em></p></div>
+                <div class="move done"><p class="kind">없앴다</p>
+                  <p class="text">직원 있는 사장님에게 <s>원천세 하나만 보여줬다</s> <em>→ 넷을 더 찾아 넣었습니다</em></p></div>
+                <div class="move done"><p class="kind">없앴다</p>
                   <p class="text">공방 사장님과 카페 사장님이 <s>같은 공고를 봤다</s> <em>→ 업종을 갈랐습니다</em></p></div>
-                <div class="move done"><p class="kind">고쳤다</p>
-                  <p class="text">알림을 켜면 <s>아흐레 동안 카톡이 왔다</s> <em>→ 첫날은 기준선만 잡습니다</em></p></div>
               </div>
               <hr class="rule">
               <div class="strip">
                 <div class="item"><p class="n">59 → 82<span class="unit">건</span></p><p class="t">공고<br>화성시청 고시공고 직접 수집 2건 포함</p></div>
                 <div class="item"><p class="n">14 → 18<span class="unit">건</span></p><p class="t">세무 항목<br>직원 있는 사장님 6 → 10건</p></div>
-                <div class="item hot"><p class="n">120<span class="unit">건</span></p><p class="t">일주일 커밋<br>대윤 98 · 성현 20 · 서희 2</p></div>
+                <div class="item hot"><p class="n">목업 → 실데이터</p><p class="t">상권분석 아파트 단지<br>K-apt 공동주택관리정보시스템</p></div>
               </div>
             </div>
           </div>
@@ -891,11 +898,11 @@
                    '읽어주지 말 것 — 심사위원이 읽는 동안 말이 안 들린다',
                    '마지막 줄(「중소기업 운전자금」)이 우리 서비스로 넘어가는 다리다. 여기만 힘줘서',
                    '질문받으면: 9,458건은 946페이지를 전부 받아서 센 값이다'] },
-    3: { say: '"기능을 늘린 게 아니라, 못 쓰던 것을 없앤 일주일입니다."',
-         bullets: ['다섯 줄은 실제 커밋 제목 그대로다 — 지어낸 문장이 아니라고 말해도 좋다',
-                   '다섯을 다 읽지 말 것. 첫째(사진)와 셋째(원천세) 둘만 소리내어 읽는다',
-                   '아래 숫자 띠는 손으로 가리키기만 한다',
-                   '「120건」이 세 보이지만 진짜 할 말은 결이 하나라는 것이다'] },
+    3: { say: '"다섯을 더했고, 사장님이 못 쓰던 것 셋을 없앴습니다."',
+         bullets: ['여덟 줄을 다 읽지 말 것. 위에서 둘(카톡·서류준비), 아래에서 하나(사진)만 소리내어 읽는다',
+                   '오른쪽 이름은 셋이 나눠 만들었다는 표시다. 읽지 말고 손으로 훑기만 할 것',
+                   '아래 「없앴다」 셋은 실제 커밋 제목 그대로다 — 지어낸 문장이 아니라고 말해도 좋다',
+                   '아파트 목업 → 실데이터가 8장(숫자를 지어내지 않는다)의 예고편이다'] },
     4: { say: '"무엇을 어디서 돌릴지는 전부 이유가 있어서 그렇게 됐습니다."',
          bullets: ['네 층 이름만 짚고 넘어갈 것. 세부는 질문받으면 답한다',
                    '2층 — 함수 11개/한도 12개. 13개가 되어 실제로 배포가 막혔다. 겪은 일이라 힘이 있다',
@@ -937,10 +944,12 @@
       '사업이 없던 게 아니라 제목이 「중소기업 운전자금」이라 검색에 안 걸린 겁니다. **키워드가 아니라 조건으로 판정해야 합니다.**'
     ]},
     { n: 3, t: '1차 대비', sec: 55, lines: [
-      '지난 일주일 동안 무엇이 달라졌는지 먼저 말씀드리겠습니다. **기능을 늘린 일주일이 아니었습니다.**',
-      '화면에 있는 다섯 줄은 저희 커밋 제목 그대로입니다. 사업자등록증 **사진 넉 장이 서버에 남아 있었고**, 직원 있는 사장님에게 **원천세 하나만 보여주고** 있었습니다.',
-      '공고는 59건에서 **82건**으로, 세무 항목은 14건에서 **18건**으로 늘었습니다. 커밋은 일주일에 120건입니다.',
-      '숫자보다 결이 중요합니다. **사장님이 못 쓰던 것을 하나씩 없앤 일주일**입니다.'
+      '지난 일주일 동안 무엇이 달라졌는지 먼저 말씀드리겠습니다. 셋이 나눠서 **다섯을 더하고 셋을 없앴습니다.**',
+      '더한 것부터입니다. **카카오톡 알림** — 조건에 맞는 새 공고와 세무 신고기한이 앱을 안 열어도 옵니다. **관심공고**는 담아두면 달력에서 다시 만납니다.',
+      '**서류준비 창**은 서류마다 발급 절차를 옆에 띄우고 어디까지 했는지 남깁니다. 소득분위는 「4인 가구 월 500」 같은 **자유 문장을 LLM 이** 읽습니다.',
+      '**상권분석**은 4단계 가이드로 다시 짰고, 아파트를 **K-apt 실데이터**로 바꿨습니다. 목업이었던 것을 실제 데이터로 옮긴 겁니다.',
+      '없앤 것 셋은 커밋 제목 그대로입니다. 사업자등록증 **사진 넉 장이 서버에 남아 있었고**, 직원 있는 사장님에게 **원천세 하나만** 보여주고 있었습니다.',
+      '공고는 59건에서 **82건**, 세무 항목은 14건에서 **18건**이 됐습니다.'
     ]},
     { n: 4, t: '전체 구조', sec: 60, lines: [
       '전체 구조입니다. 네 군데에서 나눠 돕니다.',
