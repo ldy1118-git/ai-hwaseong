@@ -51,7 +51,19 @@ export default function FloatingChatButton({ onClick }) {
           <img src={marsImg} alt="Mars" className="w-full h-full object-contain" />
         </button>
 
-        <span className="mt-1 text-[12px] text-warm-text font-medium whitespace-nowrap">
+        {/* 폰에서는 글자를 뺀다. 「Mars에게 물어보기」가 그림보다 넓어서 이 덩어리
+
+            전체가 화면 오른쪽 아래를 크게 덮는다 — 달력 범례와 마지막 주 날짜가 그
+
+            아래 깔렸다. 늘 떠 있는 것이라 한 번 가리면 스크롤로도 안 치워진다.
+
+        
+
+            글자를 빼도 aria-label 은 버튼에 그대로 있어서 화면낭독기는 똑같이
+
+            「Mars에게 물어보기」라고 읽는다. */}
+
+        <span className="hidden sm:block mt-1 text-[12px] text-warm-text font-medium whitespace-nowrap">
           Mars에게 물어보기
         </span>
       </div>
