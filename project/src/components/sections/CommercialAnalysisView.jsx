@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   Info, School, Utensils, BookOpen, Coffee, Building2, Search, Train,
-  Maximize2, X as XIcon,
+  Maximize2, X as XIcon, Sparkles,
 } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { apiUrl } from '../../utils/api'
 
 /**
  * 상권분석 뷰.
@@ -113,6 +114,58 @@ function LeafletMap({ position, onMove, radii, markers }) {
 
 const HWS_CENTER = { lat: 37.1999, lng: 126.8317 }
 
+const TZ_LABELS = {
+  TZ01: '자정~새벽 2시', TZ02: '새벽 2~4시', TZ03: '오전',
+  TZ04: '오전 중반', TZ05: '점심 전후', TZ06: '오후',
+  TZ07: '저녁', TZ08: '밤', TZ09: '늦은 밤', TZ10: '심야',
+}
+
+async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPassengersTotal, radii }) {
+  const schoolCount    = amenities.schools
+  const restaurantCount = amenities.restaurants
+  const cafeCount      = amenities.cafes
+  const academyCount   = amenities.academies
+  const stationCount   = amenities.stations
+
+  const aptLine = aptDong && aptDong.total_units > 0
+    ? `아파트: ${aptDong.dong} 내 ${aptDong.complexes}개 단지, ${aptDong.total_units.toLocaleString()}세대`
+    : '아파트 정보: 없음'
+
+  const stationLine = stationCount > 0
+    ? `역: ${stationCount}개 (일 평균 ${(stationPassengersTotal || 0).toLocaleString()}명 이용)`
+    : '역: 없음'
+
+  let salesLine = ''
+  if (cardSales) {
+    const billionSales = Math.round(cardSales.total_sales / 100_000_000)
+    const peakLabel    = TZ_LABELS[cardSales.peak_tz] || cardSales.peak_tz
+    salesLine = `카드매출 (2020년 3월, ${cardSales.area_name} 기준): 월 약 ${billionSales}억원 / 가장 바쁜 시간대: ${peakLabel} (${cardSales.peak_pct.toFixed(1)}%)`
+  }
+
+  const prompt = [
+    `반경 ${radii.schools}m 내 학교: ${schoolCount}개`,
+    `반경 ${radii.restaurants}m 내 음식점: ${restaurantCount}개, 카페: ${cafeCount}개, 학원: ${academyCount}개`,
+    stationLine,
+    aptLine,
+    salesLine,
+  ].filter(Boolean).join('\n')
+
+  const res = await fetch(apiUrl('/api/llm'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system: `당신은 마이다(Mar-DA)입니다. 화성시 소상공인을 응원하는 상권 분석 도우미예요.
+창업 예정 위치의 데이터를 바탕으로 상권의 특징을 3~4문장으로 요약해주세요.
+강점을 먼저 말하고 창업 시 참고할 점을 친근하게 조언해요.
+"~해요", "~거든요" 같은 말투로, 구체적인 숫자를 활용해 주세요.
+카드매출 데이터는 2020년 기준임을 한 번만 간단히 언급해도 돼요.`,
+      prompt,
+    }),
+  })
+  const data = await res.json()
+  return data.text || ''
+}
+
 function getFootTrafficText(am, stationPassengers, aptDong) {
   const stationScore = stationPassengers != null
     ? stationPassengers * 0.15
@@ -145,8 +198,11 @@ export default function CommercialAnalysisView() {
   const [searching, setSearching] = useState(false)
   const [radii, setRadii]         = useState(DEFAULT_RADII)
   const [expanded, setExpanded]   = useState(false)
-  const [apiData, setApiData] = useState(null)
-  const debounceRef = useRef(null)
+  const [apiData, setApiData]     = useState(null)
+  const [llmSummary, setLlmSummary]   = useState('')
+  const [llmLoading, setLlmLoading]   = useState(false)
+  const debounceRef    = useRef(null)
+  const llmDebounceRef = useRef(null)
 
   // 위치·반경이 바뀔 때마다 외부 서버에서 필터링된 데이터를 받아온다
   useEffect(() => {
@@ -162,6 +218,42 @@ export default function CommercialAnalysisView() {
         .catch(() => {})
     }, 300)
   }, [position.lat, position.lng, radii])
+
+  // LLM 요약: apiData 가 들어온 뒤 1.2초 대기 (지도 드래그 중 과호출 방지)
+  useEffect(() => {
+    clearTimeout(llmDebounceRef.current)
+    if (!apiData) return
+    llmDebounceRef.current = setTimeout(async () => {
+      setLlmLoading(true)
+      setLlmSummary('')
+      try {
+        const counts = apiData?.counts || {}
+        const markers = apiData?.markers || {}
+        const am = {
+          schools: counts.schools ?? 0,
+          restaurants: counts.restaurants ?? 0,
+          academies: counts.academies ?? 0,
+          cafes: counts.cafes ?? 0,
+          stations: counts.stations ?? 0,
+        }
+        const spTotal = markers.stations
+          ? markers.stations.reduce((s, st) => s + (st.passengers || 0), 0)
+          : 0
+        const text = await fetchCommercialSummary({
+          amenities: am,
+          aptDong: apiData?.apt_dong ?? null,
+          cardSales: apiData?.card_sales ?? null,
+          stationPassengersTotal: spTotal,
+          radii,
+        })
+        setLlmSummary(text)
+      } catch {
+        setLlmSummary('')
+      } finally {
+        setLlmLoading(false)
+      }
+    }, 1200)
+  }, [apiData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { amenities, displayMarkers, stationPassengersTotal, aptDong } = useMemo(() => {
     const counts  = apiData?.counts  || {}
@@ -361,6 +453,27 @@ export default function CommercialAnalysisView() {
           이 위치에서는 {footTraffic}
         </p>
       </div>
+
+      {/* 마이다 상권 요약 */}
+      {(llmLoading || llmSummary) && (
+        <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-6 h-6 rounded-full bg-navy/10 flex items-center justify-center flex-shrink-0">
+              <Sparkles size={12} className="text-navy" />
+            </div>
+            <p className="text-[11px] font-bold text-navy">마이다 상권 요약</p>
+          </div>
+          {llmLoading ? (
+            <div className="space-y-2 animate-pulse">
+              <div className="h-2.5 bg-warm-gray/20 rounded-full w-full" />
+              <div className="h-2.5 bg-warm-gray/20 rounded-full w-11/12" />
+              <div className="h-2.5 bg-warm-gray/20 rounded-full w-4/5" />
+            </div>
+          ) : (
+            <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{llmSummary}</p>
+          )}
+        </div>
+      )}
 
       {/* 확대 지도 모달 */}
       {expanded && (

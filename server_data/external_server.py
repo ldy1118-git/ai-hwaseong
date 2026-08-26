@@ -63,6 +63,36 @@ _SCHOOLS:     list[dict] = []          # {"name": str, "level": str, "lat": floa
 _STATIONS:    list[dict] = []          # {"name": str, "line": str, "lat": float, "lng": float, "passengers": int}
 _APT_BY_DONG: dict[str, dict] = {}    # 동리 → {"eup": str, "complexes": int, "total_units": int}
 _DONG_CACHE:  dict[tuple, str | None] = {}  # (lat4, lng4) → 동리 이름
+_CARD_SALES:  dict[str, dict] = {}    # 행정동코드 → {"area_name": str, "total_sales": float, "peak_tz": str, "peak_pct": float, "time_dist": dict}
+
+# 화성시 행정동코드 ↔ 이름 (2020년 기준, 카드매출 CSV 와 맞춤)
+_HWASEONG_DONG_CODES: dict[str, str] = {
+    "병점1동": "4159025300",
+    "병점2동": "4159025600",
+    "진안동":  "4159025900",
+    "반월동":  "4159026200",
+    "기배동":  "4159031000",
+    "화산동":  "4159032000",
+    "동탄1동": "4159033000",
+    "동탄2동": "4159034000",
+    "동탄3동": "4159035000",
+    "동탄4동": "4159036000",
+}
+# 역방향: 코드 → 이름
+_HWASEONG_CODE_DONGS: dict[str, str] = {v: k for k, v in _HWASEONG_DONG_CODES.items()}
+
+_TZ_LABELS: dict[str, str] = {
+    "TZ01": "자정~새벽 2시",
+    "TZ02": "새벽 2~4시",
+    "TZ03": "오전",
+    "TZ04": "오전 중반",
+    "TZ05": "점심 전후",
+    "TZ06": "오후",
+    "TZ07": "저녁",
+    "TZ08": "밤",
+    "TZ09": "늦은 밤",
+    "TZ10": "심야",
+}
 
 _UA = "hwaseong-ai-hackathon/1.0"
 
@@ -278,6 +308,92 @@ def _load_apt_by_dong() -> dict[str, dict]:
     return by_dong
 
 
+def _load_card_sales() -> dict[str, dict]:
+    """분석시스템_카드매출_시간대별.csv → 화성시 행정동별 카드매출 요약."""
+    path = _data_dir() / "분석시스템_카드매출_시간대별.csv"
+    if not path.exists():
+        print("경고: 카드매출 CSV 없음 — 매출 분석 비활성화.", file=sys.stderr)
+        return {}
+
+    raw: dict[str, dict] = {}  # 코드 → {time_dist, total_sales}
+    try:
+        with open(path, encoding="cp949", newline="") as f:
+            for row in csv.DictReader(f):
+                code = row.get("행정동코드", "").strip()
+                if not code.startswith("4159"):
+                    continue
+                tz  = row.get("시간대코드", "").strip()
+                cat = row.get("중분류업종코드", "").strip()
+                if cat != "TO":
+                    continue
+                try:
+                    sales = float(row.get("매출금액", 0) or 0)
+                    pct   = float(row.get("매출금액비율", 0) or 0)
+                except (ValueError, TypeError):
+                    continue
+                if code not in raw:
+                    raw[code] = {"total_sales": 0.0, "time_dist": {}}
+                if tz == "TOT":
+                    raw[code]["total_sales"] = sales
+                else:
+                    raw[code]["time_dist"][tz] = pct
+    except Exception as e:
+        print(f"[card_sales] 로드 실패: {e}", file=sys.stderr)
+        return {}
+
+    result = {}
+    for code, info in raw.items():
+        td   = info["time_dist"]
+        peak = max(td, key=td.get) if td else "TZ06"
+        result[code] = {
+            "area_name":   _HWASEONG_CODE_DONGS.get(code, code),
+            "total_sales": info["total_sales"],
+            "peak_tz":     peak,
+            "peak_pct":    td.get(peak, 0.0),
+            "time_dist":   td,
+        }
+
+    print(f"[card_sales] {len(result)}개 행정동 로드", file=sys.stderr, flush=True)
+    return result
+
+
+def _find_card_sales(dong_name: str | None) -> dict | None:
+    """역지오코딩 동명 → 카드매출 데이터. 없으면 화성시 평균."""
+    if not _CARD_SALES or not dong_name:
+        return None
+
+    # 1차: 직접 매핑 (병점2동 → 코드)
+    code = _HWASEONG_DONG_CODES.get(dong_name)
+    if code and code in _CARD_SALES:
+        return _CARD_SALES[code]
+
+    # 2차: 숫자 제거 후 매핑 (병점동 → 병점1동 or 병점2동)
+    legal = _strip_dong_number(dong_name)
+    if legal != dong_name:
+        for name, c in _HWASEONG_DONG_CODES.items():
+            if legal in name and c in _CARD_SALES:
+                return _CARD_SALES[c]
+
+    # 3차: 부분 일치 (동탄 → 동탄1동)
+    for name, c in _HWASEONG_DONG_CODES.items():
+        keyword = dong_name.rstrip("동읍면리").rstrip("1234567890")
+        if keyword and keyword in name and c in _CARD_SALES:
+            return _CARD_SALES[c]
+
+    # 4차: 화성시 평균
+    vals = list(_CARD_SALES.values())
+    if not vals:
+        return None
+    avg_sales = sum(v["total_sales"] for v in vals) / len(vals)
+    return {
+        "area_name":   "화성시 평균",
+        "total_sales": avg_sales,
+        "peak_tz":     "TZ06",
+        "peak_pct":    0.0,
+        "time_dist":   {},
+    }
+
+
 def _reverse_geocode_dong(lat: float, lng: float) -> str | None:
     """Nominatim 역지오코딩 → 동리 이름. 소수점 4자리(≈11m) 단위로 캐시."""
     key = (round(lat, 4), round(lng, 4))
@@ -361,6 +477,9 @@ def _load_commercial_data() -> None:
     print(f"  역: {len(_STATIONS)}개 로드", file=sys.stderr, flush=True)
 
     _APT_BY_DONG = _load_apt_by_dong()
+
+    global _CARD_SALES
+    _CARD_SALES = _load_card_sales()
 
 
 # ── 거리 계산 ─────────────────────────────────────────────────────────
@@ -579,6 +698,10 @@ class Handler(BaseHTTPRequestHandler):
         # 아파트: 반경 개수가 아닌 핀 위치 동 단위 집계
         apt_dong = _apt_dong_summary(lat, lng)
 
+        # 카드매출: 역지오코딩 동명으로 행정동 매출 데이터 조회
+        dong_name = apt_dong.get("dong") if apt_dong else _reverse_geocode_dong(lat, lng)
+        card_sales = _find_card_sales(dong_name)
+
         return _send(self, {
             "counts": {
                 "schools":     len(schools),
@@ -594,7 +717,8 @@ class Handler(BaseHTTPRequestHandler):
                 "academies":   sample(academies),
                 "stations":    stations,
             },
-            "apt_dong": apt_dong,
+            "apt_dong":   apt_dong,
+            "card_sales": card_sales,
         })
 
 
