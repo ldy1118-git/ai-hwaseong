@@ -174,8 +174,18 @@ async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPa
 
   lines.push(`유동인구 예측: 약 ${ftScore.toLocaleString()}명/일 (${ftLevel.text} — ${ftLevel.desc})`)
 
-  if (cardSales) {
+  /* 평균으로 떨어졌으면 마이다에게도 그렇다고 말한다. 안 그러면
+
+     「이 자리 매출이 월 21억」으로 읽고 그 위에 해석을 쌓는다. */
+
+  if (cardSales?.area_name === '화성시 평균') {
+
+    lines.push(`카드매출: 이 자리의 행정동 집계가 없어 화성시 평균(월 약 ${Math.round(cardSales.total_sales / 1e8)}억원)입니다. 이 자리 매출이 아닙니다`)
+
+  } else if (cardSales) {
+
     lines.push(
+
       `지역 카드매출: 월 약 ${Math.round(cardSales.total_sales / 1e8)}억원` +
       ` / 피크 ${TZ_LABELS[cardSales.peak_tz] || cardSales.peak_tz} (${cardSales.peak_pct.toFixed(1)}%)`
     )
@@ -213,7 +223,7 @@ async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPa
       const count  = amenities[key]
       const lvl    = competitionLevel(key, count)
       const perStore = cardSales ? Math.round(cardSales.total_sales / count / 10000) : null
-      const salesTxt = perStore ? ` / 가게당 추정 ${perStore.toLocaleString()}만원/월` : ''
+      const salesTxt = perStore ? ` / 가게당 ${perStore.toLocaleString()}만원/월(위 매출을 가게 수로 나눈 값)` : ''
       return `${label}: ${count}개 (${lvl.label})${salesTxt}`
     })
   if (bizLines.length > 0) lines.push('업종별 경쟁 현황:\n' + bizLines.join('\n'))
@@ -327,7 +337,7 @@ export default function CommercialAnalysisView() {
     setLlmAsked(false)
   }, [position.lat, position.lng])
 
-  const { amenities, displayMarkers, stationPassengersTotal, aptDong, cardSales } = useMemo(() => {
+  const { amenities, displayMarkers, stationPassengersTotal, aptDong, cardSales, isAvgSales } = useMemo(() => {
     const counts  = apiData?.counts  || {}
     const markers = apiData?.markers || {}
     const amenities = {
@@ -340,6 +350,8 @@ export default function CommercialAnalysisView() {
       ? markers.stations.reduce((s, st) => s + (st.passengers || 0), 0) : null
     const aptDong   = apiData?.apt_dong   ?? null
     const cardSales = apiData?.card_sales ?? null
+      // 행정동을 못 찾아 화성시 평균으로 떨어진 경우. 화면에 그렇다고 적는다.
+      const isAvgSales = cardSales?.area_name === '화성시 평균'
     const displayMarkers = []
     ;(markers.schools || []).forEach(s =>
       displayMarkers.push({ lat: s.lat, lng: s.lng, key: 'schools', popup: `<b>${s.name}</b><br>${s.level}` })
@@ -353,7 +365,7 @@ export default function CommercialAnalysisView() {
     ;['restaurants', 'cafes', 'academies', 'retail', 'beauty', 'medical'].forEach(key =>
       (markers[key] || []).forEach(s => displayMarkers.push({ lat: s.lat, lng: s.lng, key }))
     )
-    return { amenities, displayMarkers, stationPassengersTotal: rawPassengers, aptDong, cardSales }
+    return { amenities, displayMarkers, stationPassengersTotal: rawPassengers, aptDong, cardSales, isAvgSales }
   }, [apiData])
 
   const ftScore = useMemo(
@@ -638,11 +650,22 @@ export default function CommercialAnalysisView() {
             <p className="text-xs text-warm-text mt-1 leading-snug">{ftLevel.desc}</p>
           </div>
 
-          {/* 카드매출 */}
+          {/* 카드매출
+
+                **어디 매출인지를 화면에 적는다.** 서버는 행정동을 못 찾으면
+                화성시 평균으로 떨어지면서 `area_name: "화성시 평균"` 을 같이
+                보낸다. 그런데 화면이 그걸 안 읽고 「이 지역 카드매출」이라고만
+                써서, 수원대에서도 동탄역에서도 똑같은 21억이 「이 자리 매출」로
+                보였다. 출처 없는 숫자를 두지 않는다는 원칙의 정반대다.
+
+                평균일 때는 피크 시간대를 안 그린다 — 그 경우 `peak_pct` 가
+                0.0 이라 「피크 오후 (0.0%)」라고 뜬다. */}
           <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-3">
             <div className="flex items-center gap-1 mb-1.5">
               <CreditCard size={10} className="text-warm-text" />
-              <p className="text-xs text-warm-text font-medium">이 지역 카드매출</p>
+              <p className="text-xs text-warm-text font-medium">
+                  {isAvgSales ? '화성시 평균 카드매출' : '이 지역 카드매출'}
+                </p>
             </div>
             {cardSales ? (
               <>
@@ -650,10 +673,16 @@ export default function CommercialAnalysisView() {
                   {Math.round(cardSales.total_sales / 1e8).toLocaleString()}
                   <span className="text-xs font-normal text-warm-text ml-1">억/월</span>
                 </p>
-                <p className="text-xs text-warm-text mt-2 leading-snug">
-                  피크 <strong className="text-navy">{TZ_LABELS[cardSales.peak_tz] || cardSales.peak_tz}</strong>
+                {isAvgSales ? (
+                    <p className="text-xs text-warm-text mt-2 leading-snug">
+                      이 자리의 행정동 집계가 없어 <strong className="text-navy">화성시 평균</strong>이에요
+                    </p>
+                  ) : (
+                    <p className="text-xs text-warm-text mt-2 leading-snug">
+                    피크 <strong className="text-navy">{TZ_LABELS[cardSales.peak_tz] || cardSales.peak_tz}</strong>
                   {' '}({cardSales.peak_pct.toFixed(1)}%)
-                </p>
+                  </p>
+                  )}
               </>
             ) : (
               <>
