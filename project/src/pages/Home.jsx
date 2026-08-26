@@ -249,9 +249,18 @@ function korMD(iso) {
   return `${Number(m)}월 ${Number(d)}일`
 }
 
-function BusinessOwnerSection({ profile, matches = [] }) {
-  const canApply = matches.filter(m => m.status === '신청가능').length
+function BusinessOwnerSection({ profile, matches = [], navigate }) {
+  const applicable = matches.filter(m => m.status === '신청가능')
+  const canApply = applicable.length
   const urgent   = matches.filter(m => m.dDay !== null && m.dDay <= 7).length
+
+  /* 예비창업자 화면에는 「가장 잘 맞는 것」이 있는데 여기엔 없었다.
+     두 화면을 따로 만들면서 한쪽에만 생긴 것이다. 「신청 가능 N건」까지
+     읽고 나면 「그래서 그게 뭔데」가 다음 생각인데, 여기서는 아래로
+     목록을 뒤져야 했다. */
+  const best = canApply
+    ? [...applicable].sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0]
+    : null
   const taxNext  = nextTaxDeadline(profile)
   const months   = profile.business_period_months || 0
   const category = profile.category || '업종'
@@ -296,6 +305,27 @@ function BusinessOwnerSection({ profile, matches = [] }) {
           </div>
         ))}
       </div>
+
+      {/* 「그래서 그게 뭔데」에 답한다. 예비창업자 화면 같은 자리에는
+          있는데 여기엔 없었다 — 두 화면을 따로 만들면서 한쪽에만
+          생긴 것이다. */}
+      {best && (
+        <button
+          onClick={() => openNotice(navigate, best)}
+          className="tap mt-2 w-full text-left rounded-2xl bg-white border border-warm-gray/20
+                     shadow-sm px-4 py-3 hover:border-navy/40 transition-colors">
+          <span className="block text-xs font-bold text-sunset-orange">가장 잘 맞는 것</span>
+          <span className="mt-1 flex items-start gap-2">
+            <span className="flex-1 text-sm font-bold text-navy leading-snug line-clamp-2">
+              {best.title}
+            </span>
+            <ChevronRight size={16} className="text-warm-gray flex-shrink-0 mt-0.5" />
+          </span>
+          <span className="block mt-1 text-xs font-semibold text-warm-text">
+            매칭 {best.score}점
+          </span>
+        </button>
+      )}
     </section>
   )
 }
@@ -316,7 +346,28 @@ function StartupPlannerSection({ profile, matches = [], navigate }) {
   // 지어낸 숫자 하나가 화면에 있으면 나머지 숫자까지 같이 의심받는다.
   // 실제 매칭 결과로 바꾼다.
   const canApply = matches.filter(m => m.status === '신청가능')
-  const best = matches[0] ?? null
+
+  /* **「가장 잘 맞는 것」은 신청가능 중에서 고른다.**
+   *
+   * 전에는 `matches[0]` 이었다. matches 는 「대상아님만 뺀 것」이라
+   * 확인필요가 그대로 들어 있고, 확인필요 쪽 점수가 대체로 더 높아서
+   * 늘 그게 이긴다. 그래서 「8건 지금 신청할 수 있어요」 바로 아래에
+   * **신청할 수 없는 공고**가 「가장 잘 맞는 것」으로 앉아 있었다 —
+   * 예비창업자 화면 1위가 「화성시 저신용 소상공인 미소금융 이자지원」
+   * (확인필요 81점)이었다. 눌러서 들어가야 아닌 걸 안다.
+   *
+   * 점수로 다시 세우는 이유는 API 가 점수순을 보장하지 않아서다.
+   * 받은 배열을 그 자리에서 sort 하면 다른 화면까지 순서가 따라간다. */
+  const best = canApply.length
+    ? [...canApply].sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0]
+    : null
+
+  /* 신청가능이 하나도 없을 때. 「0건」만 남기고 끝내면 할 수 있는 게 없다.
+     확인필요 중 점수가 높은 것을 대신 걸어주되 **「가장 잘 맞는 것」이라고
+     부르지 않는다.** */
+  const toCheck = canApply.length ? null
+    : ([...matches].filter(m => m.status === '확인필요')
+        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0] ?? null)
 
   return (
     <section className="px-5 mb-6 space-y-4">
@@ -343,20 +394,23 @@ function StartupPlannerSection({ profile, matches = [], navigate }) {
                 글씨는 text-xs 에 white/60 이었다. 남색 위에 60% 흰색을
                 12px 로 얹으면 획이 반투명하게 얇아져서 초점이 안 맞은
                 것처럼 보인다. 불투명하게 올리고 크기를 키운다. */}
-            {best && (
+            {(best || toCheck) && (
               <button
-                onClick={() => openNotice(navigate, best)}
-                className="mt-3 w-full text-left rounded-xl bg-white/10 hover:bg-white/[0.16]
+                onClick={() => openNotice(navigate, best || toCheck)}
+                className="tap mt-3 w-full text-left rounded-xl bg-white/10 hover:bg-white/[0.16]
                            border border-white/15 px-3.5 py-3 transition-colors">
-                <span className="block text-xs font-bold text-star-yellow">가장 잘 맞는 것</span>
+                <span className="block text-xs font-bold text-star-yellow">
+                  {best ? '가장 잘 맞는 것' : '확인해볼 만한 것'}
+                </span>
                 <span className="mt-1 flex items-start gap-2">
                   <span className="flex-1 text-sm font-bold text-white leading-snug line-clamp-2">
-                    {best.title}
+                    {(best || toCheck).title}
                   </span>
                   <ChevronRight size={16} className="text-white/70 flex-shrink-0 mt-0.5" />
                 </span>
                 <span className="block mt-1 text-xs font-semibold text-white/80">
-                  매칭 {best.score}점
+                  매칭 {(best || toCheck).score}점
+                  {!best && <span className="text-white/60"> · 조건을 더 봐야 해요</span>}
                 </span>
               </button>
             )}
@@ -694,7 +748,7 @@ export default function Home() {
             {/* 관심공고. 담긴 게 없으면 스스로 안 그린다 */}
             <FavoriteNotices className="mx-5 mb-3" />
 
-            {role === 1 && <BusinessOwnerSection profile={profile} matches={allMatches} />}
+            {role === 1 && <BusinessOwnerSection profile={profile} matches={allMatches} navigate={navigate} />}
             {role === 2 && <StartupPlannerSection profile={profile} matches={allMatches} navigate={navigate} />}
             {role === 3 && <ExplorerSection profile={profile} navigate={navigate} />}
           </StickyLag>
