@@ -192,7 +192,7 @@
   u { text-decoration: none; box-shadow: inset 0 -.42em 0 rgba(251, 226, 129, .55); font-weight: 900; }
   mark { background: var(--accent); color: var(--ink); padding: 0 .3em; border-radius: 4px; }
 
-  .pagenum { position: absolute; right: 72px; bottom: 44px; margin: 0; font-size: 17px; font-weight: 800; letter-spacing: .1em; color: var(--sand); font-variant-numeric: tabular-nums; }
+  .pagenum { position: absolute; right: 72px; bottom: 44px; margin: 0; font-size: 17px; font-weight: 800; letter-spacing: .1em; color: var(--muted); font-variant-numeric: tabular-nums; }
   .on-night .pagenum { color: rgba(255,255,255,.35); }
 
   /* ---------- 1장 · 표지 ---------- */
@@ -359,17 +359,17 @@
   .crew-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 30px; }
   .crew-col > h4 { margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--ink);
                    font-family: 'Noto Sans KR', sans-serif; font-size: 22px; font-weight: 900; color: var(--ink); }
-  .crew-col > h4 i { font-style: normal; margin-left: 8px; font-size: 16px; font-weight: 700; color: var(--sand); }
+  .crew-col > h4 i { font-style: normal; margin-left: 8px; font-size: 16px; font-weight: 700; color: var(--muted); }
   .crew-col .row { margin: 0 0 10px; padding-left: 14px; position: relative;
                    font-family: 'Noto Sans KR', sans-serif; font-size: 19px; font-weight: 700;
                    line-height: 1.45; color: var(--muted); }
   .crew-col .row::before { content: ''; position: absolute; left: 0; top: .62em;
                            width: 5px; height: 5px; border-radius: 50%; background: var(--sand); }
   .crew-col .row b { color: var(--ink); font-weight: 900; }
-  .crew-col .row .dim { color: var(--sand); font-weight: 700; }
+  .crew-col .row .dim { color: var(--muted); font-weight: 700; }
   .crew-col .row .why { display: block; margin-top: 4px; font-size: 15px; font-weight: 700;
-                        line-height: 1.4; color: var(--sand); }
-  .crew-col .row .why b { color: var(--alarm); font-weight: 900; }
+                        line-height: 1.4; color: var(--muted); }
+  .crew-col .row .why b { color: var(--ink); font-weight: 900; }
   /* 1차에 「2차에 하겠다」고 적어둔 둘. 이게 제일 먼저 읽혀야 한다. */
   .crew-col .row.vow { color: var(--ink); }
   .crew-col .row.vow::before { background: var(--alarm); }
@@ -387,12 +387,12 @@
   .csvtbl { border-collapse: collapse; width: 100%; font-family: 'Noto Sans KR', sans-serif; }
   .csvtbl th, .csvtbl td { padding: 7px 14px 7px 0; text-align: left; vertical-align: top;
                            border-bottom: 1px solid var(--rule); }
-  .csvtbl th { font-size: 14px; font-weight: 800; letter-spacing: .05em; color: var(--sand);
+  .csvtbl th { font-size: 15px; font-weight: 800; letter-spacing: .05em; color: var(--muted);
                border-bottom: 2px solid var(--ink); padding-bottom: 7px; }
   .csvtbl td { font-size: 17px; font-weight: 700; line-height: 1.4; color: var(--muted); }
   .csvtbl td:first-child { color: var(--ink); font-weight: 900; width: 32%; }
-  .csvtbl td i { display: block; margin-top: 2px; font-style: normal; font-size: 14px;
-                 font-weight: 700; color: var(--sand); }
+  .csvtbl td i { display: block; margin-top: 2px; font-style: normal; font-size: 15px;
+                 font-weight: 700; color: var(--muted); }
   .csvtbl td b { color: var(--ink); font-weight: 900; }
   .csvtbl tr:last-child td { border-bottom: 0; }
 
@@ -407,10 +407,10 @@
   .flowcol .fl { margin: 0 0 9px; font-family: 'Noto Sans KR', sans-serif; font-size: 17px;
                  font-weight: 700; line-height: 1.45; color: var(--muted); }
   .flowcol .fl b { color: var(--ink); font-weight: 900; }
-  .flowcol .fl .sub { display: block; margin-top: 3px; padding-left: 14px; font-size: 15px; color: var(--sand); }
-  .flowcol .fl .sub b { color: var(--muted); }
+  .flowcol .fl .sub { display: block; margin-top: 3px; padding-left: 14px; font-size: 15px; color: var(--muted); }
+  .flowcol .fl .sub b { color: var(--ink); }
   .flowcol .note { margin: 11px 0 0; padding-top: 9px; border-top: 1px solid var(--rule);
-                   font-family: 'Noto Sans KR', sans-serif; font-size: 15px; font-weight: 700; color: var(--sand); }
+                   font-family: 'Noto Sans KR', sans-serif; font-size: 15px; font-weight: 700; color: var(--muted); }
   .flowcol .note b { color: var(--ink); }
 
   .quoted { margin: 0; padding: 12px 0 12px 22px; border-left: 5px solid var(--sand);
@@ -478,11 +478,11 @@
   .step-row .how b { color: var(--ink); }
 
   .video { display: flex; align-items: baseline; gap: 14px; }
-  .video .play { margin: 0; font-size: 22px; color: var(--alarm); }
+  .video .play { margin: 0; font-size: 26px; font-weight: 900; color: var(--alarm); }
   .video a, .video .todo { font-family: 'Noto Sans KR', sans-serif; font-size: 20px; font-weight: 900;
                            color: var(--ink); text-decoration: none;
                            box-shadow: inset 0 -.4em 0 rgba(251,226,129,.55); }
-  .video .todo { color: var(--sand); box-shadow: none; }
+  .video .todo { color: var(--muted); box-shadow: none; }
   .video .len { margin: 0; font-family: 'Noto Sans KR', sans-serif; font-size: 16px; font-weight: 700; color: var(--muted); }
 
   /* ---------- 11장 · 왜 우리 팀인가 ----------
@@ -523,7 +523,7 @@
     .claim .src { display: block; margin-top: 7px; font-family: 'Noto Sans KR', sans-serif;
                 font-size: 15px; font-weight: 700; line-height: 1.4; color: var(--sand); }
     .claim .not { margin: 0; justify-self: end; text-align: right; font-family: 'Noto Sans KR', sans-serif;
-                font-size: 16px; font-weight: 800; color: var(--sand); white-space: nowrap; }
+                font-size: 16px; font-weight: 800; color: var(--muted); white-space: nowrap; }
 
   /* ---------- 조작부 ---------- */
 
@@ -897,11 +897,11 @@
               <hr class="rule">
               <div class="steps">
                 <div class="step-row"><p class="i">①</p><p class="what">골라준다</p>
-                  <p class="how">조건을 답하면 <b>신청가능 11건</b>이 남는다<br><span style="color:var(--sand)">예비창업 · 카페 · 화성시 기준</span></p></div>
+                  <p class="how">조건을 답하면 <b>신청가능 11건</b>이 남는다<br><span style="color:var(--muted)">예비창업 · 카페 · 화성시 기준</span></p></div>
                 <div class="step-row"><p class="i">②</p><p class="what">읽어준다</p>
                   <p class="how">공고문의 모르는 낱말을 눌러 <b>뜻을 바로</b> 본다</p></div>
                 <div class="step-row"><p class="i">③</p><p class="what">자리를 본다</p>
-                  <p class="how">지도에 찍으면 <b>반경 안 음식점·카페·학원</b>을 센다<br><span style="color:var(--sand)">소상공인시장진흥공단 상가정보 · 경기도교육청 · K-apt</span></p></div>
+                  <p class="how">지도에 찍으면 <b>반경 안 음식점·카페·학원</b>을 센다<br><span style="color:var(--muted)">소상공인시장진흥공단 상가정보 · 경기도교육청 · K-apt</span></p></div>
               </div>
               <hr class="rule">
               <div class="video">
@@ -925,11 +925,11 @@
               <hr class="rule">
               <div class="steps">
                 <div class="step-row"><p class="i">①</p><p class="what">기한을 지킨다</p>
-                  <p class="how">다음 세무일정이 <b>D-day</b> 로 뜬다. <b>18건</b> 중 사장님에게 해당되는 것만<br><span style="color:var(--sand)">국세청 원문 대조 · 기한이 공휴일이면 다음 날로 미는 규칙까지</span></p></div>
+                  <p class="how">다음 세무일정이 <b>D-day</b> 로 뜬다. <b>18건</b> 중 사장님에게 해당되는 것만<br><span style="color:var(--muted)">국세청 원문 대조 · 기한이 공휴일이면 다음 날로 미는 규칙까지</span></p></div>
                 <div class="step-row"><p class="i">②</p><p class="what">받을 것을 본다</p>
                   <p class="how"><b>신청가능 29건</b> — 운영중 · 음식점 기준</p></div>
                 <div class="step-row"><p class="i">③</p><p class="what">실제로 낸다</p>
-                  <p class="how">서류 체크리스트 → 접수처 → <b>신청 완료</b>까지<br><span style="color:var(--sand)">서류 71종 · 한 공고에 평균 3.1종 · 최대 14종</span></p></div>
+                  <p class="how">서류 체크리스트 → 접수처 → <b>신청 완료</b>까지<br><span style="color:var(--muted)">서류 71종 · 한 공고에 평균 3.1종 · 최대 14종</span></p></div>
               </div>
               <hr class="rule">
               <div class="video">
@@ -955,7 +955,7 @@
                   <p class="head">먼저 갑니다</p>
                   <p class="body-t">조건에 맞는 새 공고와 세무 신고기한을 <b>한 통으로 묶어</b> 카카오톡 「나와의 채팅」으로 보냅니다.
                     켠 날에는 아무것도 안 보냅니다 — 그때 걸리는 스무 건은 「새로 떴다」가 아니니까요.</p>
-                  <p class="not">Vercel 이 아니라<br>연구실 서버가 보낸다<br><span style="font-weight:700;color:var(--sand)">서버리스는 요청이<br>와야 돌기 때문</span></p>
+                  <p class="not">Vercel 이 아니라<br>연구실 서버가 보낸다<br><span style="font-weight:700;color:var(--muted)">서버리스는 요청이<br>와야 돌기 때문</span></p>
                 </div>
                 <div class="claim">
                   <p class="head">안 남깁니다</p>
