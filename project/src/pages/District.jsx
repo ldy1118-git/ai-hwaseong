@@ -6,7 +6,7 @@ import {
 import Header from '../components/layout/Header'
 import CommercialAnalysisView from '../components/sections/CommercialAnalysisView'
 import { useNavigate } from 'react-router-dom'
-import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
+import { fetchMatches, DEFAULT_PROFILE, fetchOcrReady } from '../utils/api'
 import { listApplied, subscribeApplied } from '../utils/appliedPrograms'
 import { openNoticeById } from '../utils/openNotice'
 import { taxSchedule, holidaysKnown } from '../utils/taxSchedule'
@@ -140,6 +140,21 @@ export default function MyStore() {
   const [showPast, setShowPast] = useState(false)
   const [doneMap, setDoneMap]   = useState(listTaxDone)
   const [applied, setApplied]   = useState(listApplied)
+
+  /* 사진 읽는 서버가 붙어 있는지 **서버에 물어본다.** 전에는 「안 붙어
+     있어요」를 문장으로 박아뒀는데, 서버를 올린 날에도 이 화면만 계속
+     안 된다고 말했다. 온보딩(fetchOcrReady)과 같은 것을 쓴다.
+     null = 아직 못 물어봤다. */
+  const [ocrReady, setOcrReady] = useState(null)
+  useEffect(() => { fetchOcrReady().then(setOcrReady) }, [])
+
+  /* 공고가 두 군데서 온다는 걸 화면에 적으려면 몇 건인지가 있어야 하는데,
+     **숫자는 결과에서 센다.** 적어두면 수집이 늘거나 줄 때 화면만 옛말을
+     한다. 기업마당에 안 올라오는 화성시 자금·보증 사업이 여기로 들어온다. */
+  const hscityCount = useMemo(
+    () => (matches ?? []).filter(m => String(m.notice_id || '').startsWith('HSCITY')).length,
+    [matches],
+  )
 
   useEffect(() => subscribeTaxDone(() => setDoneMap(listTaxDone())), [])
   // 서류준비 창에서 「신청 완료」를 누르면 이 화면 목록도 같이 늘어난다.
@@ -507,10 +522,21 @@ export default function MyStore() {
               { name: '매출 · 방문자 · 객단가 추이', need: 'POS 또는 카드매출을 연결해야 알 수 있어요. 사업자등록증에는 매출이 적혀 있지 않아요.' },
               { name: '재방문율 · 단골 비중',        need: 'POS 연결이 필요해요' },
               { name: '별점 · 리뷰',                 need: '네이버·카카오가 평점을 API 로 내주지 않아요. 화면을 긁어오는 건 약관 위반이라 안 해요.' },
-              { name: '주변 동종업체',               need: '화성시 상가 17,073곳은 이미 받아뒀어요. 매장 주소를 알려주시면 반경 안 동종업체를 셀 수 있어요.' },
+              /* 받아둔 것은 상가 전체가 아니라 음식점·카페·학원 셋뿐이다.
+                 「상가 N곳」이라고 적어두면 소매업 사장님도 곧 될 것처럼
+                 읽히는데, 그 업종은 위치 데이터가 아예 없다. 개수를 안
+                 적는 이유는 그 파일이 외부 서버로 옮겨가 저장소 안에서
+                 세어볼 수가 없어서다 — 확인 못 하는 숫자는 안 쓴다. */
+              { name: '주변 동종업체',               need: '화성시 음식점·카페·학원 위치는 이미 받아뒀어요. 매장 주소를 알려주시면 반경 안 동종업체를 셀 수 있어요. 그 밖의 업종은 아직 위치 데이터가 없어요.' },
               { name: '신규개업 · 폐업',             need: '받아둔 상가정보에는 개업일이 없어요. 지자체 인허가 공공데이터를 따로 붙여야 해요.' },
               { name: '업종 내 내 매출 위치',        need: '업종별 매출 통계가 있어야 계산돼요' },
-              { name: '사업자등록증으로 자동 입력',  need: '사진에서 과세유형·개업일을 읽는 것까지는 되어 있어요. 지금 배포에는 사진 읽는 서버가 안 붙어 있어서 온보딩에서 직접 여쭤보고 있어요.' },
+              /* 사진 읽는 서버가 **꺼져 있다고 확인됐을 때만** 적는다.
+                 켜져 있으면 되는 기능이라 이 목록에 있을 자리가 아니고,
+                 못 물어봤을 때(null)도 안 적는다 — 모르는 것을 안 된다고
+                 말하면 서버를 올린 날 이 화면만 거짓말을 한다. */
+              ...(ocrReady === false ? [
+                { name: '사업자등록증으로 자동 입력',  need: '사진에서 과세유형·개업일을 읽는 것까지는 되어 있어요. 지금 배포에는 사진 읽는 서버가 안 붙어 있어서 온보딩에서 직접 여쭤보고 있어요.' },
+              ] : []),
             ].map(f => (
               <div key={f.name} className="flex items-start gap-2.5">
                 <Lock size={13} className="text-warm-gray mt-0.5 flex-shrink-0" />
@@ -545,7 +571,14 @@ export default function MyStore() {
             </li>
             <li className="flex gap-1.5">
               <FileText size={13} className="mt-0.5 flex-shrink-0" />
-              <span>지원사업 — 기업마당 공고 원문을 매일 새벽에 새로 받아옵니다</span>
+              <span>
+                지원사업 {matches ? `${matches.length}건 — ` : '— '}
+                기업마당 공고 원문을 매일 새벽에 새로 받아옵니다.
+                {hscityCount > 0 && (
+                  <> 그중 {hscityCount}건은 기업마당에 안 올라오는 화성시 사업이라
+                  화성시청 고시공고에서 따로 받아와요.</>
+                )}
+              </span>
             </li>
           </ul>
 
