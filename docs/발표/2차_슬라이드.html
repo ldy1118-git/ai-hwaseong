@@ -356,6 +356,16 @@
   .pair .figure { font-size: 66px; color: var(--ink); }
   .pair .label { margin: 0; font-family: 'Noto Sans KR', sans-serif; font-size: 17px; font-weight: 700; line-height: 1.4; color: var(--muted); }
 
+  .bench { border-collapse: collapse; width: 100%; font-family: 'Noto Sans KR', sans-serif; }
+  .bench th, .bench td { padding: 7px 10px; text-align: right; font-size: 17px;
+                         border-bottom: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
+  .bench th:first-child, .bench td:first-child { text-align: left; }
+  .bench th { font-size: 14px; font-weight: 800; color: var(--sand); letter-spacing: .04em;
+              border-bottom-color: var(--ink); }
+  .bench td { font-weight: 700; color: var(--muted); }
+  .bench tr:last-child td { border-bottom: 0; }
+  .bench tr.win td { color: var(--ink); font-weight: 900; background: rgba(251,226,129,.35); }
+
   .quoted { margin: 0; padding: 12px 0 12px 22px; border-left: 5px solid var(--sand);
              font-size: 19px; font-weight: 500; line-height: 1.6; color: var(--muted); }
   .quoted b { color: var(--ink); font-weight: 900; }
@@ -660,7 +670,7 @@
                 <div class="move wide"><p class="kind">약속대로</p>
                   <p class="text">신청기간 알림 — 조건에 맞는 새 공고와 신고기한이 <em>카카오톡으로</em> 갑니다<span class="who">임대윤</span></p></div>
                 <div class="move wide"><p class="kind">약속대로</p>
-                  <p class="text">사업자등록증 OCR — <em>사진 한 장</em>이면 과세유형·개업일·업종이 채워집니다<span class="who">전성현</span></p></div>
+                  <p class="text">사업자등록증 OCR — <em>사진 한 장</em>이면 과세유형·개업일·업종이 채워집니다<br><span style="font-size:17px;color:var(--muted);font-weight:700">1차엔 못 냈습니다 — easyocr 가 torch 까지 1.4GB 인데 Vercel 함수는 250MB 까지라, 이번에 별도 서버로 뺐습니다</span><span class="who">전성현</span></p></div>
                 <div class="move done"><p class="kind">새로</p>
                   <p class="text">서류준비 창 — 서류별 <em>발급 절차를 옆에 띄우고</em> 어디까지 했는지 남깁니다<span class="who">전서희</span></p></div>
                 <div class="move done"><p class="kind">새로</p>
@@ -680,45 +690,7 @@
         </section>
       </div>
 
-      <!-- 4장 · 전체 구조 -->
-      <div class="box">
-        <section class="slide">
-          <div class="body">
-            <div class="col" style="gap:16px">
-              <p class="eyebrow">전체 구조 — 무엇이 어디서 도는가</p>
-              <hr class="rule">
-              <div class="arch">
-                <div class="layer">
-                  <p class="no">1</p>
-                  <p class="name">브라우저</p>
-                  <p class="detail">React 18 · Vite · Tailwind. <b>키가 하나도 없다</b> — 프론트에 넣으면 빌드 결과물에 평문으로 박힌다</p>
-                </div>
-                <div class="layer">
-                  <p class="no">2</p>
-                  <p class="name">Vercel</p>
-                  <p class="detail">파이썬 서버리스 <b>함수 11개</b>(Hobby 한도 12개). LLM·카카오·DB 키는 전부 여기 있다<br>13개가 되어 배포가 통째로 막힌 적이 있다 — 같은 자원을 다루는 둘을 한 파일로 합쳐 줄였다</p>
-                </div>
-                <div class="layer">
-                  <p class="no">3</p>
-                  <p class="name">외부 서버</p>
-                  <p class="detail">사진 읽기(OCR)와 상권 CSV. <b>easyocr 는 torch 까지 1.4GB 인데 Vercel 함수는 250MB 까지다</b><br>꺼져 있으면 온보딩이 알아서 직접 입력으로 넘어간다 — 사진을 고른 뒤에 안 된다고 말하지 않는다</p>
-                </div>
-                <div class="layer">
-                  <p class="no">4</p>
-                  <p class="name">연구실 cron</p>
-                  <p class="detail">매일 <b>06:11</b> 공고 수집 · 카톡 발송. <b>서버리스는 요청이 와야 도는데 알림은 아무도 안 부를 때 나가야 한다</b><br>기업마당 API 가 GitHub 러너 IP 에 응답하지 않는 것도 이유다</p>
-                </div>
-              </div>
-              <hr class="rule">
-              <p class="closing">공고는 두 군데서 옵니다 — 기업마당 <b>공개 API</b> 80건,
-                기업마당에 안 올라오는 화성시 자금·보증 사업은 <b>시청 게시판에서 직접</b> 2건.</p>
-            </div>
-          </div>
-          <p class="pagenum">4 · 구조</p>
-        </section>
-      </div>
-
-      <!-- 5장 · AI 를 어디에 -->
+      <!-- 4장 · AI 를 어디에 -->
       <div class="box">
         <section class="slide">
           <div class="body">
@@ -746,7 +718,47 @@
               <p class="closing">파인튜닝은 <b>안 했습니다.</b> 공고 82건은 학습 데이터가 아닙니다 — 과적합만 됩니다.</p>
             </div>
           </div>
-          <p class="pagenum">5 · AI</p>
+          <p class="pagenum">4 · AI</p>
+        </section>
+      </div>
+
+      <!-- 5장 · 재보고 골랐다 -->
+      <div class="box">
+        <section class="slide">
+          <div class="body">
+            <div class="col" style="gap:14px">
+              <p class="eyebrow">붙인 게 아니라 재보고 골랐습니다</p>
+              <p class="kicker" style="margin:-8px 0 0">틀릴 만한 자리를 <b>함정으로 만들어</b> 사전을 붙이기 전후를 재봤습니다.</p>
+              <hr class="rule">
+              <div class="ai-cols">
+                <div class="ai-col">
+                  <h4>함정을 설계해서 재봤다 · 2026.08</h4>
+                  <div class="ai-row"><p class="k">조건 줄글 해석</p>
+                    <p class="v"><b>6/6</b> 통과. 자유 문장에서 없는 정보를 <b>지어내지 않고 비워두는지</b>까지 봤다</p></div>
+                  <div class="ai-row"><p class="k">공고문 요약</p>
+                    <p class="v">사전 없이 <b>4/5</b> → 붙여서 <b>5/5</b><br>못 잡던 함정 — <b>기간이 끝난 공고</b>를 신청할 수 있는 것처럼 요약했다</p></div>
+                  <div class="ai-row"><p class="k">챗봇</p>
+                    <p class="v">다섯 항목 <b>전부</b> 사전 없이는 실패, 붙이면 통과</p></div>
+                </div>
+                <div class="ai-col off">
+                  <h4>임베딩은 재보고 안 썼다</h4>
+                  <table class="bench">
+                    <tr><th>검색 방식</th><th>Hit@1</th><th>인코딩</th></tr>
+                    <tr class="win"><td>키워드</td><td>1.000</td><td>0 ms</td></tr>
+                    <tr><td>BGE-M3</td><td>0.800</td><td>2,129 ms</td></tr>
+                    <tr><td>KoSimCSE</td><td>0.800</td><td>172 ms</td></tr>
+                    <tr><td>KR-SBERT</td><td>0.800</td><td>158 ms</td></tr>
+                  </table>
+                  <p class="v" style="margin-top:10px">더 무거운 쪽이 더 나을 거라 봤는데 <b>아니었다.</b>
+                    재보지 않았으면 2초를 더 쓰고 정확도를 잃을 뻔했다.</p>
+                </div>
+              </div>
+              <hr class="rule">
+              <p class="closing">제일 큰 것은 <u>지어내기가 멈춘다</u>는 점입니다 —
+                사전 없이 물으면 <b>대출 금리 수치를 만들어서</b> 답합니다.</p>
+            </div>
+          </div>
+          <p class="pagenum">5 · 재보고 골랐다</p>
         </section>
       </div>
 
@@ -856,7 +868,7 @@
                   <p class="head">먼저 갑니다</p>
                   <p class="body-t">조건에 맞는 새 공고와 세무 신고기한을 <b>한 통으로 묶어</b> 카카오톡 「나와의 채팅」으로 보냅니다.
                     켠 날에는 아무것도 안 보냅니다 — 그때 걸리는 스무 건은 「새로 떴다」가 아니니까요.</p>
-                  <p class="not">앱을 안 열어도<br>알게 된다</p>
+                  <p class="not">Vercel 이 아니라<br>연구실 서버가 보낸다<br><span style="font-weight:700;color:var(--sand)">서버리스는 요청이<br>와야 돌기 때문</span></p>
                 </div>
                 <div class="claim">
                   <p class="head">안 남깁니다</p>
@@ -955,17 +967,17 @@
                    '아래 넷은 이름만 훑는다. 다 읽으면 55초가 모자란다',
                    '오른쪽 이름은 셋이 나눠 만들었다는 표시다. 읽지 말 것',
                    '아파트 목업 → 실데이터가 8장(숫자를 지어내지 않는다)의 예고편이다'] },
-    4: { say: '"무엇을 어디서 돌릴지는 전부 이유가 있어서 그렇게 됐습니다."',
-         bullets: ['네 층 이름만 짚고 넘어갈 것. 세부는 질문받으면 답한다',
-                   '2층 — 함수 11개/한도 12개. 13개가 되어 실제로 배포가 막혔다. 겪은 일이라 힘이 있다',
-                   '3층 — 1.4GB 대 250MB. 이 대비 하나면 왜 밖으로 뺐는지 설명이 끝난다',
-                   '4층 — 「알림은 아무도 안 부를 때 나가야 한다」가 서버리스를 안 쓴 이유다',
-                   '맨 아래 줄이 5장이 아니라 6·7장(사람 둘)으로 넘어가는 다리다'] },
-    5: { say: '"AI 를 자랑하려고 붙이지 않았습니다. 안 쓸 곳을 먼저 정했습니다."',
+    4: { say: '"AI 를 자랑하려고 붙이지 않았습니다. 안 쓸 곳을 먼저 정했습니다."',
          bullets: ['왼쪽 다섯은 이름만 훑는다. 오른쪽 셋이 이 장의 주인공이다',
                    '자격요건 판정을 규칙으로 한 이유 — 재현되고 근거를 댈 수 있어야 한다',
                    '용어 사전은 재봤다고 말할 것. Hit@1 1.00 대 0.80 — 숫자가 있으면 「그냥 골랐다」로 안 들린다',
                    '파인튜닝 안 한 이유를 먼저 말하고 82건을 대면 가장 세게 꽂힌다'] },
+    5: { say: '"재보지 않았으면 2초를 더 쓰고 정확도를 잃을 뻔했습니다."',
+         bullets: ['**표를 읽어주지 말 것.** 「키워드가 1.000, 임베딩이 0.800」 한 마디면 노란 줄이 눈에 들어온다',
+                   '이 장의 힘은 「무거운 쪽이 나을 줄 알았는데 아니었다」는 문장이다 — 재봤다는 증거가 되니까',
+                   '마지막 줄(금리 수치를 만들어 답한다)이 9장 「지어내지 않는다」로 이어진다',
+                   '전부 2026년 8월에 실제로 돌린 결과다. 리포트는 llm/report/ 에 있다',
+                   '질문받으면: 서류 체크리스트(F2B)는 일일 쿼터가 떨어져 한 건만 돌렸다. 그래서 이 장에 안 넣었다'] },
     6: { say: '"넷 다 붙였습니다. 다만 유동인구는 추정치라고 먼저 말씀드립니다."',
          bullets: ['화면은 **발췌다.** 원문 — 「현재 대시보드는 상권분석보다는 상점의 위치정보를 표시하는 수준으로 보임. 유동인구, 매출, 업종 분포, 경쟁 현황 등 실질적인 상권분석 기능을 보완한다면 창업을 준비하는 시민에게 큰 도움이 될 것으로 판단됨.」',
                    '**읽어드리지 말고 손으로 짚기만 할 것** — 심사위원이 쓴 말이라 읽으면 어색하다',
@@ -1011,20 +1023,20 @@
       '**관심공고**는 담아두면 달력에서 다시 만납니다. **상권분석은 심사 의견을 받은 곳이라 뒤에서 따로** 말씀드리겠습니다.',
       '공고는 59건에서 **82건**, 세무 항목은 14건에서 **18건**이 됐습니다.'
     ]},
-    { n: 4, t: '전체 구조', sec: 52, lines: [
-      '전체 구조입니다. 네 군데에서 나눠 돕니다.',
-      '**브라우저에는 키가 하나도 없습니다.** 프론트에 넣으면 빌드 결과물에 평문으로 박히기 때문입니다.',
-      'Vercel 에는 파이썬 함수 **11개**가 있습니다. 무료 한도가 12개인데, 13개가 되어 **배포가 통째로 막힌 적**이 있어서 둘을 한 파일로 합쳐 줄였습니다.',
-      '사진 읽기는 밖으로 뺐습니다. **easyocr 는 torch 까지 1.4GB 인데 Vercel 함수는 250MB 까지**입니다.',
-      '수집과 알림은 연구실 서버가 매일 **6시 11분**에 합니다. **서버리스는 요청이 와야 도는데, 알림은 아무도 안 부를 때 나가야 하기 때문**입니다.',
-      '공고는 두 군데서 옵니다. 기업마당 공개 API 80건, 그리고 **기업마당에 안 올라오는 화성시 자금·보증 사업**을 시청 게시판에서 직접 2건.'
-    ]},
-    { n: 5, t: 'AI 를 어디에', sec: 48, lines: [
+    { n: 4, t: 'AI 를 어디에', sec: 48, lines: [
       'AI 는 전부 맡기지 않았습니다. **어디에 안 쓸지를 먼저 정했습니다.**',
       'LLM 은 다섯 군데서 돕니다. 온보딩 키워드, 공고 요약, 서류 발급 절차, 체크리스트, 챗봇.',
       '**자격요건 판정은 규칙으로 합니다.** 같은 조건이면 같은 답이 나와야 하고, 왜 그렇게 나왔는지 근거를 댈 수 있어야 하기 때문입니다.',
       '용어 사전도 **재보고** 골랐습니다. 키워드 방식이 임베딩보다 **Hit@1 1.00 대 0.80** 으로 높았습니다. 행정용어 43개, 서류 26종입니다.',
       '**파인튜닝은 안 했습니다.** 공고 82건은 학습 데이터가 아닙니다. 과적합만 됩니다.'
+    ]},
+    { n: 5, t: '재보고 골랐다', sec: 45, lines: [
+      '그 판단이 감이 아니라는 것을 말씀드리겠습니다. **틀릴 만한 자리를 함정으로 만들어** 사전을 붙이기 전후를 재봤습니다.',
+      '조건 줄글 해석은 **6대 6** 통과했습니다. 없는 정보를 지어내지 않고 비워두는지까지 봤습니다.',
+      '공고문 요약은 사전 없이 **4대 5**, 붙여서 **5대 5** 였습니다. 못 잡던 함정이 **기간이 끝난 공고를 신청할 수 있는 것처럼** 요약한 것이었습니다.',
+      '임베딩은 **재보고 안 썼습니다.** 키워드가 Hit@1 **1.000**, BGE-M3 가 **0.800** 이었습니다. 인코딩도 0초 대 2초입니다.',
+      '무거운 쪽이 나을 거라 봤는데 아니었습니다. **재보지 않았으면 2초를 더 쓰고 정확도를 잃을 뻔했습니다.**',
+      '제일 큰 것은 **지어내기가 멈춘다**는 점입니다. 사전 없이 물으면 **대출 금리 수치를 만들어서** 답합니다.'
     ]},
     { n: 6, t: '상권분석', sec: 48, lines: [
       '상권분석은 1차 심사에서 의견을 받았습니다. **위치정보를 표시하는 수준으로 보인다**, 유동인구·매출·업종 분포·경쟁 현황을 보완하라는 말씀이었습니다.',
@@ -1034,7 +1046,7 @@
       '업종 분포와 경쟁 현황은 **여섯 업종**을 셉니다. 반경을 끌면 숫자가 같이 움직입니다. 동탄역 500미터 안에 음식점 287, 카페 47입니다.',
       '학교는 경기도교육청, 역은 한국철도공사, 아파트는 **K-apt** 입니다. **목업이던 아파트를 실데이터로 바꿨습니다.**'
     ]},
-    { n: 7, t: '예비창업자', sec: 27, video: 90, videoName: '시연 영상 ①', lines: [
+    { n: 7, t: '예비창업자', sec: 34, video: 90, videoName: '시연 영상 ①', lines: [
       '이제 실제 화면입니다. **같은 앱인데 사람이 바뀌면 첫 화면이 통째로 바뀝니다.**',
       '아직 가게가 없는 분은 **어디에 낼까**를 묻습니다. 세 가지만 보시면 됩니다.',
       '**조건을 답하면 신청가능 11건**이 남고, 모르는 낱말은 눌러서 뜻을 보고, 지도에 찍으면 반경 안 경쟁을 셉니다.'
