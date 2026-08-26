@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import base64
 import csv
+import io
 import json
 import math
 import os
@@ -57,11 +58,11 @@ SECRET = os.environ.get("OCR_SHARED_SECRET", "")
 
 # ── 상권 데이터 (시작 시 1회 CSV 에서 로드) ─────────────────────────
 
-_STORES:     list[dict] = []   # {"lat": float, "lng": float, "cat": "r"|"c"|"a"}
-_SCHOOLS:    list[dict] = []   # {"name": str, "level": str, "lat": float, "lng": float}
-_STATIONS:   list[dict] = []   # {"name": str, "line": str, "lat": float, "lng": float, "passengers": int}
-_APARTMENTS: list[dict] = []   # {"name": str, "units": int, "dong": str, "eup": str, "lat": float, "lng": float}
-_DONG_CACHE: dict[tuple, str | None] = {}   # (lat4, lng4) → 동리 이름
+_STORES:      list[dict] = []          # {"lat": float, "lng": float, "cat": "r"|"c"|"a"}
+_SCHOOLS:     list[dict] = []          # {"name": str, "level": str, "lat": float, "lng": float}
+_STATIONS:    list[dict] = []          # {"name": str, "line": str, "lat": float, "lng": float, "passengers": int}
+_APT_BY_DONG: dict[str, dict] = {}    # 동리 → {"eup": str, "complexes": int, "total_units": int}
+_DONG_CACHE:  dict[tuple, str | None] = {}  # (lat4, lng4) → 동리 이름
 
 _UA = "hwaseong-ai-hackathon/1.0"
 
@@ -202,15 +203,79 @@ def _geocode(query: str) -> tuple[float, float] | None:
     return None
 
 
-def _load_apartments() -> list[dict]:
-    """preprocess_apartments.py 로 생성한 JSON → 화성시 아파트 단지."""
-    path = _data_dir() / "apartments_hwaseong.json"
-    if not path.exists():
-        print("경고: apartments_hwaseong.json 없음 — preprocess_apartments.py 로 생성하세요.", file=sys.stderr)
-        return []
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
-    return [d for d in data if d.get("lat") and d.get("lng")]
+def _load_apt_by_dong() -> dict[str, dict]:
+    """K-apt 단지_면적정보 CSV → 화성시 동리별 아파트 집계.
+    좌표·지오코딩 없이 CSV 에서 직접 읽는다."""
+    data_dir = _data_dir()
+    candidates = sorted(data_dir.glob("*단지*면적*.csv"), reverse=True)
+    if not candidates:
+        print("경고: K-apt 단지_면적정보 CSV 없음 — 아파트 동별 정보 비활성화.", file=sys.stderr)
+        return {}
+
+    path = candidates[0]
+    print(f"[apartments] {path.name} 로딩...", file=sys.stderr, flush=True)
+
+    raw = None
+    for enc in ("utf-8-sig", "cp949", "utf-8"):
+        try:
+            raw = path.read_text(encoding=enc)
+            break
+        except UnicodeDecodeError:
+            continue
+    if raw is None:
+        print("[apartments] CSV 인코딩 감지 실패", file=sys.stderr)
+        return {}
+
+    # 면책 행(첫 줄) 건너뛰고 헤더 자동 감지
+    reader = csv.reader(io.StringIO(raw))
+    headers = None
+    rows_raw = []
+    for row in reader:
+        cells = [c.strip() for c in row]
+        if headers is None:
+            if sum(1 for c in cells if c) >= 6:
+                headers = cells
+            continue
+        rows_raw.append(cells)
+
+    if not headers:
+        print("[apartments] 헤더 행을 찾지 못했습니다", file=sys.stderr)
+        return {}
+
+    # 단지코드별 집계 (같은 단지가 면적 세부별로 여러 행)
+    by_code: dict[str, dict] = {}
+    for cells in rows_raw:
+        d = dict(zip(headers, cells))
+        if "화성" not in str(d.get("시군구", "")):
+            continue
+        code = str(d.get("단지코드", "")).strip()
+        if not code:
+            continue
+        try:
+            units = int(str(d.get("세대수", 0) or 0).replace(",", ""))
+        except (ValueError, TypeError):
+            units = 0
+        if code not in by_code:
+            by_code[code] = {
+                "dong": str(d.get("동리", "")).strip(),
+                "eup":  str(d.get("읍면", "")).strip(),
+                "units": 0,
+            }
+        by_code[code]["units"] += units
+
+    # 동리별 집계
+    by_dong: dict[str, dict] = {}
+    for info in by_code.values():
+        dong = info["dong"]
+        if not dong:
+            continue
+        if dong not in by_dong:
+            by_dong[dong] = {"eup": info["eup"], "complexes": 0, "total_units": 0}
+        by_dong[dong]["complexes"] += 1
+        by_dong[dong]["total_units"] += info["units"]
+
+    print(f"[apartments] {len(by_dong)}개 동, {len(by_code)}개 단지 로드", file=sys.stderr, flush=True)
+    return by_dong
 
 
 def _reverse_geocode_dong(lat: float, lng: float) -> str | None:
@@ -228,7 +293,6 @@ def _reverse_geocode_dong(lat: float, lng: float) -> str | None:
         with urllib.request.urlopen(req, timeout=5) as res:
             data = json.loads(res.read())
         addr = data.get("address", {})
-        # 동 지역: suburb / 읍면 지역: town·village
         dong = addr.get("suburb") or addr.get("village") or addr.get("quarter") or None
         if dong:
             dong = dong.strip()
@@ -240,47 +304,20 @@ def _reverse_geocode_dong(lat: float, lng: float) -> str | None:
 
 def _apt_dong_summary(lat: float, lng: float) -> dict | None:
     """핀 위치를 역지오코딩해 해당 동의 아파트 단지 수·세대수를 반환."""
-    if not _APARTMENTS:
+    if not _APT_BY_DONG:
         return None
-
     dong_name = _reverse_geocode_dong(lat, lng)
-
-    if dong_name:
-        same = [a for a in _APARTMENTS if a.get("dong") == dong_name]
-        if same:
-            return {
-                "dong":        dong_name,
-                "eup":         same[0].get("eup", ""),
-                "complexes":   len(same),
-                "total_units": sum(a.get("units", 0) for a in same),
-            }
-        # 역지오코딩은 됐지만 그 동에 아파트 없음 → 0으로 반환
-        return {"dong": dong_name, "eup": "", "complexes": 0, "total_units": 0}
-
-    # 역지오코딩 실패 시 가장 가까운 단지의 동으로 폴백
-    nearest = None
-    nearest_dist = 5_000.0
-    for a in _APARTMENTS:
-        if not a.get("dong"):
-            continue
-        d = _haversine(lat, lng, a["lat"], a["lng"])
-        if d < nearest_dist:
-            nearest_dist = d
-            nearest = a
-    if nearest is None:
+    if dong_name is None:
         return None
-    dong = nearest["dong"]
-    same = [a for a in _APARTMENTS if a.get("dong") == dong]
-    return {
-        "dong":        dong,
-        "eup":         nearest.get("eup", ""),
-        "complexes":   len(same),
-        "total_units": sum(a.get("units", 0) for a in same),
-    }
+    info = _APT_BY_DONG.get(dong_name)
+    if info:
+        return {"dong": dong_name, "eup": info["eup"],
+                "complexes": info["complexes"], "total_units": info["total_units"]}
+    return {"dong": dong_name, "eup": "", "complexes": 0, "total_units": 0}
 
 
 def _load_commercial_data() -> None:
-    global _STORES, _SCHOOLS, _STATIONS, _APARTMENTS
+    global _STORES, _SCHOOLS, _STATIONS, _APT_BY_DONG
     data_dir = _data_dir()
 
     store_csv = data_dir / "소상공인시장진흥공단_상가(상권)정보_경기_202606.csv"
@@ -304,8 +341,7 @@ def _load_commercial_data() -> None:
     _STATIONS = _load_stations()
     print(f"  역: {len(_STATIONS)}개 로드", file=sys.stderr, flush=True)
 
-    _APARTMENTS = _load_apartments()
-    print(f"  아파트: {len(_APARTMENTS)}개 로드", file=sys.stderr, flush=True)
+    _APT_BY_DONG = _load_apt_by_dong()
 
 
 # ── 거리 계산 ─────────────────────────────────────────────────────────
@@ -380,7 +416,7 @@ class Handler(BaseHTTPRequestHandler):
             "stores":           len(_STORES),
             "schools":          len(_SCHOOLS),
             "stations":         len(_STATIONS),
-            "apartments":       len(_APARTMENTS),
+            "apt_dongs":        len(_APT_BY_DONG),
         })
 
     def do_POST(self) -> None:  # noqa: N802
