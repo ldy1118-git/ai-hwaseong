@@ -56,7 +56,15 @@ for i, raw in enumerate(slides, 1):
         for c in cc:
             ch = 0
             for m in re.finditer(r'<h4>(.*?)</h4>', c, re.S): ch += lines_of(m.group(1), CREW_H4, 1.3, colw) + 20 + 2
-            for m in re.finditer(r'<p class="row[^"]*">(.*?)</p>', c, re.S): ch += lines_of(m.group(1), CREW_ROW, 1.45, colw-14) + 10
+            for m in re.finditer(r'<p class="row[^"]*">(.*?)</p>', c, re.S):
+                r = m.group(1)
+                why = re.search(r'<span class="why">(.*?)</span>', r, re.S)
+                if why:
+                    ch += lines_of(re.sub(r'<span class="why">.*?</span>', '', r, flags=re.S), CREW_ROW, 1.45, colw-14)
+                    ch += lines_of(why.group(1), 15, 1.4, colw-14) + 4
+                else:
+                    ch += lines_of(r, CREW_ROW, 1.45, colw-14)
+                ch += 10
             tall = max(tall, ch)
         add("crew-cols", tall)
     steps_h = 0
