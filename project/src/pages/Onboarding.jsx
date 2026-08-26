@@ -63,6 +63,34 @@ async function classifyCategory(text) {
   return known.includes(parsed.category) ? parsed.category : '기타'
 }
 
+async function estimateIncomeGroup(text) {
+  const raw = await generateText({
+    jsonMode: true,
+    userPrompt: `가구 상황: "${text}"
+
+2026년 기준 중위소득 기준 (월 소득 기준):
+- 기초생활수급자: 기준 중위소득 30~50% 이하이고 실제 정부 수급 중인 가구
+  (예: 1인 약 67만원, 4인 약 172만원 이하)
+- 차상위계층: 기준 중위소득 50% 이하 (실제 수급은 아니어도 소득이 낮은 가구)
+  (예: 1인 약 111만원, 2인 약 183만원, 4인 약 286만원 이하)
+- 일반: 그 외 (중위소득 50% 초과)
+
+직업별 2025년 한국 평균 월 소득을 참고해서 합리적으로 가구 총 소득을 추정하세요.
+대학생·학생은 소득 0으로 계산하세요.
+
+JSON 형식으로만 답하세요:
+{"asset_group": "일반", "reason": "추정 근거 두 문장 이내", "estimated_monthly": "약 OOO만원"}`,
+  })
+  const cleaned = raw.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
+  const parsed = JSON.parse(cleaned)
+  const known = ['일반', '차상위', '기초생활수급자']
+  return {
+    asset_group: known.includes(parsed.asset_group) ? parsed.asset_group : '일반',
+    reason: parsed.reason || '',
+    estimated_monthly: parsed.estimated_monthly || '',
+  }
+}
+
 function monthsFromOpen(yyyymmdd) {
   if (!yyyymmdd || !/^\d{8}$/.test(yyyymmdd)) return 0
   const year = +yyyymmdd.slice(0, 4), month = +yyyymmdd.slice(4, 6)
@@ -959,6 +987,10 @@ export default function Onboarding() {
   const [busy, setBusy]       = useState(false)
   const [error, setError]     = useState('')
   const [done, setDone]       = useState(false)
+  // 소득분위 LLM 추정 상태
+  const [assetMode, setAssetMode]         = useState('choice')  // 'choice'|'help'|'loading'|'result'
+  const [assetHelpText, setAssetHelpText] = useState('')
+  const [assetEstimate, setAssetEstimate] = useState(null)
   // Path C — OCR
   const [bizMode, setBizMode]     = useState('upload')   // 'upload'|'loading'|'review'|'manual'
   const [ocrResult, setOcrResult] = useState(null)
@@ -1493,20 +1525,112 @@ export default function Onboarding() {
       {step === 'asset' && (
         <Ask title="가구 소득 분위를 알려주세요"
              why="저소득 가구 전용 지원이 따로 있어요.">
+
+          {/* 선택지 — 항상 표시. result 모드에서는 추정된 값이 미리 선택됨 */}
           <div className="flex flex-col gap-3">
             {[
-              ['일반', '해당 없음', ''],
-              ['차상위', '기준 중위소득 50% 이하', ''],
-              ['기초생활수급자', '기초생활수급자', ''],
+              ['일반', '해당 없음'],
+              ['차상위', '기준 중위소득 50% 이하'],
+              ['기초생활수급자', '기초생활수급자'],
             ].map(([value, desc]) => (
               <Choice key={value} label={value} desc={desc}
                 selected={data.asset_group === value}
-                onClick={() => { set('asset_group', value); setTimeout(nextCommon, 150) }} />
+                onClick={() => {
+                  set('asset_group', value)
+                  // result 모드에서 직접 고르면 바로 다음 단계로
+                  if (assetMode === 'result') { setTimeout(nextCommon, 150); return }
+                  setTimeout(nextCommon, 150)
+                }} />
             ))}
           </div>
-          <SkipLink onClick={() => { set('asset_group', '일반'); nextCommon() }}>
-            잘 모르겠어요 (일반으로 볼게요)
-          </SkipLink>
+
+          {/* result 모드: LLM 추정 결과 카드 */}
+          {assetMode === 'result' && assetEstimate && (
+            <div className="mt-4 bg-navy/5 border border-navy/20 rounded-2xl px-4 py-3">
+              <p className="text-xs font-bold text-navy mb-1">
+                💡 마이다 추정 — {assetEstimate.estimated_monthly}
+              </p>
+              <p className="text-xs text-warm-text leading-relaxed">{assetEstimate.reason}</p>
+              <p className="text-[11px] text-warm-text/70 mt-1.5">
+                위 선택지를 탭하면 바로 다음으로 넘어가요. 다르다고 생각되면 바꿔주세요.
+              </p>
+            </div>
+          )}
+
+          {/* result 모드: 다시 물어보기 */}
+          {assetMode === 'result' && (
+            <button type="button"
+              onClick={() => { setAssetMode('help'); setAssetEstimate(null) }}
+              className="mt-3 w-full text-xs text-gray-400 hover:text-navy underline underline-offset-2 transition-colors">
+              다시 물어볼게요
+            </button>
+          )}
+
+          {/* help 모드: 가족 상황 입력 */}
+          {assetMode === 'help' && (
+            <div className="mt-4">
+              <p className="text-sm font-semibold text-navy mb-2">
+                가족 구성과 직업을 적어주세요
+              </p>
+              <textarea
+                value={assetHelpText}
+                onChange={e => setAssetHelpText(e.target.value)}
+                placeholder="예) 우리 가족은 4명이에요. 아버지는 택시 운전을 하시고, 어머니는 간호사로 일하세요. 동생은 대학생이에요."
+                rows={4}
+                className="w-full border border-warm-gray/50 bg-white rounded-xl px-4 py-3 text-sm
+                           text-navy placeholder:text-warm-gray/50 resize-none
+                           focus:outline-none focus:border-navy/50 focus:ring-1 focus:ring-navy/20"
+              />
+              <Button variant="navy" fullWidth className="mt-3"
+                disabled={!assetHelpText.trim()}
+                onClick={async () => {
+                  setAssetMode('loading')
+                  try {
+                    const result = await estimateIncomeGroup(assetHelpText.trim())
+                    setAssetEstimate(result)
+                    set('asset_group', result.asset_group)
+                    setAssetMode('result')
+                  } catch {
+                    setAssetMode('help')
+                  }
+                }}>
+                마이다에게 추정 부탁하기
+              </Button>
+              <button type="button"
+                onClick={() => setAssetMode('choice')}
+                className="mt-3 w-full text-xs text-gray-400 hover:text-navy underline underline-offset-2 transition-colors">
+                직접 고를게요
+              </button>
+            </div>
+          )}
+
+          {/* loading 모드 */}
+          {assetMode === 'loading' && (
+            <div className="mt-5 flex flex-col items-center gap-3 py-4">
+              <p className="text-sm font-bold text-navy">마이다가 분석 중이에요...</p>
+              <div className="flex gap-1.5">
+                {[0, 0.15, 0.3].map((d, i) => (
+                  <span key={i} className="w-2 h-2 rounded-full bg-warm-gray animate-bounce"
+                        style={{ animationDelay: `${d}s` }} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* choice 모드: 스킵 / 도움 요청 */}
+          {assetMode === 'choice' && (
+            <>
+              <button type="button"
+                onClick={() => setAssetMode('help')}
+                className="mt-4 w-full text-sm text-sunset-orange font-semibold
+                           hover:text-navy underline underline-offset-2 transition-colors">
+                잘 모르겠어요 → 마이다가 도와드릴게요
+              </button>
+              <SkipLink onClick={() => { set('asset_group', '일반'); nextCommon() }}>
+                건너뛸게요 (일반으로 볼게요)
+              </SkipLink>
+            </>
+          )}
         </Ask>
       )}
 
