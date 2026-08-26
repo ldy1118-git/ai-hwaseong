@@ -37,11 +37,15 @@ slides = re.split(r'<section class="slide', body)[1:]
 
 for i, raw in enumerate(slides, 1):
     sl = raw.split('</section>')[0]
+    pad = re.search(r'padding:(\d+)px (\d+)px', raw[:200])
+    AVAIL_H = 720 - (int(pad.group(1)) * 2 if pad else 144)
+    AVAIL_W = 1280 - (int(pad.group(2)) * 2 if pad else 144)
     col = re.search(r'<div class="col"[^>]*style="gap:(\d+)px"', sl)
     gap = int(col.group(1)) if col else 30
     h = 0; parts = []
     def add(name, v):
         global h
+        if v <= 0: return
         h += v; parts.append(f"{name} {v:.0f}")
 
     for m in re.finditer(r'<p class="eyebrow"[^>]*>(.*?)</p>', sl, re.S): add("eyebrow", lines_of(m.group(1), 19, 1.3, AVAIL_W))
@@ -134,6 +138,8 @@ for i, raw in enumerate(slides, 1):
         v = m.group(1)
         for x in re.finditer(r'<p class="fact">(.*?)</p>', v, re.S): add("fact", lines_of(x.group(1),24,1.5,AVAIL_W))
         for x in re.finditer(r'<p class="then">(.*?)</p>', v, re.S): add("then", lines_of(x.group(1),34,1.3,AVAIL_W)+12)
+    for m in re.finditer(r'<figure class="archfig">', sl):
+        add("그림", min(AVAIL_H, round(572 * AVAIL_W / 1024)))
     for m in re.finditer(r'<div class="archgrid">(.*?)\n              </div>', sl, re.S):
         cols = re.split(r'<div class="ab[^"]*">', m.group(1))[1:]
         colw = (AVAIL_W - 30)/3 - 28
