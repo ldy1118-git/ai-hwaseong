@@ -156,7 +156,7 @@ export default function Landing() {
         <KakaoButton onClick={() => navigate('/auth')} />
         <button
           onClick={() => navigate('/onboarding')}
-          className={`text-sm underline underline-offset-2 transition-colors
+          className={`tap text-sm underline underline-offset-2 transition-colors
             ${light ? 'text-warm-text hover:text-white' : 'text-warm-text hover:text-navy'}`}
         >
           로그인 없이 둘러보기

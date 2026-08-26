@@ -21,7 +21,7 @@ export default function ChecklistSection({ items, onToggle, onDetail }) {
               onClick={() => onToggle?.(item.id)}
               aria-label={item.checked ? '체크 해제' : '완료 체크'}
               className={[
-                'w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center mt-0.5 transition-all duration-300',
+                'tap w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center mt-0.5 transition-all duration-300',
                 item.checked
                   ? 'bg-emerald-500 border-emerald-500'
                   : 'border-warm-gray/60 hover:border-navy/50',

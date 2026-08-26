@@ -585,7 +585,7 @@ export default function MyStore() {
           <a
             href="https://www.nts.go.kr/nts/ad/taxSchdul/selectList.do"
             target="_blank" rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1 text-[13px] text-navy font-semibold
+            className="tap mt-3 inline-flex items-center gap-1 text-[13px] text-navy font-semibold
                        underline underline-offset-2"
           >
             국세청 세무일정 원문 확인 <ExternalLink size={12} />

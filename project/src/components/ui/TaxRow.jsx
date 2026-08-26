@@ -100,7 +100,7 @@ export default function TaxRow({ item, open, onToggle, done = false }) {
             aria-pressed={done}
             title={done ? '완료 표시 지우기' : '이 신고를 마쳤다고 표시'}
             className={[
-              'w-6 h-6 rounded-full border flex items-center justify-center flex-shrink-0',
+              'tap w-6 h-6 rounded-full border flex items-center justify-center flex-shrink-0',
               'transition-colors duration-150',
               done ? 'bg-emerald-600 border-emerald-600 text-white'
                    : 'border-warm-gray/50 text-transparent hover:border-emerald-600/60',

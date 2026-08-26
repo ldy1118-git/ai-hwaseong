@@ -194,7 +194,7 @@ function LayerChip({ on, onClick, dot, label, count }) {
       onClick={onClick}
       aria-pressed={on}
       className={[
-        'flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[13px] font-semibold',
+        'tap flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[13px] font-semibold',
         'transition-colors duration-150',
         on ? 'bg-navy text-white border-navy'
            : 'bg-white text-warm-text border-warm-gray/40 hover:border-navy/40',

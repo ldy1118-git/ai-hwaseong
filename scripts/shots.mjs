@@ -52,7 +52,7 @@ const PAGES = [
   ['district', '/#/district',  1],
   ['schedule', '/#/schedule',  1],
   ['apply',    '/#/apply',     1],
-  ['chat',     '/#/chat',      1],
+  ['mission',  '/#/mission',   1],
 ]
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
@@ -134,9 +134,25 @@ async function main() {
             + (el.className && typeof el.className === 'string'
                 ? '.' + el.className.split(/\\s+/).filter(Boolean).slice(0, 3).join('.') : '')
             + ' → ' + Math.round(r.left) + '~' + Math.round(r.right)));
+        /* **보이는 크기가 아니라 실제로 눌리는 크기를 잰다.**
+           누를 자리를 넓힐 때 여백 대신 안 보이는 덮개(::after)를 깐다 —
+           여백을 늘리면 데스크탑 배치까지 바뀌기 때문이다. 덮개는 가짜
+           요소라 getBoundingClientRect 에 안 잡히므로 따로 읽는다.
+
+           elementFromPoint 로 찍어보는 방법을 먼저 썼는데 **화면 밖에
+           있는 것에는 null 이 온다.** 접힌 목록처럼 아래쪽에 있는 버튼이
+           전부 「작다」로 잘못 나왔다. */
+        const box = el => {
+          const r = el.getBoundingClientRect();
+          const cs = getComputedStyle(el, '::after');
+          if (cs.content === 'none' || cs.position !== 'absolute') return r;
+          return { width: Math.max(r.width, parseFloat(cs.width) || 0),
+                   height: Math.max(r.height, parseFloat(cs.height) || 0),
+                   real: r };
+        };
         const small = [...document.querySelectorAll('button,a,[role=button],input,select')]
-          .map(el => ({ el, r: el.getBoundingClientRect() }))
-          .filter(({ r }) => r.width > 0 && r.height > 0 && (r.height < 40 || r.width < 40))
+          .map(el => ({ el, r: el.getBoundingClientRect(), b: box(el) }))
+          .filter(({ r, b }) => r.width > 0 && r.height > 0 && (b.height < 40 || b.width < 40))
           .slice(0, 8)
           .map(({ el, r }) => (el.tagName.toLowerCase()
             + ' "' + (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 14) + '"'

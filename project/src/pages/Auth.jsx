@@ -85,7 +85,7 @@ export default function Auth() {
 
       <button
         onClick={() => navigate('/onboarding')}
-        className="mt-6 text-sm text-warm-text hover:text-navy underline underline-offset-2 transition-colors"
+        className="tap mt-6 text-sm text-warm-text hover:text-navy underline underline-offset-2 transition-colors"
       >
         로그인 없이 둘러보기
       </button>
