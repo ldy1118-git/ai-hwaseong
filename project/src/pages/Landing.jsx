@@ -7,15 +7,12 @@ import logoImg  from '../../design/logo.png'
 import marsImg   from '../../design/mars.png'
 import searchImg from '../../design/search.png'
 import findImg   from '../../design/find.png'
-import cheerImg  from '../../design/cheer.png'
 
-const HERO_IMGS  = [searchImg, findImg, cheerImg, marsImg]
-const HERO_SIZES = ['12rem', '12rem', '16rem', '12rem']
-// cheer 에만 눈빛(안광) 글로우 — 노란 후광 + 밝기 살짝 올림
+const HERO_IMGS  = [searchImg, findImg, marsImg]
+const HERO_SIZES = ['12rem', '12rem', '12rem']
 const HERO_FILTERS = [
   'drop-shadow(0 20px 20px rgb(0 0 0 / 0.18))',
   'drop-shadow(0 20px 20px rgb(0 0 0 / 0.18))',
-  'drop-shadow(0 0 22px rgba(251,226,129,0.65)) drop-shadow(0 20px 20px rgb(0 0 0 / 0.15)) brightness(1.1) saturate(1.15)',
   'drop-shadow(0 20px 20px rgb(0 0 0 / 0.18))',
 ]
 
@@ -188,10 +185,6 @@ export default function Landing() {
             0%   { transform:translateX(0)   translateY(0)   opacity:1 }
             100% { transform:translateX(180px) translateY(60px) opacity:0 }
           }
-          @keyframes eyeSparkle {
-            0%,100% { opacity:0; transform:scale(0.3) rotate(0deg); }
-            45%,55% { opacity:1; transform:scale(1.1) rotate(20deg); }
-          }
         `}</style>
 
         {/* 성운 글로우 — 캐릭터 뒤 보라+주황 빛 */}
@@ -255,22 +248,6 @@ export default function Landing() {
               filter:  HERO_FILTERS[heroIdx],
             }}
           />
-          {/* cheer 전용 안광 — 오른쪽 눈 위치 반짝이 */}
-          {heroIdx === 2 && (
-            <>
-              <span style={{
-                position:'absolute', top:'18%', left:'58%',
-                fontSize:'11px', lineHeight:1, pointerEvents:'none',
-                animation:'eyeSparkle 1.6s ease-in-out infinite',
-              }}>✦</span>
-              <span style={{
-                position:'absolute', top:'14%', left:'54%',
-                fontSize:'7px', lineHeight:1, pointerEvents:'none',
-                animation:'eyeSparkle 1.6s ease-in-out infinite 0.4s',
-                color:'#fbe281',
-              }}>✦</span>
-            </>
-          )}
           {/* 바닥 그림자 */}
           <div
             className="w-28 h-4 bg-black/25 rounded-full blur-md -mt-2"
