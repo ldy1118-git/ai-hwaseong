@@ -60,7 +60,7 @@ export default function Header({ onAvatarClick, className = '' }) {
               onClick={() => navigate(path)}
               aria-current={active ? 'page' : undefined}
               className={[
-                'flex flex-col items-center justify-center gap-0.5 px-2 py-1.5',
+                'flex-1 lg:flex-none flex flex-col items-center justify-center gap-0.5 px-2 py-1.5',
                 'rounded-xl transition-all duration-150 min-w-0',
                 // 넓은 화면: 가로 배치 + 아래 밑줄
                 'lg:flex-row lg:gap-2 lg:px-3.5 lg:py-2 lg:rounded-none',

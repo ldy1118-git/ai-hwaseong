@@ -76,11 +76,11 @@ function ProfileChips({ profile, onEdit }) {
 
   if (!chips.length) return null
   return (
-    <div className="px-5 pb-5 flex flex-wrap gap-2">
+    <div className="px-5 pb-5 flex flex-wrap gap-2.5">
       {chips.map((c, i) => (
         <button key={i}
           onClick={() => onEdit(c.field)}
-          className="text-xs bg-white border border-warm-gray/30 text-navy rounded-full
+          className="tap text-xs bg-white border border-warm-gray/30 text-navy rounded-full
                      px-3 py-1.5 font-medium hover:border-navy/50 hover:shadow-sm transition-all">
           {c.label} <span className="text-warm-gray ml-0.5">✎</span>
         </button>
@@ -148,7 +148,7 @@ function ProfileEditDrawer({ field, profile, onSave, onClose }) {
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-navy">{config.title}</h3>
             <button onClick={onClose}
-              className="w-8 h-8 rounded-full bg-warm-gray/15 flex items-center justify-center
+              className="tap w-8 h-8 rounded-full bg-warm-gray/15 flex items-center justify-center
                          text-warm-text hover:bg-warm-gray/30 transition-colors text-sm">
               ✕
             </button>
