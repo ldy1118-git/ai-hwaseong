@@ -503,6 +503,10 @@ function InlineEditDrawer({ field, profile, onSave, onClose }) {
     // 열었을 때 80000000 만원으로 보인다.
     return cfg?.scale ? String(v / cfg.scale) : String(v)
   })
+  // 소득분위 LLM 추정 (field === 'asset_group' 일 때만 사용)
+  const [assetMode, setAssetMode] = useState('choice')  // 'choice'|'help'|'loading'|'result'
+  const [assetHelpText, setAssetHelpText] = useState('')
+  const [assetEstimate, setAssetEstimate] = useState(null)
   // 가운데 창은 Esc 로 닫히는 게 기본 기대다. 시트일 때는 아래로 쓸어내려
   // 닫았지만 이제 그 동작이 없다.
   useEffect(() => {
@@ -569,6 +573,89 @@ function InlineEditDrawer({ field, profile, onSave, onClose }) {
                 </button>
               ))}
             </div>
+          )}
+
+          {/* 소득분위 LLM 추정 — 내 정보 편집 창 전용 */}
+          {cfg.type === 'choice' && field === 'asset_group' && (
+            <>
+              {assetMode === 'result' && assetEstimate && (
+                <div className="mt-3 bg-navy/5 border border-navy/20 rounded-2xl px-4 py-3">
+                  <p className="text-xs font-bold text-navy mb-1">
+                    💡 마이다 추정 — {assetEstimate.estimated_monthly}
+                  </p>
+                  <p className="text-xs text-warm-text leading-relaxed">{assetEstimate.reason}</p>
+                  <p className="text-[11px] text-warm-text/70 mt-1.5">
+                    위 선택지를 탭하면 바로 저장돼요. 다르면 바꿔주세요.
+                  </p>
+                </div>
+              )}
+
+              {assetMode === 'result' && (
+                <button type="button"
+                  onClick={() => { setAssetMode('help'); setAssetEstimate(null) }}
+                  className="mt-2 w-full text-xs text-gray-400 hover:text-navy underline underline-offset-2 transition-colors">
+                  다시 물어볼게요
+                </button>
+              )}
+
+              {assetMode === 'help' && (
+                <div className="mt-4">
+                  <p className="text-sm font-semibold text-navy mb-2">가족 구성과 직업을 적어주세요</p>
+                  <textarea
+                    value={assetHelpText}
+                    onChange={e => setAssetHelpText(e.target.value)}
+                    placeholder="예) 우리 가족은 4명이에요. 아버지는 택시 운전을 하시고, 어머니는 간호사로 일하세요. 동생은 대학생이에요."
+                    rows={4}
+                    className="w-full border border-warm-gray/50 bg-white rounded-xl px-4 py-3 text-sm
+                               text-navy placeholder:text-warm-gray/50 resize-none
+                               focus:outline-none focus:border-navy/50 focus:ring-1 focus:ring-navy/20"
+                  />
+                  <button
+                    disabled={!assetHelpText.trim()}
+                    onClick={async () => {
+                      setAssetMode('loading')
+                      try {
+                        const result = await estimateIncomeGroup(assetHelpText.trim())
+                        setAssetEstimate(result)
+                        setDraft(result.asset_group)
+                        setAssetMode('result')
+                      } catch {
+                        setAssetMode('help')
+                      }
+                    }}
+                    className="mt-3 w-full py-3 rounded-2xl bg-navy text-white text-sm font-bold
+                               disabled:opacity-40 transition-opacity">
+                    마이다에게 추정 부탁하기
+                  </button>
+                  <button type="button"
+                    onClick={() => setAssetMode('choice')}
+                    className="mt-2 w-full text-xs text-gray-400 hover:text-navy underline underline-offset-2 transition-colors">
+                    직접 고를게요
+                  </button>
+                </div>
+              )}
+
+              {assetMode === 'loading' && (
+                <div className="mt-4 flex flex-col items-center gap-2 py-2">
+                  <p className="text-sm font-bold text-navy">마이다가 분석 중이에요...</p>
+                  <div className="flex gap-1.5">
+                    {[0, 0.15, 0.3].map((d, i) => (
+                      <span key={i} className="w-2 h-2 rounded-full bg-warm-gray animate-bounce"
+                            style={{ animationDelay: `${d}s` }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {assetMode === 'choice' && (
+                <button type="button"
+                  onClick={() => setAssetMode('help')}
+                  className="mt-3 w-full text-sm text-sunset-orange font-semibold
+                             hover:text-navy underline underline-offset-2 transition-colors">
+                  잘 모르겠어요 → 마이다가 도와드릴게요
+                </button>
+              )}
+            </>
           )}
 
           {cfg.type === 'age' && (
