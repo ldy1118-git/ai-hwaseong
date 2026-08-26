@@ -44,7 +44,7 @@ function writeLayers(value) {
  * 성격이다 — 이 화면을 어떻게 보고 싶은지는 그 기기에서의 습관이지
  * 사장님의 자료가 아니다. 따라다니면 오히려 이상하다. */
 const SECTIONS_KEY = 'mars-fit-schedule-sections'
-const SECTIONS_DEFAULT = { tax: true, always: true }   // true 가 펼침
+const SECTIONS_DEFAULT = { fav: true, tax: true, always: true }   // true 가 펼침
 
 function readSections() {
   try {
@@ -505,6 +505,10 @@ export default function Schedule() {
             {selectedDay && (
               <DayPanel dateKey={selectedDay} matches={shown} taxEvents={shownTax} />
             )}
+            <Favorites
+              matches={matches}
+              open={sections.fav} onToggle={() => toggleSection('fav')}
+            />
             <TaxSchedule
               events={shownTax} profile={profile} onPick={pickDate}
               open={sections.tax} onToggle={() => toggleSection('tax')}
