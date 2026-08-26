@@ -669,7 +669,9 @@
   @media print {
     @page { size: 1280px 720px; margin: 0; }
     html, body { background: #fff; }
-    .controls, .notes, .side, .clock { display: none !important; }
+    /* 조작부는 통째로 숨긴다. .controls 만 숨기면 그것을 감싼 #chrome 이
+       남아서 **빈 쪽이 한 장 더 나온다.** 실제로 15쪽이 됐다. */
+    #chrome, .controls, .notes, .side, .clock { display: none !important; }
     .stage.has-side { grid-template-columns: 1fr !important; }
     .stage { display: block; }
     .deck  { display: block; padding: 0; }
