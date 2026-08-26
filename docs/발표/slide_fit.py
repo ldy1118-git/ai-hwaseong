@@ -134,6 +134,24 @@ for i, raw in enumerate(slides, 1):
         v = m.group(1)
         for x in re.finditer(r'<p class="fact">(.*?)</p>', v, re.S): add("fact", lines_of(x.group(1),24,1.5,AVAIL_W))
         for x in re.finditer(r'<p class="then">(.*?)</p>', v, re.S): add("then", lines_of(x.group(1),34,1.3,AVAIL_W)+12)
+    for m in re.finditer(r'<div class="archgrid">(.*?)\n              </div>', sl, re.S):
+        cols = re.split(r'<div class="ab[^"]*">', m.group(1))[1:]
+        colw = (AVAIL_W - 30)/3 - 28
+        hs = []
+        for c in cols:
+            ch = 0
+            for x in re.finditer(r'<p class="t">(.*?)</p>', c, re.S): ch += lines_of(x.group(1), 18, 1.3, colw-30) + 7
+            for x in re.finditer(r'<p class="f">(.*?)</p>', c, re.S):
+                t = x.group(1)
+                n = re.search(r'<span class="n">(.*?)</span>', t, re.S)
+                if n:
+                    ch += lines_of(re.sub(r'<span class="n">.*?</span>','',t,flags=re.S), 15, 1.5, colw)
+                    ch += lines_of(n.group(1), 14, 1.5, colw) + 12
+                else:
+                    ch += lines_of(t, 15, 1.5, colw)
+            hs.append(ch + 24 + 2)
+        rows = [max(hs[0:3] or [0]), max(hs[3:6] or [0])]
+        add("구조도", sum(rows) + 13)
     for m in re.finditer(r'<div class="kkcols">(.*?)\n              </div>', sl, re.S):
         blk = m.group(1)
         bh = 15*1.4 + 9 + (527 * 520/960) + 2   # 머리글 + 캡처(480px 로 줄임)
