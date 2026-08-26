@@ -104,7 +104,7 @@ def _data_dir() -> Path:
 # ── CSV 로더 ─────────────────────────────────────────────────────────
 
 def _load_stores() -> list[dict]:
-    """소상공인시장진흥공단 상가 CSV → 화성시 음식·카페·학원만."""
+    """소상공인시장진흥공단 상가 CSV → 화성시 업종 분류."""
     path = _data_dir() / "소상공인시장진흥공단_상가(상권)정보_경기_202606.csv"
     result = []
     with open(path, encoding="utf-8-sig", newline="") as f:
@@ -126,6 +126,12 @@ def _load_stores() -> list[dict]:
                 cat = "c" if 중 == "비알코올" else "r"
             elif 대 == "교육" and 중 in ("기타 교육", "일반 교육"):
                 cat = "a"
+            elif 대 == "소매":
+                cat = "retail"
+            elif 중 == "이용·미용":
+                cat = "beauty"
+            elif 대 == "보건의료":
+                cat = "medical"
             else:
                 continue
 
@@ -659,26 +665,30 @@ class Handler(BaseHTTPRequestHandler):
             "restaurants": int(radii.get("restaurants") or 500),
             "cafes":       int(radii.get("cafes")       or 500),
             "academies":   int(radii.get("academies")   or 500),
+            "retail":      int(radii.get("retail")      or 500),
+            "beauty":      int(radii.get("beauty")      or 500),
+            "medical":     int(radii.get("medical")     or 500),
             "stations":    int(radii.get("stations")    or 500),
         }
 
         # 상가: bbox 로 먼저 좁힌 뒤 정밀 거리 계산
-        max_r  = max(r["restaurants"], r["cafes"], r["academies"])
+        max_r  = max(r["restaurants"], r["cafes"], r["academies"],
+                     r["retail"], r["beauty"], r["medical"])
         lat_d  = max_r / 111_320 * 1.1
         lng_d  = lat_d / math.cos(math.radians(lat))
 
-        restaurants, cafes, academies = [], [], []
+        restaurants, cafes, academies, retail, beauty, medical = [], [], [], [], [], []
         for s in _STORES:
             if abs(s["lat"] - lat) > lat_d or abs(s["lng"] - lng) > lng_d:
                 continue
             dist = _haversine(lat, lng, s["lat"], s["lng"])
             cat  = s["cat"]
-            if cat == "r" and dist <= r["restaurants"]:
-                restaurants.append({"lat": s["lat"], "lng": s["lng"]})
-            elif cat == "c" and dist <= r["cafes"]:
-                cafes.append({"lat": s["lat"], "lng": s["lng"]})
-            elif cat == "a" and dist <= r["academies"]:
-                academies.append({"lat": s["lat"], "lng": s["lng"]})
+            if   cat == "r"      and dist <= r["restaurants"]: restaurants.append({"lat": s["lat"], "lng": s["lng"]})
+            elif cat == "c"      and dist <= r["cafes"]:       cafes.append({"lat": s["lat"], "lng": s["lng"]})
+            elif cat == "a"      and dist <= r["academies"]:   academies.append({"lat": s["lat"], "lng": s["lng"]})
+            elif cat == "retail" and dist <= r["retail"]:      retail.append({"lat": s["lat"], "lng": s["lng"]})
+            elif cat == "beauty" and dist <= r["beauty"]:      beauty.append({"lat": s["lat"], "lng": s["lng"]})
+            elif cat == "medical"and dist <= r["medical"]:     medical.append({"lat": s["lat"], "lng": s["lng"]})
 
         schools = [
             s for s in _SCHOOLS
@@ -708,6 +718,9 @@ class Handler(BaseHTTPRequestHandler):
                 "restaurants": len(restaurants),
                 "cafes":       len(cafes),
                 "academies":   len(academies),
+                "retail":      len(retail),
+                "beauty":      len(beauty),
+                "medical":     len(medical),
                 "stations":    len(stations),
             },
             "markers": {
@@ -715,6 +728,9 @@ class Handler(BaseHTTPRequestHandler):
                 "restaurants": sample(restaurants),
                 "cafes":       sample(cafes),
                 "academies":   sample(academies),
+                "retail":      sample(retail),
+                "beauty":      sample(beauty),
+                "medical":     sample(medical),
                 "stations":    stations,
             },
             "apt_dong":   apt_dong,

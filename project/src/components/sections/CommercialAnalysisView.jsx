@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   School, Utensils, BookOpen, Coffee, Building2, Search, Train,
   Maximize2, X as XIcon, Sparkles, Users, CreditCard, MapPin,
-  ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp, ShoppingBag, Scissors, Stethoscope,
 } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -90,14 +90,20 @@ const TZ_LABELS = {
 }
 
 const AMENITY_CONFIG = [
-  { key: 'restaurants', label: '음식점', Icon: Utensils,  color: '#F97316', char: '식' },
-  { key: 'cafes',       label: '카페',   Icon: Coffee,    color: '#92400E', char: '카' },
-  { key: 'academies',   label: '학원',   Icon: BookOpen,  color: '#8B5CF6', char: '원' },
-  { key: 'schools',     label: '학교',   Icon: School,    color: '#3B82F6', char: '학' },
-  { key: 'stations',    label: '지하철역', Icon: Train,   color: '#1E3A5F', char: '역' },
+  { key: 'restaurants', label: '음식점',   Icon: Utensils,    color: '#F97316', char: '식' },
+  { key: 'cafes',       label: '카페',     Icon: Coffee,      color: '#92400E', char: '카' },
+  { key: 'academies',   label: '학원',     Icon: BookOpen,    color: '#8B5CF6', char: '원' },
+  { key: 'retail',      label: '소매점',   Icon: ShoppingBag, color: '#EC4899', char: '소' },
+  { key: 'beauty',      label: '이용·미용', Icon: Scissors,    color: '#F59E0B', char: '미' },
+  { key: 'medical',     label: '보건의료', Icon: Stethoscope, color: '#10B981', char: '의' },
+  { key: 'schools',     label: '학교',     Icon: School,      color: '#3B82F6', char: '학' },
+  { key: 'stations',    label: '지하철역', Icon: Train,       color: '#1E3A5F', char: '역' },
 ]
 
-const DEFAULT_RADII = { schools: 500, restaurants: 500, academies: 500, cafes: 500, stations: 500 }
+const DEFAULT_RADII = {
+  schools: 500, restaurants: 500, academies: 500, cafes: 500,
+  retail: 500, beauty: 500, medical: 500, stations: 500,
+}
 
 const RANGE_PRESETS = [
   { label: '가까이',  meters: 300,  walk: '도보 5분'  },
@@ -109,6 +115,9 @@ const COMPETITION_THRESHOLDS = {
   restaurants: [30, 80],
   cafes:       [15, 40],
   academies:   [15, 40],
+  retail:      [20, 60],
+  beauty:      [10, 30],
+  medical:     [5,  15],
 }
 
 function competitionLevel(key, count) {
@@ -154,9 +163,13 @@ async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPa
   if (cardSales) {
     salesLine = `이 지역 카드매출: 월 약 ${Math.round(cardSales.total_sales / 1e8)}억원 / 피크: ${TZ_LABELS[cardSales.peak_tz] || cardSales.peak_tz}`
   }
-  const bizTotal = amenities.restaurants + amenities.cafes + amenities.academies
+  const bizTotal = amenities.restaurants + amenities.cafes + amenities.academies +
+    (amenities.retail || 0) + (amenities.beauty || 0) + (amenities.medical || 0)
   const distLine = bizTotal > 0
-    ? `업종 분포: 음식점 ${amenities.restaurants}개, 카페 ${amenities.cafes}개, 학원 ${amenities.academies}개`
+    ? `업종 분포: 음식점 ${amenities.restaurants}개, 카페 ${amenities.cafes}개, 학원 ${amenities.academies}개` +
+      (amenities.retail  > 0 ? `, 소매점 ${amenities.retail}개`   : '') +
+      (amenities.beauty  > 0 ? `, 이용·미용 ${amenities.beauty}개` : '') +
+      (amenities.medical > 0 ? `, 보건의료 ${amenities.medical}개` : '')
     : ''
   const prompt = [
     `반경 ${radii.schools}m 내 학교: ${amenities.schools}개`,
@@ -235,7 +248,9 @@ export default function CommercialAnalysisView() {
     const markers = apiData?.markers || {}
     const amenities = {
       schools: counts.schools ?? 0, restaurants: counts.restaurants ?? 0,
-      academies: counts.academies ?? 0, cafes: counts.cafes ?? 0, stations: counts.stations ?? 0,
+      academies: counts.academies ?? 0, cafes: counts.cafes ?? 0,
+      retail: counts.retail ?? 0, beauty: counts.beauty ?? 0, medical: counts.medical ?? 0,
+      stations: counts.stations ?? 0,
     }
     const rawPassengers = markers.stations
       ? markers.stations.reduce((s, st) => s + (st.passengers || 0), 0) : null
@@ -251,7 +266,7 @@ export default function CommercialAnalysisView() {
         popup: `<b>${s.name}역</b> (${s.line})${s.passengers > 0 ? `<br>일 평균 ${s.passengers.toLocaleString()}명` : ''}`,
       })
     )
-    ;['restaurants', 'cafes', 'academies'].forEach(key =>
+    ;['restaurants', 'cafes', 'academies', 'retail', 'beauty', 'medical'].forEach(key =>
       (markers[key] || []).forEach(s => displayMarkers.push({ lat: s.lat, lng: s.lng, key }))
     )
     return { amenities, displayMarkers, stationPassengersTotal: rawPassengers, aptDong, cardSales }
@@ -262,11 +277,15 @@ export default function CommercialAnalysisView() {
     [amenities, stationPassengersTotal, aptDong]
   )
   const ftLevel  = footTrafficLevel(ftScore)
-  const bizTotal = amenities.restaurants + amenities.cafes + amenities.academies
+  const bizTotal = amenities.restaurants + amenities.cafes + amenities.academies +
+    amenities.retail + amenities.beauty + amenities.medical
 
   const applyPreset = useCallback((meters) => {
     setActivePreset(meters)
-    setRadii({ schools: meters, restaurants: meters, academies: meters, cafes: meters, stations: meters })
+    setRadii({
+      schools: meters, restaurants: meters, academies: meters, cafes: meters,
+      retail: meters, beauty: meters, medical: meters, stations: meters,
+    })
   }, [])
 
   const handleMarkerMove = useCallback((pos) => {
@@ -469,15 +488,12 @@ export default function CommercialAnalysisView() {
                           <button
                             onClick={() => toggleFacility(key)}
                             className="relative flex-shrink-0 rounded-full transition-colors duration-200"
-                            style={{
-                              width: 30, height: 17,
-                              background: enabled ? color : '#d1d5db',
-                            }}
+                            style={{ width: 32, height: 18, background: enabled ? color : '#d1d5db' }}
                             title={enabled ? '끄기' : '켜기'}
                           >
                             <span
-                              className="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform duration-200"
-                              style={{ transform: enabled ? 'translateX(13px)' : 'translateX(2px)' }}
+                              className="absolute w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-all duration-200"
+                              style={{ top: 2, left: enabled ? 16 : 2 }}
                             />
                           </button>
                         </div>
@@ -618,9 +634,12 @@ export default function CommercialAnalysisView() {
           {bizTotal > 0 ? (
             <div className="space-y-4">
               {[
-                { key: 'restaurants', label: '음식점', max: 200 },
-                { key: 'cafes',       label: '카페',   max: 80  },
-                { key: 'academies',   label: '학원',   max: 80  },
+                { key: 'restaurants', label: '음식점',   max: 200 },
+                { key: 'cafes',       label: '카페',     max: 80  },
+                { key: 'academies',   label: '학원',     max: 80  },
+                { key: 'retail',      label: '소매점',   max: 150 },
+                { key: 'beauty',      label: '이용·미용', max: 60  },
+                { key: 'medical',     label: '보건의료', max: 40  },
               ].map(({ key, label, max }) => {
                 const count    = amenities[key]
                 const pct      = Math.min((count / max) * 100, 100)
