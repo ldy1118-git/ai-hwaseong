@@ -4,7 +4,20 @@ import Button from '../components/ui/Button'
 import KakaoButton from '../components/ui/KakaoButton'
 import { getToken } from '../utils/api'
 import logoImg  from '../../design/logo.png'
-import marsImg  from '../../design/mars.png'
+import marsImg   from '../../design/mars.png'
+import searchImg from '../../design/search.png'
+import findImg   from '../../design/find.png'
+import cheerImg  from '../../design/cheer.png'
+
+const HERO_IMGS  = [searchImg, findImg, cheerImg, marsImg]
+const HERO_SIZES = ['12rem', '12rem', '16rem', '12rem']
+// cheer 에만 눈빛(안광) 글로우 — 노란 후광 + 밝기 살짝 올림
+const HERO_FILTERS = [
+  'drop-shadow(0 20px 20px rgb(0 0 0 / 0.18))',
+  'drop-shadow(0 20px 20px rgb(0 0 0 / 0.18))',
+  'drop-shadow(0 0 22px rgba(251,226,129,0.65)) drop-shadow(0 20px 20px rgb(0 0 0 / 0.15)) brightness(1.1) saturate(1.15)',
+  'drop-shadow(0 20px 20px rgb(0 0 0 / 0.18))',
+]
 
 const FEATURES = [
   {
@@ -106,6 +119,20 @@ export default function Landing() {
   // 줄 알고 또 누른다. 로그인 여부는 첫 렌더에 알아야 버튼이 바뀌었다가
   // 다시 바뀌는 깜빡임이 없다.
   const [loggedIn] = useState(() => !!getToken())
+
+  // 히어로 이미지 순환 (search → find → cheer)
+  const [heroIdx,   setHeroIdx]   = useState(0)
+  const [heroVisible, setHeroVisible] = useState(true)
+  useEffect(() => {
+    const id = setInterval(() => {
+      setHeroVisible(false)
+      setTimeout(() => {
+        setHeroIdx(prev => (prev + 1) % HERO_IMGS.length)
+        setHeroVisible(true)
+      }, 350)
+    }, 3000)
+    return () => clearInterval(id)
+  }, [])
   const hasProfile = !!localStorage.getItem('mars-fit-profile')
 
   /** 로그인 상태에 따라 CTA 를 통째로 갈아끼운다. */
@@ -150,11 +177,52 @@ export default function Landing() {
       </header>
 
       {/* 히어로 */}
-      <section className="bg-burgundy relative overflow-hidden px-5 py-16 flex flex-col items-center text-center">
-        {/* 궤도 장식 원 */}
+      <section className="relative overflow-hidden px-5 py-16 flex flex-col items-center text-center"
+        style={{ background: 'linear-gradient(160deg, #08051a 0%, #150830 35%, #2a0f45 65%, #0f0520 100%)' }}>
+
+        <style>{`
+          @keyframes starPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.2;transform:scale(0.5)} }
+          @keyframes nebulaShift { 0%,100%{opacity:0.18} 50%{opacity:0.28} }
+          @keyframes orbitSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+          @keyframes shootingStar {
+            0%   { transform:translateX(0)   translateY(0)   opacity:1 }
+            100% { transform:translateX(180px) translateY(60px) opacity:0 }
+          }
+          @keyframes eyeSparkle {
+            0%,100% { opacity:0; transform:scale(0.3) rotate(0deg); }
+            45%,55% { opacity:1; transform:scale(1.1) rotate(20deg); }
+          }
+        `}</style>
+
+        {/* 성운 글로우 — 캐릭터 뒤 보라+주황 빛 */}
+        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[420px] h-[260px] pointer-events-none rounded-full"
+          style={{ background:'radial-gradient(ellipse, rgba(139,92,246,0.22) 0%, rgba(203,107,61,0.12) 50%, transparent 75%)',
+                   filter:'blur(32px)', animation:'nebulaShift 6s ease-in-out infinite' }} />
+
+        {/* 별 배경 */}
+        {[
+          [8,12,12],[18,55,9],[30,22,7],[55,8,10],[72,38,6],[88,18,11],
+          [5,70,8],[22,80,7],[40,65,9],[60,75,8],[78,60,10],[92,72,7],
+          [15,40,6],[48,48,8],[82,44,11],[35,90,7],[65,88,9],[50,30,6],
+        ].map(([x,y,d],i) => (
+          <span key={i} className="absolute rounded-full bg-white pointer-events-none"
+            style={{ left:`${x}%`, top:`${y}%`, width:d>9?'2px':'1px', height:d>9?'2px':'1px',
+                     opacity: d>9 ? 0.9 : 0.55,
+                     animation:`starPulse ${1.5+i*0.3}s ease-in-out infinite`,
+                     animationDelay:`${i*0.2}s` }} />
+        ))}
+
+        {/* 유성 */}
+        <div className="absolute top-[18%] left-[5%] w-16 h-px pointer-events-none"
+          style={{ background:'linear-gradient(90deg, rgba(255,255,255,0.8), transparent)',
+                   animation:'shootingStar 3.5s ease-in 2s infinite', transformOrigin:'left center' }} />
+
+        {/* 궤도 링 — 은은하게 빛남 */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-[480px] h-[480px] rounded-full border border-warm-gray/10" />
-          <div className="absolute w-[340px] h-[340px] rounded-full border border-warm-gray/10" />
+          <div className="w-[520px] h-[520px] rounded-full"
+            style={{ border:'1px solid rgba(139,92,246,0.18)', boxShadow:'0 0 18px rgba(139,92,246,0.08)' }} />
+          <div className="absolute w-[360px] h-[360px] rounded-full"
+            style={{ border:'1px solid rgba(203,107,61,0.2)', boxShadow:'0 0 14px rgba(203,107,61,0.08)' }} />
         </div>
 
         <p className="relative text-xs font-semibold text-star-yellow tracking-widest uppercase mb-4">
@@ -163,38 +231,46 @@ export default function Landing() {
         <h1 className="relative text-3xl font-bold text-white leading-tight mb-4 max-w-xs">
           지원사업 찾기부터<br />
           <span className="text-star-yellow">신청까지</span><br />
-          Mars가 함께해요
+          Mars-Fit이 함께해요
         </h1>
         <p className="relative text-sm text-warm-text leading-relaxed mb-8 max-w-sm">
           조건을 입력하면 나에게 딱 맞는 지원사업을 찾아드리고,<br />
           서류 준비부터 실제 신청까지 빠짐없이<br />
-          Mars-Fit의 탐사대원 "마이다"가 함께 챙겨드려요!
+          Mars-Fit의 탐사대원 <span className="text-star-yellow font-bold">"마이다"</span>가 함께 챙겨드려요!
         </p>
 
         {/* Mars 캐릭터 */}
-        <style>{`
-          @keyframes heroFloat {
-            0%, 100% { transform: translateY(0px); }
-            50%       { transform: translateY(-14px); }
-          }
-          @keyframes heroShadow {
-            0%, 100% { transform: scaleX(1);   opacity: 0.18; }
-            50%       { transform: scaleX(0.65); opacity: 0.08; }
-          }
-          @keyframes starTwinkle {
-            0%, 100% { opacity: 1;   transform: scale(1); }
-            50%       { opacity: 0.3; transform: scale(0.7); }
-          }
-        `}</style>
-
         <div className="relative mb-10 flex flex-col items-center">
           {/* 캐릭터 */}
           <img
-            src={marsImg}
-            alt="Mars 캐릭터"
-            className="w-48 h-48 object-contain drop-shadow-2xl"
-            style={{ animation: 'heroFloat 3s ease-in-out infinite' }}
+            src={HERO_IMGS[heroIdx]}
+            alt="마이다"
+            className="object-contain"
+            style={{
+              animation: 'heroFloat 3s ease-in-out infinite',
+              opacity: heroVisible ? 1 : 0,
+              transition: 'opacity 0.35s ease, width 0.35s ease, height 0.35s ease',
+              width:   HERO_SIZES[heroIdx],
+              height:  HERO_SIZES[heroIdx],
+              filter:  HERO_FILTERS[heroIdx],
+            }}
           />
+          {/* cheer 전용 안광 — 오른쪽 눈 위치 반짝이 */}
+          {heroIdx === 2 && (
+            <>
+              <span style={{
+                position:'absolute', top:'18%', left:'58%',
+                fontSize:'11px', lineHeight:1, pointerEvents:'none',
+                animation:'eyeSparkle 1.6s ease-in-out infinite',
+              }}>✦</span>
+              <span style={{
+                position:'absolute', top:'14%', left:'54%',
+                fontSize:'7px', lineHeight:1, pointerEvents:'none',
+                animation:'eyeSparkle 1.6s ease-in-out infinite 0.4s',
+                color:'#fbe281',
+              }}>✦</span>
+            </>
+          )}
           {/* 바닥 그림자 */}
           <div
             className="w-28 h-4 bg-black/25 rounded-full blur-md -mt-2"
@@ -203,15 +279,15 @@ export default function Landing() {
 
           {/* 별 장식 */}
           <svg className="absolute top-0 -right-1" width="18" height="18" viewBox="0 0 24 24" fill="#fbe281"
-            style={{ animation: 'starTwinkle 2s ease-in-out infinite' }}>
+            style={{ animation: 'starPulse 2s ease-in-out infinite' }}>
             <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
           </svg>
           <svg className="absolute top-8 -left-4" width="11" height="11" viewBox="0 0 24 24" fill="#fbe281"
-            style={{ animation: 'starTwinkle 2.4s ease-in-out infinite', animationDelay: '0.5s' }}>
+            style={{ animation: 'starPulse 2.4s ease-in-out infinite', animationDelay: '0.5s' }}>
             <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
           </svg>
           <svg className="absolute bottom-6 -right-5" width="8" height="8" viewBox="0 0 24 24" fill="#fbe281"
-            style={{ animation: 'starTwinkle 1.8s ease-in-out infinite', animationDelay: '1s' }}>
+            style={{ animation: 'starPulse 1.8s ease-in-out infinite', animationDelay: '1s' }}>
             <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
           </svg>
         </div>
@@ -219,12 +295,6 @@ export default function Landing() {
         <div className="relative flex flex-col items-center gap-3 w-full max-w-xs">
           <Cta light />
         </div>
-      </section>
-
-      {/* 핵심 기능 슬라이더 */}
-      <section className="px-5 py-12 max-w-sm mx-auto w-full">
-        <p className="text-xs font-bold text-warm-text uppercase tracking-widest text-center mb-6">핵심 기능</p>
-        <FeatureSlider />
       </section>
 
       {/* 이용 순서 */}
