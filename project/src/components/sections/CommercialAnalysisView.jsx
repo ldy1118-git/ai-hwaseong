@@ -202,7 +202,14 @@ export default function CommercialAnalysisView() {
   const [llmSummary, setLlmSummary]       = useState('')
   const [llmLoading, setLlmLoading]       = useState(false)
   const [llmAsked, setLlmAsked]           = useState(false)
+  const [enabledFacilities, setEnabledFacilities] = useState(
+    () => Object.fromEntries(AMENITY_CONFIG.map(c => [c.key, true]))
+  )
   const debounceRef = useRef(null)
+
+  const effectiveRadii = useMemo(() => (
+    Object.fromEntries(AMENITY_CONFIG.map(({ key }) => [key, enabledFacilities[key] ? radii[key] : 0]))
+  ), [radii, enabledFacilities])
 
   useEffect(() => {
     clearTimeout(debounceRef.current)
@@ -210,13 +217,13 @@ export default function CommercialAnalysisView() {
       fetch('/api/commercial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat: position.lat, lng: position.lng, radii }),
+        body: JSON.stringify({ lat: position.lat, lng: position.lng, radii: effectiveRadii }),
       })
         .then(r => r.json())
         .then(setApiData)
         .catch(() => {})
     }, 300)
-  }, [position.lat, position.lng, radii])
+  }, [position.lat, position.lng, effectiveRadii])
 
   useEffect(() => {
     setLlmSummary('')
@@ -295,6 +302,10 @@ export default function CommercialAnalysisView() {
     setRadii(prev => ({ ...prev, [key]: Number(value) }))
   }, [])
 
+  const toggleFacility = useCallback((key) => {
+    setEnabledFacilities(prev => ({ ...prev, [key]: !prev[key] }))
+  }, [])
+
   const handleAskMaida = useCallback(async () => {
     setLlmLoading(true)
     setLlmSummary('')
@@ -343,7 +354,8 @@ export default function CommercialAnalysisView() {
           </div>
 
           <div className="relative rounded-xl overflow-hidden border border-warm-gray/15 flex-1" style={{ minHeight: 260 }}>
-            <LeafletMap position={position} onMove={handleMarkerMove} radii={radii} markers={displayMarkers} />
+            <LeafletMap position={position} onMove={handleMarkerMove} radii={effectiveRadii}
+              markers={displayMarkers.filter(m => enabledFacilities[m.key])} />
             <button onClick={() => setExpanded(true)}
               className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-warm-gray/30
                          rounded-lg p-1.5 shadow hover:bg-white transition-colors"
@@ -412,17 +424,20 @@ export default function CommercialAnalysisView() {
           <div>
             <p className="text-[11px] font-semibold text-warm-text mb-2">반경 내 시설 현황</p>
             <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-              {AMENITY_CONFIG.map(({ key, label, Icon, color }) => (
-                <div key={key} className="flex items-center gap-1.5">
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: color + '22', border: `1.5px solid ${color}` }}>
-                    <Icon size={9} style={{ color }} />
+              {AMENITY_CONFIG.map(({ key, label, Icon, color }) => {
+                const enabled = enabledFacilities[key]
+                return (
+                  <div key={key} className={`flex items-center gap-1.5 transition-opacity ${enabled ? '' : 'opacity-35'}`}>
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: color + '22', border: `1.5px solid ${color}` }}>
+                      <Icon size={9} style={{ color }} />
+                    </div>
+                    <span className="text-[10px] text-warm-text flex-1">{label}</span>
+                    <span className="text-xs font-extrabold text-navy tabular-nums">{amenities[key]}</span>
+                    <span className="text-[9px] text-warm-text">개</span>
                   </div>
-                  <span className="text-[10px] text-warm-text flex-1">{label}</span>
-                  <span className="text-xs font-extrabold text-navy tabular-nums">{amenities[key]}</span>
-                  <span className="text-[9px] text-warm-text">개</span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
@@ -434,23 +449,47 @@ export default function CommercialAnalysisView() {
               시설 종류별로 따로 설정
             </button>
             {showDetailSliders && (
-              <div className="mt-2 space-y-2.5">
-                {AMENITY_CONFIG.map(({ key, label, Icon, color }) => (
-                  <div key={key}>
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1">
-                        <Icon size={9} style={{ color }} />
-                        <span className="text-[10px] text-warm-text">{label}</span>
+              <div className="mt-2 space-y-3">
+                {AMENITY_CONFIG.map(({ key, label, Icon, color }) => {
+                  const enabled = enabledFacilities[key]
+                  return (
+                    <div key={key} className={`transition-opacity ${enabled ? '' : 'opacity-50'}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <Icon size={9} style={{ color: enabled ? color : '#aaa' }} />
+                          <span className="text-[10px] text-warm-text">{label}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {enabled && (
+                            <span className="text-[9px] font-semibold tabular-nums" style={{ color }}>
+                              {radii[key] >= 1000 ? `${radii[key] / 1000}km` : `${radii[key]}m`}
+                            </span>
+                          )}
+                          {/* 토글 스위치 */}
+                          <button
+                            onClick={() => toggleFacility(key)}
+                            className="relative flex-shrink-0 rounded-full transition-colors duration-200"
+                            style={{
+                              width: 30, height: 17,
+                              background: enabled ? color : '#d1d5db',
+                            }}
+                            title={enabled ? '끄기' : '켜기'}
+                          >
+                            <span
+                              className="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform duration-200"
+                              style={{ transform: enabled ? 'translateX(13px)' : 'translateX(2px)' }}
+                            />
+                          </button>
+                        </div>
                       </div>
-                      <span className="text-[9px] font-semibold tabular-nums" style={{ color }}>
-                        {radii[key] >= 1000 ? `${radii[key] / 1000}km` : `${radii[key]}m`}
-                      </span>
+                      {enabled && (
+                        <input type="range" min={100} max={3000} step={50}
+                          value={radii[key]} onChange={e => setRadius(key, e.target.value)}
+                          className="w-full h-1.5 cursor-pointer" style={{ accentColor: color }} />
+                      )}
                     </div>
-                    <input type="range" min={100} max={3000} step={50}
-                      value={radii[key]} onChange={e => setRadius(key, e.target.value)}
-                      className="w-full h-1.5 cursor-pointer" style={{ accentColor: color }} />
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
