@@ -410,8 +410,7 @@ def main() -> int:
             state = {}
         settings = state.get("settings") or {}
         tax_done = state.get("taxDone") or {}
-        # 새 공고를 껐어도 세무 알림은 받을 수 있다. 여기서 끊지 않고
-        # 아래에서 공고 목록만 비운다.
+
         # 사장님이 정해둔 시각·요일이 아니면 아무것도 안 한다. **기준선도 안
         # 잡는다** — 잡아버리면 처음 켠 날 8시가 오기 전에 「보냄」으로 적혀서
         # 그날 공고를 통째로 놓친다.
@@ -420,6 +419,8 @@ def main() -> int:
             print(f"  아직 아님 user={user_id} — {hour}시로 정해두었다")
             continue
 
+        # 새 공고를 껐어도 세무 알림은 받을 수 있다. 여기서 끊지 않고
+        # 아래에서 공고 목록만 비운다.
         score_min = int(settings.get("minScore") or SCORE_MIN)
 
         results = matching.match_policies(policies, profile)
