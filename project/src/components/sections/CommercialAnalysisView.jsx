@@ -292,6 +292,16 @@ export default function CommercialAnalysisView() {
   const [enabledFacilities, setEnabledFacilities] = useState(
     () => Object.fromEntries(AMENITY_CONFIG.map(c => [c.key, true]))
   )
+  /* 펼친 지도는 화면을 통째로 덮는다(`fixed inset-0`, z-index 9999).
+     나가는 길이 오른쪽 위 아이콘 하나뿐이라 못 찾고 갇히는 일이 있었다.
+     Esc 로도 닫는다 — 창을 덮는 것에는 늘 있어야 하는 길이다. */
+  useEffect(() => {
+    if (!expanded) return
+    const esc = e => { if (e.key === 'Escape') setExpanded(false) }
+    document.addEventListener('keydown', esc)
+    return () => document.removeEventListener('keydown', esc)
+  }, [expanded])
+
   const debounceRef = useRef(null)
 
   const effectiveRadii = useMemo(() => (
@@ -458,12 +468,15 @@ export default function CommercialAnalysisView() {
             <LeafletMap position={position} onMove={handleMarkerMove} radii={effectiveRadii}
               markers={displayMarkers.filter(m => enabledFacilities[m.key])}
               sizeKey={showDetailSliders} />
-            <button onClick={() => setExpanded(true)}
-              className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-warm-gray/30
-                         rounded-lg p-1.5 shadow hover:bg-white transition-colors"
-              style={{ zIndex: 1000 }}>
-              <Maximize2 size={13} className="text-navy" />
-            </button>
+            {/* 아이콘만 두면 무슨 버튼인지 모른다. 글자를 붙인다. */}
+              <button onClick={() => setExpanded(true)}
+                aria-label="지도 크게 보기"
+                className="tap absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-warm-gray/30
+                         rounded-lg px-2 py-1.5 shadow hover:bg-white
+                           transition-colors flex items-center gap-1 text-[11px] font-bold text-navy"
+                style={{ zIndex: 1000 }}>
+                <Maximize2 size={13} /> 크게 보기
+              </button>
           </div>
 
           {address && (
@@ -919,8 +932,13 @@ export default function CommercialAnalysisView() {
         <div className="fixed inset-0 flex flex-col bg-white" style={{ zIndex: 9999 }}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-warm-gray/20 flex-shrink-0">
             <p className="text-sm font-bold text-navy">지도에서 위치 선택</p>
-            <button onClick={() => setExpanded(false)} className="p-1 rounded-lg hover:bg-warm-gray/10">
-              <XIcon size={20} className="text-navy" />
+            {/* 여기가 이 화면에서 나가는 유일한 길이다. 28px 짜리 아이콘 하나로
+                  두면 못 찾는다. 글자를 붙이고 테두리를 둘렀다. */}
+            <button onClick={() => setExpanded(false)}
+              aria-label="지도 닫기"
+              className="tap flex items-center gap-1.5 rounded-xl border border-warm-gray/40
+                         px-3 py-2 text-sm font-bold text-navy hover:bg-warm-gray/10 transition-colors">
+                <XIcon size={16} /> 닫기
             </button>
           </div>
           <div className="flex-1 min-h-0">
