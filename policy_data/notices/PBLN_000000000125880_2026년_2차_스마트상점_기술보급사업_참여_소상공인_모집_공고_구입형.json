@@ -1,0 +1,38 @@
+{
+ "notice_id": "PBLN_000000000125880",
+ "title": "2026년 2차 스마트상점 기술보급사업 참여 소상공인 모집 공고(구입형ㆍ렌탈형ㆍS/W형)",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000125880",
+ "summary": ") 「 소상공인기본법 제 조에 따른 소상공인 으로 신청일\n 」 2\n *\n ,\n\n 현재 정상적으로 영업 중인 점포\n * S/W 가맹본부 신청대상은 가맹본부(브랜드별 200개 미만)이며 지원대상은 가맹점(소상공인)\n\n□ (신청방법) 홈페이지 접수 (www.sbiz.or.kr/smst/index.do)\n\n ① (회원가입) 대표자 명의로 스마트상점 홈페이지에 회원가입\n\n ② (사업신청) 홈페이지를 통한 온라인 신청\n * 유형별 자세한 신청절차는 [(붙임) 사업신청 매뉴얼]을 참고\n\n - 사업신청 시 업체소개 지원동기 활용계획 등을\n (신청서 작성) ,\n 1)\n ,\n 2)\n ,\n 3)\n\n 신청절차에 따라 온라인으로 직접 작성\n * 신청서 기재내용은 선정평가 핵심 평가자료로 활용되므로, 대표자 본인이 직접\n 사업장 현",
+ "apply_period": {
+  "start": "2026-08-26",
+  "end": "2026-09-30"
+ },
+ "eligibility": {
+  "business_status": [
+   "예비창업자",
+   "운영중"
+  ],
+  "categories": [
+   "음식점"
+  ]
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_url": "https://www.sbiz.or.kr/smst/index.do",
+ "apply_method": "온라인 접수 (소상공인 스마트상점)",
+ "contact": "스마트상점전문기관 (개별소상공인) 1600-6185 / 스마트상점팀 (S/W가맹본부) 042-363-7806, 7807",
+ "organizer": "중소벤처기업부",
+ "operator": "소상공인시장진흥공단"
+}
