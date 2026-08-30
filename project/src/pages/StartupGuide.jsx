@@ -18,7 +18,7 @@ const STEP_META = {
 // ── 사이트별 진행 순서 ─────────────────────────────────────────────
 function educationSteps(e) {
   if (!e.url) return []
-  if (e.url.includes('kfia.or.kr')) return [
+  if (e.url.includes('kfia21.or.kr') || e.url.includes('kfia.or.kr')) return [
     '한국식품산업협회 사이트 접속 → 우측 상단 로그인 (또는 회원가입)',
     '메뉴 → 식품위생교육 → 신규영업자 위생교육 신청',
     '교육 일정 선택 후 수강료 결제 (온라인 약 10,000원)',
@@ -73,8 +73,8 @@ function buildItems(category) {
       {
         title: '홈택스에서 사업자등록 신청',
         desc: '공인인증서 또는 카카오·네이버 간편인증으로 신청할 수 있어요.',
-        where: '홈택스 온라인 또는 관할 세무서',
-        duration: '온라인 신청 후 3영업일 이내', timing: '사업 시작 전',
+        where: '홈택스 온라인 또는 관할 세무서 방문',
+        duration: '세무서 방문 당일 · 온라인 신청 3영업일 이내', timing: '사업 시작 전',
         docs: REG_DOCS, url: 'https://www.hometax.go.kr',
         tip: '연 예상 매출이 1억 400만원 미만이면 간이과세 선택 가능해요.',
         notRequired: false,
@@ -83,14 +83,14 @@ function buildItems(category) {
           '상단 메뉴 → 국세청서비스 → "사업자등록 신청" 클릭',
           '인적사항 확인 → 사업장 주소·업태·종목 입력',
           '임대차계약서 파일 첨부 (스캔본 또는 사진, 5MB 이하)',
-          '"신청하기" 클릭 → 접수번호 저장 → 3영업일 후 등록증 발급',
+          '"신청하기" 클릭 → 접수번호 저장 (세무서 방문 시 당일, 온라인 3영업일 이내 발급)',
         ],
       },
       {
         title: '사업자등록증 수령 확인',
-        desc: '홈택스에서 신청 후 3영업일 이내 발급돼요.',
+        desc: '세무서 방문 시 당일, 홈택스 온라인 신청 시 3영업일 이내 발급돼요.',
         where: '홈택스 → 사업자등록 신청/정정 현황',
-        duration: '신청 후 3영업일 이내', timing: null,
+        duration: '세무서 방문 당일 · 온라인 3영업일 이내', timing: null,
         docs: [], url: 'https://www.hometax.go.kr',
         tip: '사업자등록번호는 카드단말기 등록·세금계산서 발행에 필요해요.',
         notRequired: false,
