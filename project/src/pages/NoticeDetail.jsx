@@ -136,6 +136,28 @@ function Section({ title, children }) {
 
 const BOX = 'bg-white border border-warm-gray/40 rounded-2xl p-4'
 
+// 조건 그룹별 스타일
+const COND_STYLE = {
+  '충족':    { bg: 'bg-emerald-600', icon: '✓', label: '충족', labelColor: 'text-emerald-700', rowBg: 'bg-emerald-50/60' },
+  '확인필요': { bg: 'bg-sunset-orange', icon: '!', label: '확인 필요', labelColor: 'text-sunset-orange', rowBg: 'bg-sunset-orange/5' },
+  '불충족':  { bg: 'bg-red-500', icon: '✕', label: '미충족', labelColor: 'text-red-600', rowBg: 'bg-red-50/60' },
+}
+
+function matchExplanation(item) {
+  const conds  = (item.condition_results ?? []).filter(c => c.status !== '대상아님')
+  const met    = conds.filter(c => c.status === '충족').length
+  const check  = conds.filter(c => c.status === '확인필요').length
+  const status = item.overall_status
+  if (status === '신청가능') {
+    if (check > 0)
+      return `${met}개 조건이 충족됐고, ${check}개는 신청 전에 직접 확인해보세요. 나머지 조건은 모두 맞아요.`
+    return `확인된 ${met}개 조건이 모두 충족돼서 신청 가능으로 판정됐어요.`
+  }
+  if (status === '확인필요')
+    return `${check}개 조건을 직접 확인해야 신청 가능 여부를 알 수 있어요. 불확실한 것을 신청했다가 탈락하면 시간이 아까우니, 아래 문의처에 먼저 물어보세요.`
+  return null
+}
+
 export default function NoticeDetail() {
   const navigate = useNavigate()
   const [item, setItem]         = useState(null)
@@ -297,31 +319,124 @@ export default function NoticeDetail() {
         </div>
 
 
-        {/* 조건 판정 — 왜 이 공고가 나에게 떴는지 */}
-        <Section title="내 조건과 맞춰본 결과">
-          <div className={BOX}>
-            {(item.condition_results ?? []).length === 0 ? (
-              <p className="text-sm text-warm-text">판정할 조건이 없어요.</p>
-            ) : (
-              item.condition_results.map((c, i) => {
-                const ok = c.status === '충족'
-                const bad = c.status === '불충족'
-                return (
-                  <div key={i} className={`flex items-start gap-3 py-2.5 ${i > 0 ? 'border-t border-warm-gray/20' : ''}`}>
-                    <span className={[
-                      'w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center',
-                      'text-xs font-bold text-white',
-                      ok ? 'bg-emerald-600' : bad ? 'bg-red-500' : 'bg-sunset-orange',
-                    ].join(' ')}>
-                      {ok ? '✓' : bad ? '✕' : '!'}
-                    </span>
-                    <p className="text-sm text-gray-700 leading-relaxed pt-0.5">{c.detail}</p>
+        {/* 나와의 매칭 분석 */}
+        {(() => {
+          const conds   = (item.condition_results ?? []).filter(c => c.status !== '대상아님')
+          const metList = conds.filter(c => c.status === '충족')
+          const chkList = conds.filter(c => c.status === '확인필요')
+          const notList = conds.filter(c => c.status === '불충족')
+          const expl    = matchExplanation(item)
+          if (conds.length === 0) return null
+
+          const scoreNum = item.match_score
+          const scoreBar = scoreNum != null
+            ? Math.min(100, Math.max(0, scoreNum))
+            : null
+
+          const GROUPS = [
+            { list: metList, key: '충족' },
+            { list: chkList, key: '확인필요' },
+            { list: notList, key: '불충족' },
+          ].filter(g => g.list.length > 0)
+
+          return (
+            <Section title="나와의 매칭 분석">
+              {/* 점수 + 상태 헤더 */}
+              <div className={`${BOX} mb-3`}>
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <p className="text-[10px] font-bold text-warm-text uppercase tracking-wider mb-1.5">
+                      종합 판정
+                    </p>
+                    <StatusPill status={item.overall_status} />
                   </div>
-                )
-              })
-            )}
-          </div>
-        </Section>
+                  {scoreBar != null && (
+                    <div className="text-right">
+                      <p className="text-3xl font-extrabold text-navy leading-none">{scoreNum}</p>
+                      <p className="text-[10px] text-warm-text mt-0.5">매칭 점수</p>
+                    </div>
+                  )}
+                </div>
+                {scoreBar != null && (
+                  <div className="h-2 bg-warm-gray/15 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${scoreBar}%`,
+                        background: scoreBar >= 70
+                          ? 'linear-gradient(to right, #2a3c77, #059669)'
+                          : scoreBar >= 50
+                          ? 'linear-gradient(to right, #2a3c77, #cb6b3d)'
+                          : 'linear-gradient(to right, #2a3c77, #ef4444)',
+                      }}
+                    />
+                  </div>
+                )}
+                {/* 충족/확인/미충족 요약 칩 */}
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {metList.length > 0 && (
+                    <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                      ✓ 충족 {metList.length}개
+                    </span>
+                  )}
+                  {chkList.length > 0 && (
+                    <span className="text-[11px] font-semibold bg-orange-100 text-sunset-orange px-2 py-0.5 rounded-full">
+                      ! 확인필요 {chkList.length}개
+                    </span>
+                  )}
+                  {notList.length > 0 && (
+                    <span className="text-[11px] font-semibold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
+                      ✕ 미충족 {notList.length}개
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* 조건별 그룹 */}
+              <div className={`${BOX} space-y-4`}>
+                {GROUPS.map(({ list, key }) => {
+                  const s = COND_STYLE[key]
+                  return (
+                    <div key={key}>
+                      <p className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${s.labelColor}`}>
+                        {s.label} ({list.length}개)
+                      </p>
+                      <div className="space-y-2">
+                        {list.map((c, i) => (
+                          <div key={i} className={`flex items-start gap-2.5 rounded-xl px-3 py-2.5 ${s.rowBg}`}>
+                            <span className={[
+                              'w-5 h-5 rounded-md flex-shrink-0 flex items-center justify-center',
+                              'text-[11px] font-bold text-white mt-0.5',
+                              s.bg,
+                            ].join(' ')}>
+                              {s.icon}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              {c.label && (
+                                <p className={`text-[10px] font-bold mb-0.5 ${s.labelColor}`}>{c.label}</p>
+                              )}
+                              <p className="text-sm text-gray-700 leading-relaxed">{c.detail}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* 추천 이유 설명 */}
+                {expl && (
+                  <div className="border-t border-warm-gray/20 pt-3">
+                    <p className="text-[10px] font-bold text-warm-text uppercase tracking-wider mb-1">
+                      왜 이 공고를 추천했나요?
+                    </p>
+                    <p className="text-sm text-gray-600 leading-relaxed">{expl}</p>
+                  </div>
+                )}
+              </div>
+            </Section>
+          )
+        })()}
 
         {/* 서류 — 어디서 어떻게 떼는지까지 */}
         {docs.length > 0 && (

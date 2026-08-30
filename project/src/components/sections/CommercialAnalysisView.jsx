@@ -12,6 +12,7 @@ import { apiUrl } from '../../utils/api'
 import marsImg   from '../../../design/mars.png'
 import searchImg from '../../../design/search.png'
 import findImg   from '../../../design/find.png'
+import { saveCandidate } from '../../utils/journey'
 
 // ── Leaflet 아이콘 ───────────────────────────────────────────────
 const leafletIcon = L.icon({
@@ -239,14 +240,15 @@ async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPa
 숫자는 근거로만 쓰고, 핵심은 "그래서 이 동네는 어떤 곳이다" "이 업종을 하면 어떨 것 같다"는 해석이에요.
 
 반드시 아래 JSON 형식으로만 답하세요:
-{"bullets":["문장1","문장2","문장3","문장4"],"advice":"핵심 조언"}
+{"bullets":["문장1","문장2","문장3"],"advice":"핵심 조언","top_categories":["카페","소매업"]}
 
 규칙:
 • bullets 3-5개, 각 항목은 완성된 한 문장 (40-80자)
 • 숫자는 문장 안에 자연스럽게 녹여 쓸 것 (나열 금지)
 • "~해요", "~있어요", "~것 같아요" 같은 친근한 말투
 • 경쟁·기회·위험·특징을 골고루 해석
-• advice: 이 위치에서 가장 중요한 창업 포인트, 50자 이내 한 문장`,
+• advice: 이 위치에서 가장 중요한 창업 포인트, 50자 이내 한 문장
+• top_categories: 이 위치에 가장 적합한 업종 1-3개. ["카페","음식점","소매업","제조업","기타"] 중에서만 선택`,
       prompt,
       json: true,
     }),
@@ -254,11 +256,17 @@ async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPa
   const data = await res.json()
   try {
     const parsed = JSON.parse(data.text)
-    return { bullets: parsed.bullets || [], advice: parsed.advice || '' }
+    return {
+      bullets: parsed.bullets || [],
+      advice: parsed.advice || '',
+      top_categories: parsed.top_categories || [],
+    }
   } catch {
-    return { bullets: [data.text || '분석 결과를 가져오지 못했어요.'], advice: '' }
+    return { bullets: [data.text || '분석 결과를 가져오지 못했어요.'], advice: '', top_categories: [] }
   }
 }
+
+const CATEGORY_EMOJI = { 카페: '☕', 음식점: '🍜', 소매업: '🛍', 제조업: '🔧', 기타: '🎨' }
 
 // ── 숫자 강조 ─────────────────────────────────────────────────────
 function HighlightedText({ text }) {
@@ -285,7 +293,7 @@ function StepBadge({ n }) {
 }
 
 // ── 메인 컴포넌트 ────────────────────────────────────────────────
-export default function CommercialAnalysisView() {
+export default function CommercialAnalysisView({ profile }) {
   const [position, setPosition]           = useState(HWS_CENTER)
   const [address, setAddress]             = useState('')
   const [searching, setSearching]         = useState(false)
@@ -302,6 +310,12 @@ export default function CommercialAnalysisView() {
   const [enabledFacilities, setEnabledFacilities] = useState(
     () => Object.fromEntries(AMENITY_CONFIG.map(c => [c.key, true]))
   )
+  const [selectedCategory, setSelectedCategory] = useState(null)
+  const [candidateSaved, setCandidateSaved]     = useState(false)
+  const [inputMode, setInputMode]               = useState('map') // 'map' | 'address'
+  const debounceRef  = useRef(null)
+  const addressInput = useRef(null)
+
   /* 펼친 지도는 화면을 통째로 덮는다(`fixed inset-0`, z-index 9999).
      나가는 길이 오른쪽 위 아이콘 하나뿐이라 못 찾고 갇히는 일이 있었다.
      Esc 로도 닫는다 — 창을 덮는 것에는 늘 있어야 하는 길이다. */
@@ -311,8 +325,6 @@ export default function CommercialAnalysisView() {
     document.addEventListener('keydown', esc)
     return () => document.removeEventListener('keydown', esc)
   }, [expanded])
-
-  const debounceRef = useRef(null)
 
   const effectiveRadii = useMemo(() => (
     Object.fromEntries(AMENITY_CONFIG.map(({ key }) => [key, enabledFacilities[key] ? radii[key] : 0]))
@@ -335,7 +347,14 @@ export default function CommercialAnalysisView() {
   useEffect(() => {
     setLlmSummary(null)
     setLlmAsked(false)
+    setCandidateSaved(false)
+    setSelectedCategory(null)
   }, [position.lat, position.lng])
+
+  // 주소 모드로 전환하면 입력란에 바로 포커스
+  useEffect(() => {
+    if (inputMode === 'address') addressInput.current?.focus()
+  }, [inputMode])
 
   const { amenities, displayMarkers, stationPassengersTotal, aptDong, cardSales, isAvgSales } = useMemo(() => {
     const counts  = apiData?.counts  || {}
@@ -425,15 +444,33 @@ export default function CommercialAnalysisView() {
     setLlmLoading(true)
     setLlmSummary(null)
     setLlmAsked(true)
+    setCandidateSaved(false)
     try {
       const result = await fetchCommercialSummary({ amenities, aptDong, cardSales, stationPassengersTotal, radii, ftScore, ftLevel })
       setLlmSummary(result)
+      // LLM 이 추천한 업종 중 첫 번째로 미리 선택
+      if (result.top_categories?.length > 0 && !selectedCategory) {
+        setSelectedCategory(result.top_categories[0])
+      }
     } catch {
-      setLlmSummary({ bullets: ['마이다가 잠깐 연결이 끊겼어요. 다시 시도해주세요.'], advice: '' })
+      setLlmSummary({ bullets: ['마이다가 잠깐 연결이 끊겼어요. 다시 시도해주세요.'], advice: '', top_categories: [] })
     } finally {
       setLlmLoading(false)
     }
-  }, [amenities, aptDong, cardSales, stationPassengersTotal, radii, ftScore, ftLevel])
+  }, [amenities, aptDong, cardSales, stationPassengersTotal, radii, ftScore, ftLevel, selectedCategory])
+
+  const handleSaveCandidate = useCallback(() => {
+    // ftScore 를 0-100 창업 적합도로 변환 (4000=65, 8000=92)
+    const score = Math.min(92, Math.max(40, Math.round(40 + (ftScore / 8000) * 52)))
+    saveCandidate({
+      category: selectedCategory ?? profile?.category ?? '기타',
+      address:  address || null,
+      region:   address || null,
+      score,
+    })
+    setCandidateSaved(true)
+    window.dispatchEvent(new Event('mars-journey-updated'))
+  }, [selectedCategory, profile, ftScore, address])
 
   return (
     <div className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
@@ -470,25 +507,82 @@ export default function CommercialAnalysisView() {
         <div className="lg:col-span-3 bg-white rounded-2xl border border-warm-gray/20 shadow-sm p-4 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <StepBadge n={1} />
-            <div>
-              <p className="text-base font-bold text-navy leading-tight">어디서 창업하고 싶으세요?</p>
-              <p className="text-sm text-warm-text">핀을 드래그하거나 주소를 검색해보세요</p>
-            </div>
+            <p className="text-base font-bold text-navy leading-tight">어디서 창업하고 싶으세요?</p>
           </div>
 
-          <div className="relative rounded-xl overflow-hidden border border-warm-gray/15 flex-1" style={{ minHeight: 260 }}>
-            <LeafletMap position={position} onMove={handleMarkerMove} radii={effectiveRadii}
+          {/* 입력 방식 탭 */}
+          <div className="flex bg-gray-50 border border-warm-gray/20 rounded-xl p-0.5">
+            <button
+              type="button"
+              onClick={() => setInputMode('map')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all
+                ${inputMode === 'map'
+                  ? 'bg-white text-navy shadow-sm'
+                  : 'text-warm-text hover:text-navy'}`}
+            >
+              <MapPin size={12} />
+              지도에서 선택
+            </button>
+            <button
+              type="button"
+              onClick={() => setInputMode('address')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all
+                ${inputMode === 'address'
+                  ? 'bg-white text-navy shadow-sm'
+                  : 'text-warm-text hover:text-navy'}`}
+            >
+              <Search size={12} />
+              주소로 찾기
+            </button>
+          </div>
+
+          {/* 주소 모드: 검색폼 위로 */}
+          {inputMode === 'address' && (
+            <form onSubmit={handleSearch} className="flex gap-1.5">
+              <input
+                ref={addressInput}
+                type="text" value={address} onChange={e => setAddress(e.target.value)}
+                placeholder="예: 동탄역, 병점동, 봉담읍, 동탄2신도시..."
+                className="flex-1 min-w-0 text-sm bg-gray-50 border border-navy/30 rounded-xl
+                           px-3 py-3 text-navy placeholder:text-warm-gray/50
+                           focus:outline-none focus:border-navy focus:bg-white transition-colors"
+              />
+              <button type="submit" disabled={searching}
+                className="flex-shrink-0 bg-navy text-white rounded-xl px-4 py-3 text-xs font-semibold
+                           disabled:opacity-50 flex items-center gap-1.5">
+                <Search size={13} />검색
+              </button>
+            </form>
+          )}
+
+          {/* 지도 */}
+          <div
+            className="relative rounded-xl overflow-hidden border border-warm-gray/15 flex-1 transition-all duration-300"
+            style={{ minHeight: inputMode === 'address' ? 180 : 260 }}
+          >
+            <LeafletMap
+              position={position} onMove={handleMarkerMove} radii={effectiveRadii}
               markers={displayMarkers.filter(m => enabledFacilities[m.key])}
-              sizeKey={showDetailSliders} />
-            {/* 아이콘만 두면 무슨 버튼인지 모른다. 글자를 붙인다. */}
+              sizeKey={`${showDetailSliders}-${inputMode}`}
+            />
+            {inputMode === 'map' && (
               <button onClick={() => setExpanded(true)}
                 aria-label="지도 크게 보기"
                 className="tap absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-warm-gray/30
-                         rounded-lg px-2 py-1.5 shadow hover:bg-white
-                           transition-colors flex items-center gap-1 text-[11px] font-bold text-navy"
+                           rounded-lg px-2 py-1.5 shadow hover:bg-white transition-colors
+                           flex items-center gap-1 text-[11px] font-bold text-navy"
                 style={{ zIndex: 1000 }}>
                 <Maximize2 size={13} /> 크게 보기
               </button>
+            )}
+            {inputMode === 'address' && (
+              <div className="absolute bottom-2 inset-x-0 flex justify-center pointer-events-none"
+                style={{ zIndex: 1000 }}>
+                <span className="bg-navy/80 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full">
+                  핀을 드래그해서 위치를 미세 조정할 수 있어요
+                </span>
+              </div>
+            )}
           </div>
 
           {address && (
@@ -498,20 +592,23 @@ export default function CommercialAnalysisView() {
             </div>
           )}
 
-          <form onSubmit={handleSearch} className="flex gap-1.5">
-            <input
-              type="text" value={address} onChange={e => setAddress(e.target.value)}
-              placeholder="예: 동탄역, 병점동, 봉담읍..."
-              className="flex-1 min-w-0 text-sm bg-gray-50 border border-warm-gray/30 rounded-xl
-                         px-3 py-2 text-navy placeholder:text-warm-gray/50
-                         focus:outline-none focus:border-navy focus:bg-white transition-colors"
-            />
-            <button type="submit" disabled={searching}
-              className="flex-shrink-0 bg-navy text-white rounded-xl px-3 py-2 text-xs font-semibold
-                         disabled:opacity-50 flex items-center gap-1">
-              <Search size={13} />검색
-            </button>
-          </form>
+          {/* 지도 모드: 검색폼 아래로 */}
+          {inputMode === 'map' && (
+            <form onSubmit={handleSearch} className="flex gap-1.5">
+              <input
+                type="text" value={address} onChange={e => setAddress(e.target.value)}
+                placeholder="예: 동탄역, 병점동, 봉담읍..."
+                className="flex-1 min-w-0 text-sm bg-gray-50 border border-warm-gray/30 rounded-xl
+                           px-3 py-2 text-navy placeholder:text-warm-gray/50
+                           focus:outline-none focus:border-navy focus:bg-white transition-colors"
+              />
+              <button type="submit" disabled={searching}
+                className="flex-shrink-0 bg-navy text-white rounded-xl px-3 py-2 text-xs font-semibold
+                           disabled:opacity-50 flex items-center gap-1">
+                <Search size={13} />검색
+              </button>
+            </form>
+          )}
         </div>
 
         {/* 범위 + 시설 카드 (lg: 2/5) */}
@@ -885,6 +982,66 @@ export default function CommercialAnalysisView() {
           )}
         </div>
       </div>
+
+      {/* ── 창업 후보로 저장 ─────────────────────────────────────── */}
+      {apiData && (
+        <div className="bg-gradient-to-br from-navy/[0.04] to-sunset-orange/[0.03]
+                        border border-navy/15 rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-base">🚀</span>
+            <div>
+              <p className="text-sm font-bold text-navy">이 위치, 창업 후보로 저장할까요?</p>
+              <p className="text-xs text-warm-text mt-0.5">
+                {address ? `${address} · ` : ''}유동인구 {ftLevel.text} 상권
+              </p>
+            </div>
+          </div>
+
+          {/* 업종 선택 */}
+          <p className="text-xs font-semibold text-navy/60 mb-2">
+            {llmSummary?.top_categories?.length > 0
+              ? '마이다 추천 업종 (탭해서 선택)'
+              : '업종을 골라보세요'}
+          </p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {(llmSummary?.top_categories?.length > 0
+              ? llmSummary.top_categories
+              : ['카페', '음식점', '소매업', '기타']
+            ).map(cat => (
+              <button key={cat} type="button"
+                onClick={() => setSelectedCategory(cat)}
+                className={[
+                  'px-3 py-1.5 rounded-full text-sm font-bold border transition-colors',
+                  selectedCategory === cat
+                    ? 'bg-navy text-white border-navy'
+                    : 'text-navy border-navy/30 hover:bg-navy/5 bg-white',
+                ].join(' ')}>
+                {CATEGORY_EMOJI[cat] ?? ''} {cat}
+              </button>
+            ))}
+          </div>
+
+          <button type="button"
+            onClick={candidateSaved ? undefined : handleSaveCandidate}
+            disabled={candidateSaved}
+            className={[
+              'w-full py-3 rounded-xl text-sm font-bold transition-all',
+              candidateSaved
+                ? 'bg-emerald-500 text-white cursor-default'
+                : 'bg-sunset-orange text-white hover:bg-sunset-orange/90 active:scale-[0.99]',
+            ].join(' ')}>
+            {candidateSaved
+              ? '✓ 창업 후보로 저장됐어요!'
+              : `${selectedCategory ? `${CATEGORY_EMOJI[selectedCategory] ?? ''} ${selectedCategory}` : '이 업종'} · 이 위치로 저장`}
+          </button>
+
+          {candidateSaved && (
+            <p className="mt-2 text-center text-xs text-emerald-600 font-semibold">
+              홈 화면의 창업 항해 위젯에서 확인할 수 있어요 →
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ── 데이터 갤러리 모달 ──────────────────────────────────── */}
       {showGallery && (

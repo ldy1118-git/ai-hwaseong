@@ -137,9 +137,10 @@ export default function MyStore() {
   const [failed, setFailed]   = useState(false)
   const [openId, setOpenId]   = useState(null)
   const [showIf, setShowIf]     = useState(false)
-  const [showPast, setShowPast] = useState(false)
-  const [doneMap, setDoneMap]   = useState(listTaxDone)
-  const [applied, setApplied]   = useState(listApplied)
+  const [showPast, setShowPast]         = useState(false)
+  const [doneMap, setDoneMap]           = useState(listTaxDone)
+  const [applied, setApplied]           = useState(listApplied)
+  const [showCommercial, setShowCommercial] = useState(false)
 
   /* 사진 읽는 서버가 붙어 있는지 **서버에 물어본다.** 전에는 「안 붙어
      있어요」를 문장으로 박아뒀는데, 서버를 올린 날에도 이 화면만 계속
@@ -522,12 +523,6 @@ export default function MyStore() {
               { name: '매출 · 방문자 · 객단가 추이', need: 'POS 또는 카드매출을 연결해야 알 수 있어요. 사업자등록증에는 매출이 적혀 있지 않아요.' },
               { name: '재방문율 · 단골 비중',        need: 'POS 연결이 필요해요' },
               { name: '별점 · 리뷰',                 need: '네이버·카카오가 평점을 API 로 내주지 않아요. 화면을 긁어오는 건 약관 위반이라 안 해요.' },
-              /* 받아둔 것은 상가 전체가 아니라 음식점·카페·학원 셋뿐이다.
-                 「상가 N곳」이라고 적어두면 소매업 사장님도 곧 될 것처럼
-                 읽히는데, 그 업종은 위치 데이터가 아예 없다. 개수를 안
-                 적는 이유는 그 파일이 외부 서버로 옮겨가 저장소 안에서
-                 세어볼 수가 없어서다 — 확인 못 하는 숫자는 안 쓴다. */
-              { name: '주변 동종업체',               need: '화성시 음식점·카페·학원·소매업·미용·보건의료 위치는 이미 받아뒀어요. 매장 주소를 알려주시면 반경 안 동종업체를 셀 수 있어요. 그 밖의 업종은 아직 위치 데이터가 없어요.' },
               { name: '신규개업 · 폐업',             need: '받아둔 상가정보에는 개업일이 없어요. 지자체 인허가 공공데이터를 따로 붙여야 해요.' },
               { name: '업종 내 내 매출 위치',        need: '업종별 매출 통계가 있어야 계산돼요' },
               /* 사진 읽는 서버가 **꺼져 있다고 확인됐을 때만** 적는다.
@@ -592,6 +587,45 @@ export default function MyStore() {
           </a>
         </Card>
 
+        </div>
+
+        {/* ── 상권 분석 (운영중 사장님용) ── */}
+        <div className="lg:col-span-2">
+          <button
+            onClick={() => setShowCommercial(v => !v)}
+            className="w-full flex items-center justify-between gap-3
+                       bg-white border border-warm-gray/20 rounded-2xl shadow-sm
+                       px-4 py-3.5 hover:bg-warm-gray/5 transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
+              <MapPin size={16} className="text-sunset-orange flex-shrink-0" />
+              <div className="text-left">
+                <p className="text-sm font-bold text-navy">내 매장 주변 상권 분석</p>
+                <p className="text-[12px] text-warm-text mt-0.5">
+                  주변 음식점·카페·학원·역·아파트 현황을 확인해보세요
+                </p>
+              </div>
+            </div>
+            <ChevronDown
+              size={16}
+              className={`text-warm-text flex-shrink-0 transition-transform duration-300 ${
+                showCommercial ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
+
+          <div
+            className="grid transition-all duration-300"
+            style={{ gridTemplateRows: showCommercial ? '1fr' : '0fr' }}
+          >
+            <div className="overflow-hidden">
+              {showCommercial && (
+                <div className="pt-0">
+                  <CommercialAnalysisView profile={profile} />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
       </div>}

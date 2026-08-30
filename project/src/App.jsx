@@ -10,6 +10,7 @@ import MissionControl   from './pages/MissionControl'
 import NoticeDetail     from './pages/NoticeDetail'
 import Schedule         from './pages/Schedule'
 import District         from './pages/District'
+import StartupGuide     from './pages/StartupGuide'
 import BottomNav        from './components/layout/BottomNav'
 import { consumeKakaoRedirect, isKakaoNotifyReturn, finishKakaoNotify } from './utils/kakao'
 import { loadOnboarding, saveOnboarding } from './utils/api'
@@ -83,6 +84,7 @@ function AnimatedRoutes() {
           <Route path="/mission"    element={<MissionControl />} />
           <Route path="/schedule"   element={<Schedule />} />
           <Route path="/district"   element={<District />} />
+          <Route path="/guide"      element={<StartupGuide />} />
           <Route path="*"           element={<Landing />} />
         </Routes>
       </motion.div>

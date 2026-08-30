@@ -11,6 +11,7 @@ Caddy 가 앞에서 HTTPS 를 처리하고, 이 서버는 localhost 에서만 �
     POST /ocr          사업자등록증 OCR
     POST /foottraffic  주변 POI 수집 (Overpass API, LLM 없음 — 요약은 Vercel 이)
     POST /commercial   상가·학교·역·아파트 위치 기반 필터링 (CSV/JSON 에서 로드)
+    POST /recommend    업종 → 화성시 내 상권 밀집 위치 추천 (그리드 클러스터링)
 
 인증: X-Mars-Secret 헤더 (모든 POST 공통).
 
@@ -457,6 +458,58 @@ def _apt_dong_summary(lat: float, lng: float) -> dict | None:
     return {"dong": dong_name, "eup": "", "complexes": 0, "total_units": 0}
 
 
+# 마스핏 업종명 → 상가 CSV cat 코드
+_CATEGORY_TO_CATS: dict[str, list[str]] = {
+    "카페":   ["c"],
+    "음식점": ["r"],
+    "소매업": ["retail"],
+    "제조업": [],          # 상가 데이터에 제조업 없음
+    "기타":   ["r", "c", "retail", "beauty", "medical"],
+}
+
+# 그리드 셀 크기 (도 단위). 0.005° ≈ 500m
+_GRID = 0.005
+
+
+def _recommend_locations(categories: list[str], top_n: int = 3) -> list[dict]:
+    """업종 목록을 받아 화성시 내 상권 밀집 위치를 추천.
+
+    알고리즘:
+    1. 업종명 → 상가 cat 코드로 변환
+    2. _STORES 전체를 0.005° 그리드(≈500m) 로 나눠 셀별 카운트
+    3. 카운트 상위 top_n 개 셀의 중심 좌표를 반환
+
+    반환 형식:
+        [{"category": "카페", "locations": [{"lat": ..., "lng": ..., "count": ...}, ...]}, ...]
+    """
+    results = []
+    for cat_name in categories:
+        target_cats = _CATEGORY_TO_CATS.get(cat_name, [])
+        if not target_cats:
+            continue
+
+        grid: dict[tuple[float, float], int] = {}
+        for s in _STORES:
+            if s["cat"] not in target_cats:
+                continue
+            # 셀 중심 좌표 (소수점 3자리 반올림으로 겹침 방지)
+            cell_lat = round(round(s["lat"] / _GRID) * _GRID, 4)
+            cell_lng = round(round(s["lng"] / _GRID) * _GRID, 4)
+            key = (cell_lat, cell_lng)
+            grid[key] = grid.get(key, 0) + 1
+
+        top = sorted(grid.items(), key=lambda x: -x[1])[:top_n]
+        locations = [
+            {"lat": lat, "lng": lng, "count": count}
+            for (lat, lng), count in top
+        ]
+
+        if locations:
+            results.append({"category": cat_name, "locations": locations})
+
+    return results
+
+
 def _load_commercial_data() -> None:
     global _STORES, _SCHOOLS, _STATIONS, _APT_BY_DONG
     data_dir = _data_dir()
@@ -557,6 +610,7 @@ class Handler(BaseHTTPRequestHandler):
             "ok": True,
             "ocr_ready":        OCR.warm_up(),
             "commercial_ready": bool(_STORES),
+            "recommend_ready":  bool(_STORES),
             "stores":           len(_STORES),
             "schools":          len(_SCHOOLS),
             "stations":         len(_STATIONS),
@@ -571,6 +625,8 @@ class Handler(BaseHTTPRequestHandler):
             self._handle_foottraffic()
         elif path == "/commercial":
             self._handle_commercial()
+        elif path == "/recommend":
+            self._handle_recommend()
         else:
             _send(self, {"error": "없는 경로"}, 404)
 
@@ -736,6 +792,43 @@ class Handler(BaseHTTPRequestHandler):
             "apt_dong":   apt_dong,
             "card_sales": card_sales,
         })
+
+
+    # ── /recommend ───────────────────────────────────────────────────
+
+    def _handle_recommend(self) -> None:
+        """POST /recommend {"categories": ["카페", "소매업"], "top_n": 3}
+
+        업종별로 화성시 내 상가 밀집 위치 상위 top_n 개를 반환한다.
+        상가 데이터에 없는 업종(제조업)은 결과에서 제외된다.
+
+        반환:
+            {"recommendations": [
+                {"category": "카페", "locations": [
+                    {"lat": 37.2039, "lng": 126.8534, "count": 42},
+                    ...
+                ]},
+                ...
+            ]}
+        """
+        if not self._check_secret():
+            return
+        if not _STORES:
+            return _send(self, {"error": "상권 데이터가 아직 로드되지 않았습니다"}, 503)
+
+        payload = _read_json(self, max_bytes=4096)
+        if payload is None:
+            return
+
+        categories = payload.get("categories") or []
+        if not isinstance(categories, list):
+            return _send(self, {"error": "categories 는 배열이어야 합니다"}, 400)
+        # 알려진 업종만 통과 (미지의 값이 섞여도 조용히 무시)
+        categories = [c for c in categories if isinstance(c, str)][:5]
+
+        top_n = min(int(payload.get("top_n") or 3), 5)
+        recommendations = _recommend_locations(categories, top_n)
+        return _send(self, {"recommendations": recommendations})
 
 
 # ── 진입점 ───────────────────────────────────────────────────────────

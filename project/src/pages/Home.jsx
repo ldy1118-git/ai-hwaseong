@@ -10,6 +10,7 @@ import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
 import { listApplied } from '../utils/appliedPrograms'
 import { nextTaxDeadline } from '../utils/taxCalendar'
 import FavoriteNotices from '../components/sections/FavoriteNotices'
+import JourneyWidget from '../components/sections/JourneyWidget'
 import { syncNoticeAlerts } from '../utils/notifications'
 
 /* ── 유틸 ───────────────────────────────────────── */
@@ -737,6 +738,7 @@ export default function Home() {
                         lg:h-full lg:flex lg:flex-col">
           <MarsGreeting userName={userName} />
           <ProfileChips profile={profile} onEdit={setEditingField} />
+          <JourneyWidget profile={profile} />
 
           <StickyLag>
             {/* 신청한 사업이 있으면 캘린더 대신 표시 */}

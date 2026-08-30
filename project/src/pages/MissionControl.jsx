@@ -3,6 +3,7 @@ import Header from '../components/layout/Header'
 import ChatBubble from '../components/ui/ChatBubble'
 import MarsAvatar from '../components/ui/MarsAvatar'
 import { generateChatbotResponseV1 } from '../utils/llm/generateChatbotResponse'
+import { getJourney } from '../utils/journey'
 import termsData from '../data/terms.json'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
@@ -111,6 +112,13 @@ export default function MissionControl() {
   const [loading,  setLoading]  = useState(false)
   const bottomRef               = useRef(null)
 
+  // 사장님 현황을 챗봇에 넘긴다. 업종·지역·창업단계를 알면 더 맞는 답을 준다.
+  const profile  = useState(() => {
+    try { return JSON.parse(localStorage.getItem('mars-fit-profile') ?? 'null') } catch { return null }
+  })[0]
+  const journey  = useState(() => { try { return getJourney() } catch { return null } })[0]
+  const userCtx  = { profile, journey }
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
@@ -130,7 +138,7 @@ export default function MissionControl() {
         text: m.text,
       }))
 
-      const result = await generateChatbotResponseV1(trimmed, history, termsData)
+      const result = await generateChatbotResponseV1(trimmed, history, termsData, userCtx)
 
       setMessages(prev => [...prev, {
         id:         Date.now() + 1,

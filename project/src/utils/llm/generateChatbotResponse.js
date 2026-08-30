@@ -138,15 +138,52 @@ export async function generateChatbotResponseBaseline(question, history) {
 // V1: RAG + 시스템 프롬프트 + JSON 강제 출력
 // ════════════════════════════════════════════════════════════════
 
-export async function generateChatbotResponseV1(question, history, termsData) {
+/**
+ * userContext: { profile, journey }
+ *   profile  — 온보딩에서 받은 사장님 프로필 (category, region, business_status 등)
+ *   journey  — getJourney() 결과 { step, candidate, completedSteps }
+ * 둘 다 optional. 있으면 시스템 프롬프트에 사장님 현황을 넣어서 더 맞는 답이 나온다.
+ */
+function buildUserContext({ profile, journey } = {}) {
+  if (!profile && !journey) return ''
+  const lines = ['\n=== 사장님 현황 ===']
+
+  if (profile) {
+    const status = profile.business_status
+    lines.push(`- 사업 상태: ${status ?? '미입력'}`)
+    if (profile.category)    lines.push(`- 업종: ${profile.category}`)
+    if (profile.region)      lines.push(`- 지역: ${profile.region}`)
+    if (profile.entity_type) lines.push(`- 사업자 형태: ${profile.entity_type}`)
+    if (profile.vat_type)    lines.push(`- 과세유형: ${profile.vat_type}`)
+    if (profile.has_employee != null)
+      lines.push(`- 직원: ${profile.has_employee ? '있음' : '없음(혼자 운영)'}`)
+  }
+
+  if (journey?.candidate) {
+    const c = journey.candidate
+    lines.push(`- 창업 후보 업종: ${c.category ?? '미정'}`)
+    if (c.address || c.region) lines.push(`- 창업 검토 지역: ${c.address ?? c.region}`)
+    if (c.score != null)       lines.push(`- 상권 적합도: ${c.score}점`)
+  }
+
+  if (journey) {
+    const step = journey.currentStep ?? journey.step
+    if (step) lines.push(`- 현재 창업 단계: STEP ${step} (1=아이디어, 7=운영중)`)
+  }
+
+  return lines.join('\n')
+}
+
+export async function generateChatbotResponseV1(question, history, termsData, userContext = {}) {
   if (MOCK) { await delay(800); return nextMockChatbotResponse() }
   const { terms, docs } = retrieveContext(question, termsData)
 
-  const termCtx = formatTermContext(terms)
-  const docCtx  = formatDocContext(docs)
+  const termCtx    = formatTermContext(terms)
+  const docCtx     = formatDocContext(docs)
   const hasContext = terms.length > 0 || docs.length > 0
+  const ctxBlock   = buildUserContext(userContext)
 
-  const systemPrompt = `${SYSTEM_BASE}
+  const systemPrompt = `${SYSTEM_BASE}${ctxBlock}
 
 추가 규칙 (반드시 준수):
 1. 아래 RAG 데이터에 있는 내용은 그것을 근거로 답변하세요.
@@ -158,6 +195,7 @@ export async function generateChatbotResponseV1(question, history, termsData) {
 7. RAG 데이터에 url이 있으면 answer에 반드시 포함하세요 (예: "https://..." 형태로).
 8. RAG 데이터에 caution이 있으면 answer에 자연스럽게 안내하세요.
 9. RAG 데이터에 "⚠ 발급 정보 미검증" 표시가 있으면 answer에 "⚠ 발급처·수수료 정보는 아직 마이다가 검증 못 한 내용이라, 접수 기관에 한 번 더 확인해 주세요!"를 포함하세요.
+10. "사장님 현황" 블록이 있으면 그 업종·지역·단계에 맞게 답변을 구체화하세요.
 ${hasContext ? `\n${termCtx}\n${docCtx}` : '\n=== RAG 데이터 없음 — 위 규칙 2번 적용 ==='}
 
 응답 JSON 구조: {"answer":"답변 텍스트","retrieved_terms":["사용한 용어명"],"retrieved_docs":["사용한 서류명"],"confidence":"high|medium|low","followup":["후속질문1","후속질문2"]}`

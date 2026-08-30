@@ -9,6 +9,8 @@ import searchImg from '../../../design/search.png'
 import FavoriteButton from '../ui/FavoriteButton'
 import { useRememberedScroll } from '../../utils/scrollMemory'
 import { isVisited, markVisited, subscribeVisited } from '../../utils/visitedNotices'
+import { listFavorites, subscribeFavorites } from '../../utils/favorites'
+import { listApplied, subscribeApplied } from '../../utils/appliedPrograms'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
 // 배포하면 누구나 꺼낼 수 있다. LLM 호출은 llmProvider 가 /api/llm 으로 넘긴다.
@@ -412,24 +414,109 @@ ${JSON.stringify(targets)}`,
   }
 }
 
+// 새 공고 알림 ID 목록을 localStorage에서 읽는다
+function readNewIds() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('mars-fit-new-notices') ?? '[]')
+    return new Set(Array.isArray(parsed) ? parsed.map(n => n.notice_id) : [])
+  } catch { return new Set() }
+}
+
+// 섹션 타이틀 행
+function SectionHead({ label, count, accent = 'navy', pulse = false }) {
+  const colors = {
+    navy:    ['bg-navy', 'text-navy'],
+    orange:  ['bg-sunset-orange', 'text-sunset-orange'],
+    emerald: ['bg-emerald-500', 'text-emerald-600'],
+    amber:   ['bg-amber-500', 'text-amber-600'],
+    purple:  ['bg-purple-400', 'text-purple-600'],
+  }
+  const [dot, text] = colors[accent] ?? colors.navy
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <span className={`w-2 h-2 rounded-full ${dot}${pulse ? ' animate-pulse' : ''}`} />
+      <h2 className={`text-base font-bold ${text}`}>{label}</h2>
+      {count != null && count > 0 && (
+        <span className="text-xs font-semibold text-warm-text bg-warm-gray/20 rounded-full px-2 py-0.5">
+          {count}건
+        </span>
+      )}
+    </div>
+  )
+}
+
+// 현재 매칭 결과에 없는 관심공고 (마감됐거나 조건 미달)
+function SimpleFavCard({ fav }) {
+  const dDay = fav.apply_period?.end ? calcDDay(fav.apply_period.end) : null
+  const expired = dDay !== null && dDay < 0
+  return (
+    <Card padding="compact" tone="plain" className={expired ? 'opacity-50' : ''}>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[15px] font-bold text-navy leading-snug flex-1 line-clamp-2">
+          {fav.notice_title}
+        </p>
+        {dDay !== null && (
+          <span className={`text-[13px] font-bold shrink-0 ${expired ? 'text-warm-text' : 'text-navy'}`}>
+            {expired ? '마감' : `D-${dDay}`}
+          </span>
+        )}
+      </div>
+      {fav.organizer && <p className="mt-1 text-[11px] text-warm-text">{fav.organizer}</p>}
+      {expired && <p className="mt-1 text-xs text-sunset-orange">마감된 공고예요</p>}
+    </Card>
+  )
+}
+
+// 신청 완료 한 줄
+function AppliedCard({ app }) {
+  const date = app.applied_at
+    ? new Date(app.applied_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
+    : null
+  return (
+    <div className="bg-white border border-warm-gray/20 rounded-2xl p-3.5 shadow-sm flex items-start gap-3">
+      <span className="mt-0.5 w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+        <span className="text-emerald-600 text-[10px] font-bold">✓</span>
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-bold text-navy line-clamp-2">{app.notice_title}</p>
+        {app.organizer && <p className="text-[11px] text-warm-text mt-0.5">{app.organizer}</p>}
+      </div>
+      {date && <span className="text-[11px] text-warm-text shrink-0 mt-0.5">{date}</span>}
+    </div>
+  )
+}
+
 export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetchedLoading }) {
   const navigate = useNavigate()
-  const [urgent, setUrgent]               = useState([])
-  const [regular, setRegular]             = useState([])
-  // 고른 정렬을 기억한다. 들어올 때마다 되돌아가면 매번 다시 골라야 한다.
-  const [sortKey, setSortKey] = useState(() => {
+  const [allItems, setAllItems]   = useState([])
+  const [sortKey, setSortKey]     = useState(() => {
     try {
       const saved = localStorage.getItem(SORT_KEY)
       return saved in SORTS ? saved : 'score'
-    } catch {
-      return 'score'
-    }
+    } catch { return 'score' }
   })
-  const [loading, setLoading]             = useState(true)
-  const [error, setError]                 = useState(null)
-  const [aiDescs, setAiDescs]             = useState({})
-  const [termDefs, setTermDefs]           = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState(null)
+  const [aiDescs, setAiDescs]     = useState({})
+  const [termDefs, setTermDefs]   = useState([])
+  const [favorites, setFavorites] = useState(() => listFavorites())
+  const [applied, setApplied]     = useState(() => listApplied())
+  const [newIds, setNewIds]       = useState(() => readNewIds())
 
+  // 관심공고·신청완료·새 공고 목록이 바뀌면 따라간다
+  useEffect(() => {
+    const unsub1 = subscribeFavorites(() => setFavorites(listFavorites()))
+    const unsub2 = subscribeApplied(list => setApplied(list))
+    const onNew = () => setNewIds(readNewIds())
+    window.addEventListener('mars-fit-notifications-changed', onNew)
+    return () => {
+      unsub1()
+      unsub2()
+      window.removeEventListener('mars-fit-notifications-changed', onNew)
+    }
+  }, [])
+
+  // 공고 데이터 로딩
   useEffect(() => {
     const signal = { cancelled: false }
 
@@ -438,15 +525,10 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
       const isLoading = prefetchedLoading ?? false
       setLoading(isLoading)
       setError(null)
-      const sorted = [...prefetchedMatches].sort((a, b) => b.score - a.score)
-      const u = sorted.filter(r => r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14)
-      const reg = sorted.filter(r => !(r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14))
-      setUrgent(u)
-      setRegular(reg)
-      // 아직 로딩 중이면 AI 요약 호출 보류 — 데이터 확정 후에 부른다
-      if (!isLoading && (u.length || reg.length)) {
+      setAllItems(prefetchedMatches)
+      if (!isLoading && prefetchedMatches.length) {
         setAiDescs({})
-        summarizeBatch([...u, ...reg], signal, setAiDescs)
+        summarizeBatch(prefetchedMatches, signal, setAiDescs)
       }
       return () => { signal.cancelled = true }
     }
@@ -458,7 +540,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
     fetchMatches(userProfile ?? DEFAULT_PROFILE)
       .then(({ results }) => {
         if (signal.cancelled) return
-        const mapped = results
+        const mapped = (results ?? [])
           .filter(r => r.overall_status !== '대상아님')
           .map(r => ({
             id:        r.notice_id,
@@ -474,12 +556,8 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
           }))
           .filter(r => r.dDay === null || r.dDay >= 0)
           .sort((a, b) => b.score - a.score)
-
-        const u = mapped.filter(r => r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14)
-        const reg = mapped.filter(r => !(r.appStatus === '접수중' && r.dDay !== null && r.dDay <= 14))
-        setUrgent(u)
-        setRegular(reg)
-        summarizeBatch([...u, ...reg], signal, setAiDescs)
+        setAllItems(mapped)
+        summarizeBatch(mapped, signal, setAiDescs)
       })
       .catch(err => { if (!signal.cancelled) setError(err.message) })
       .finally(() => { if (!signal.cancelled) setLoading(false) })
@@ -487,55 +565,71 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
     return () => { signal.cancelled = true }
   }, [userProfile, prefetchedMatches, prefetchedLoading])
 
-  // 카드에 실제로 표시되는 텍스트가 바뀔 때마다 어려운 단어를 서버에서 찾아온다.
-  // aiDescs 가 없으면 briefDesc, 있으면 AI 요약 기준으로 조회한다.
+  // 화면에 보이는 텍스트에서 어려운 단어를 찾아온다
   useEffect(() => {
-    const visible = [
-      ...urgent.slice(0, INITIAL_COUNT),
-      ...regular.slice(0, INITIAL_COUNT),
-    ]
-    const text = visible
+    const text = allItems
+      .slice(0, INITIAL_COUNT * 2)
       .map(item => aiDescs[item.id] || briefDesc(item.summary))
       .filter(Boolean)
       .join('\n')
     if (!text) return
-
     let cancelled = false
     lookupTerms(text, [])
       .then(result => { if (!cancelled) setTermDefs(result.terms ?? []) })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [urgent, regular, aiDescs])
+  }, [allItems, aiDescs])
 
-  // 목록은 언제나 전부 그린다. 「더보기」는 없앴다 — 어차피 칸 안에서
-  // 스크롤하는데 버튼까지 두면 같은 일을 두 군데서 시키는 셈이다.
-  const wide = useIsWide()
+  // 섹션별 파생 데이터
+  const urgentItems = useMemo(
+    () => allItems
+      .filter(r => r.status === '신청가능' && r.dDay !== null && r.dDay <= 7)
+      .sort((a, b) => a.dDay - b.dDay || b.score - a.score),
+    [allItems]
+  )
+  const applicableItems = useMemo(
+    () => allItems.filter(r => r.status === '신청가능').sort((a, b) => b.score - a.score),
+    [allItems]
+  )
+  const newItems = useMemo(
+    () => allItems.filter(r => newIds.has(r.id)).sort((a, b) => b.score - a.score),
+    [allItems, newIds]
+  )
+  const byId = useMemo(() => Object.fromEntries(allItems.map(r => [r.id, r])), [allItems])
+  const favItems = useMemo(
+    () => favorites.map(f => byId[f.notice_id] ?? f).filter(Boolean),
+    [favorites, byId]
+  )
   const compare = (SORTS[sortKey] ?? SORTS.score).compare
-  const urgentSorted  = useMemo(() => [...urgent].sort(compare),  [urgent, sortKey])
-  const regularSorted = useMemo(() => [...regular].sort(compare), [regular, sortKey])
+  const allSorted = useMemo(() => [...allItems].sort(compare), [allItems, sortKey])
 
-  const [urgentExpanded,  setUrgentExpanded]  = useState(false)
-  const [regularExpanded, setRegularExpanded] = useState(false)
+  const wide = useIsWide()
+  // 전체 탐색만 wide 화면에서 내부 스크롤로 자른다
+  const [allRef, allCap] = useCardCap([allSorted.slice(0, INITIAL_COUNT), loading, aiDescs])
+  useRememberedScroll('home-all', allRef, !loading && allCap != null)
 
-  // 정렬 바뀌면 접힌 상태로 리셋
-  useEffect(() => { setUrgentExpanded(false);  }, [sortKey])
-  useEffect(() => { setRegularExpanded(false); }, [sortKey])
+  // 각 섹션 확장 상태
+  const [urgentExpanded,     setUrgentExpanded]     = useState(false)
+  const [applicableExpanded, setApplicableExpanded] = useState(false)
+  const [newExpanded,        setNewExpanded]         = useState(false)
+  const [favExpanded,        setFavExpanded]         = useState(false)
+  const [appliedExpanded,    setAppliedExpanded]     = useState(false)
+  const [allExpanded,        setAllExpanded]         = useState(false)
 
-  const URGENT_INIT  = 1
-  const REGULAR_INIT = 3
-  const urgentVisible  = urgentExpanded  ? urgentSorted  : urgentSorted.slice(0,  URGENT_INIT)
-  const regularVisible = regularExpanded ? regularSorted : regularSorted.slice(0, REGULAR_INIT)
+  useEffect(() => { setAllExpanded(false) }, [sortKey])
 
-  const [urgentRef,  urgentCap]  = useCardCap([urgentVisible,  loading, aiDescs, termDefs])
-  const [regularRef, regularCap] = useCardCap([regularVisible, loading, aiDescs, termDefs])
+  const URGENT_INIT     = 2
+  const APPLICABLE_INIT = 3
+  const NEW_INIT        = 3
+  const FAV_INIT        = 3
+  const APPLIED_INIT    = 3
 
-  // 넓은 화면에서는 이 목록이 카드 몇 장 높이로 잘려 안에서 굴러간다.
-  // 공고를 보고 나오면 그 안쪽 위치도 되돌려준다 — 창 스크롤만 기억하면
-  // 넓은 화면에서는 아무 소용이 없다.
-  // 목록이 그려지고 높이가 잘린 뒤에야 되돌린다. 그 전에는 컨테이너가
-  // 안 굴러가서 되돌리기가 「굴릴 데가 없다」고 포기해버린다.
-  useRememberedScroll('home-urgent',  urgentRef,  !loading && urgentCap != null)
-  useRememberedScroll('home-regular', regularRef, !loading && regularCap != null)
+  const urgentVisible     = urgentExpanded     ? urgentItems     : urgentItems.slice(0, URGENT_INIT)
+  const applicableVisible = applicableExpanded ? applicableItems : applicableItems.slice(0, APPLICABLE_INIT)
+  const newVisible        = newExpanded        ? newItems        : newItems.slice(0, NEW_INIT)
+  const favVisible        = favExpanded        ? favItems        : favItems.slice(0, FAV_INIT)
+  const appliedVisible    = appliedExpanded    ? applied         : applied.slice(0, APPLIED_INIT)
+  const allVisible        = allExpanded        ? allSorted       : allSorted.slice(0, INITIAL_COUNT)
 
   function handleDetail(item) {
     markVisited(item.id)
@@ -588,93 +682,185 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
     )
   }
 
-
   return (
-    <section className="px-5 pb-28">
-      {/* 긴급 마감 */}
-      {(loading || urgent.length > 0) && (
-        <>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-2 h-2 rounded-full bg-sunset-orange animate-pulse" />
-            <h2 className="text-base font-bold text-sunset-orange tracking-wide uppercase">긴급 마감</h2>
+    <section className="px-5 pb-28 space-y-7">
+
+      {/* ── 긴급 마감 ── */}
+      {urgentItems.length > 0 && (
+        <div>
+          <SectionHead label="긴급 마감" count={urgentItems.length} accent="orange" pulse />
+          <div className="grid grid-cols-1 gap-2.5">
+            {urgentVisible.map(item => (
+              <ProgramCard key={item.id} item={item} accent="orange"
+                onDetail={() => handleDetail(item)}
+                aiDesc={aiDescs[item.id]} termDefs={termDefs} />
+            ))}
           </div>
-          <div ref={urgentRef} style={capStyle(wide, urgentCap)}
-               className="grid grid-cols-1 gap-2.5 lg:pr-1.5">
-            {loading
-              ? [1].map(i => <SkeletonCard key={i} />)
-              : urgentVisible.map(item => (
-                  <ProgramCard key={item.id} item={item} accent="orange" onDetail={() => handleDetail(item)} aiDesc={aiDescs[item.id]} termDefs={termDefs} />
-                ))
-            }
-          </div>
-          {!loading && urgentSorted.length > URGENT_INIT && (
+          {urgentItems.length > URGENT_INIT && (
             <button type="button"
               onClick={() => setUrgentExpanded(v => !v)}
-              className="tap w-full flex items-center justify-center gap-1 py-2 mt-1 mb-6
-                         border-t border-warm-gray/20
-                         text-[13px] font-semibold text-sunset-orange hover:underline">
-              {urgentExpanded ? '접기' : `${urgentSorted.length - URGENT_INIT}건 더보기`}
+              className="w-full flex items-center justify-center gap-1 py-2 mt-1
+                         border-t border-warm-gray/20 text-[13px] font-semibold text-sunset-orange hover:underline">
+              {urgentExpanded ? '접기' : `${urgentItems.length - URGENT_INIT}건 더보기`}
               <ChevronDown size={13} className={`transition-transform duration-150 ${urgentExpanded ? 'rotate-180' : ''}`} />
             </button>
           )}
-          {!loading && urgentSorted.length <= URGENT_INIT && <div className="mb-6" />}
-        </>
+        </div>
       )}
 
-      {/* 지원사업 탐색 */}
-      <div className="flex items-center gap-2 mb-3">
-        <span className="w-2 h-2 rounded-full bg-navy" />
-        <h2 className="text-base font-bold text-navy tracking-wide uppercase">지원사업 탐색</h2>
-
-        {/* 무엇으로 줄 세울지. 잘 맞는 것부터 보고 싶은 사람과 급한 것부터
-            보고 싶은 사람이 갈려서, 어느 쪽이 맞다고 정할 수가 없다. */}
-        {!loading && regular.length > 1 && (
-          <div className="ml-auto flex items-center gap-1 flex-shrink-0" role="group" aria-label="정렬">
-            {Object.entries(SORTS).map(([key, s2]) => {
-              const on = sortKey === key
-              return (
-                <button
-                  key={key} type="button"
-                  onClick={() => {
-                    setSortKey(key)
-                    try { localStorage.setItem(SORT_KEY, key) } catch { /* 저장만 안 된다 */ }
-                  }}
-                  aria-pressed={on}
-                  className={[
-                    'tap px-2.5 py-1 rounded-full text-[13px] font-bold transition-colors',
-                    on ? 'bg-navy text-white'
-                       : 'text-warm-text hover:bg-warm-gray/20',
-                  ].join(' ')}
-                >
-                  {s2.label}
-                </button>
-              )
-            })}
+      {/* ── 새로 발견한 지원사업 ── */}
+      {newItems.length > 0 && (
+        <div>
+          <SectionHead label="새로 발견한 지원사업" count={newItems.length} accent="purple" />
+          <div className="grid grid-cols-1 gap-2.5">
+            {newVisible.map(item => (
+              <ProgramCard key={item.id} item={item} accent="navy"
+                onDetail={() => handleDetail(item)}
+                aiDesc={aiDescs[item.id]} termDefs={termDefs} />
+            ))}
           </div>
+          {newItems.length > NEW_INIT && (
+            <button type="button"
+              onClick={() => setNewExpanded(v => !v)}
+              className="w-full flex items-center justify-center gap-1 py-2 mt-1
+                         border-t border-warm-gray/20 text-[13px] font-semibold text-purple-600 hover:underline">
+              {newExpanded ? '접기' : `${newItems.length - NEW_INIT}건 더보기`}
+              <ChevronDown size={13} className={`transition-transform duration-150 ${newExpanded ? 'rotate-180' : ''}`} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── 지금 신청 가능한 지원사업 ── */}
+      {(applicableItems.length > 0 || loading) && (
+        <div>
+          <SectionHead label="지금 신청 가능한 지원사업"
+            count={!loading ? applicableItems.length : undefined}
+            accent="emerald" />
+          <div className="grid grid-cols-1 gap-2.5">
+            {loading
+              ? [1, 2, 3].map(i => <SkeletonCard key={i} />)
+              : applicableVisible.map(item => (
+                  <ProgramCard key={item.id} item={item} accent="navy"
+                    onDetail={() => handleDetail(item)}
+                    aiDesc={aiDescs[item.id]} termDefs={termDefs} />
+                ))
+            }
+          </div>
+          {!loading && applicableItems.length > APPLICABLE_INIT && (
+            <button type="button"
+              onClick={() => setApplicableExpanded(v => !v)}
+              className="w-full flex items-center justify-center gap-1 py-2 mt-1
+                         border-t border-warm-gray/20 text-[13px] font-semibold text-emerald-600 hover:underline">
+              {applicableExpanded ? '접기' : `${applicableItems.length - APPLICABLE_INIT}건 더보기`}
+              <ChevronDown size={13} className={`transition-transform duration-150 ${applicableExpanded ? 'rotate-180' : ''}`} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── 관심공고 ── */}
+      {favItems.length > 0 && (
+        <div>
+          <SectionHead label="관심공고" count={favItems.length} accent="amber" />
+          <div className="grid grid-cols-1 gap-2.5">
+            {favVisible.map((item, i) =>
+              item.id
+                ? <ProgramCard key={item.id} item={item} accent="navy"
+                    onDetail={() => handleDetail(item)}
+                    aiDesc={aiDescs[item.id]} termDefs={termDefs} />
+                : <SimpleFavCard key={item.notice_id ?? i} fav={item} />
+            )}
+          </div>
+          {favItems.length > FAV_INIT && (
+            <button type="button"
+              onClick={() => setFavExpanded(v => !v)}
+              className="w-full flex items-center justify-center gap-1 py-2 mt-1
+                         border-t border-warm-gray/20 text-[13px] font-semibold text-amber-600 hover:underline">
+              {favExpanded ? '접기' : `${favItems.length - FAV_INIT}건 더보기`}
+              <ChevronDown size={13} className={`transition-transform duration-150 ${favExpanded ? 'rotate-180' : ''}`} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── 신청 완료 ── */}
+      {applied.length > 0 && (
+        <div>
+          <SectionHead label="신청 완료" count={applied.length} accent="emerald" />
+          <div className="grid grid-cols-1 gap-2.5">
+            {appliedVisible.map((app, i) => (
+              <AppliedCard key={app.notice_id ?? i} app={app} />
+            ))}
+          </div>
+          {applied.length > APPLIED_INIT && (
+            <button type="button"
+              onClick={() => setAppliedExpanded(v => !v)}
+              className="w-full flex items-center justify-center gap-1 py-2 mt-1
+                         border-t border-warm-gray/20 text-[13px] font-semibold text-emerald-600 hover:underline">
+              {appliedExpanded ? '접기' : `${applied.length - APPLIED_INIT}건 더보기`}
+              <ChevronDown size={13} className={`transition-transform duration-150 ${appliedExpanded ? 'rotate-180' : ''}`} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── 전체 지원사업 탐색 ── */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="w-2 h-2 rounded-full bg-navy" />
+          <h2 className="text-base font-bold text-navy">전체 지원사업 탐색</h2>
+          {!loading && (
+            <span className="text-xs font-semibold text-warm-text bg-warm-gray/20 rounded-full px-2 py-0.5">
+              {allItems.length}건
+            </span>
+          )}
+          {!loading && allItems.length > 1 && (
+            <div className="ml-auto flex items-center gap-1 flex-shrink-0" role="group" aria-label="정렬">
+              {Object.entries(SORTS).map(([key, s2]) => {
+                const on = sortKey === key
+                return (
+                  <button key={key} type="button"
+                    onClick={() => {
+                      setSortKey(key)
+                      try { localStorage.setItem(SORT_KEY, key) } catch {}
+                    }}
+                    aria-pressed={on}
+                    className={[
+                      'px-2.5 py-1 rounded-full text-[13px] font-bold transition-colors',
+                      on ? 'bg-navy text-white' : 'text-warm-text hover:bg-warm-gray/20',
+                    ].join(' ')}
+                  >
+                    {s2.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+        <div ref={allRef} style={capStyle(wide, allCap)}
+             className="grid grid-cols-1 gap-2.5 lg:pr-1.5">
+          {loading
+            ? [1, 2, 3].map(i => <SkeletonCard key={i} />)
+            : allVisible.map(item => (
+                <ProgramCard key={item.id} item={item} accent="navy"
+                  onDetail={() => handleDetail(item)}
+                  aiDesc={aiDescs[item.id]} termDefs={termDefs} />
+              ))
+          }
+        </div>
+        {!loading && allSorted.length > INITIAL_COUNT && (
+          <button type="button"
+            onClick={() => setAllExpanded(v => !v)}
+            className="w-full flex items-center justify-center gap-1 py-2 mt-1
+                       border-t border-warm-gray/20 text-[13px] font-semibold text-navy hover:underline">
+            {allExpanded ? '접기' : `${allSorted.length - INITIAL_COUNT}건 더보기`}
+            <ChevronDown size={13} className={`transition-transform duration-150 ${allExpanded ? 'rotate-180' : ''}`} />
+          </button>
         )}
       </div>
-      <div ref={regularRef} style={capStyle(wide, regularCap)}
-           className="grid grid-cols-1 gap-2.5 lg:pr-1.5">
-        {loading
-          ? [1, 2, 3].map(i => <SkeletonCard key={i} />)
-          : regularVisible.map(item => (
-              <ProgramCard key={item.id} item={item} accent="navy"
-                onDetail={() => handleDetail(item)} aiDesc={aiDescs[item.id]} termDefs={termDefs} />
-            ))
-        }
-      </div>
-      {!loading && regularSorted.length > REGULAR_INIT && (
-        <button type="button"
-          onClick={() => setRegularExpanded(v => !v)}
-          className="tap w-full flex items-center justify-center gap-1 py-2 mt-1
-                     border-t border-warm-gray/20
-                     text-[13px] font-semibold text-navy hover:underline">
-          {regularExpanded ? '접기' : `${regularSorted.length - REGULAR_INIT}건 더보기`}
-          <ChevronDown size={13} className={`transition-transform duration-150 ${regularExpanded ? 'rotate-180' : ''}`} />
-        </button>
-      )}
 
-      {!loading && urgent.length === 0 && regular.length === 0 && (
+      {!loading && allItems.length === 0 && (
         <p className="text-sm text-warm-text text-center py-8">현재 조건에 맞는 지원사업이 없어요.</p>
       )}
     </section>

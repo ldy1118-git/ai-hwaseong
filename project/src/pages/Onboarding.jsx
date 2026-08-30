@@ -7,7 +7,8 @@ import marsImg from '../../design/mars.png'
 import findImg from '../../design/find.png'
 import searchImg from '../../design/search.png'
 import { getToken, clearToken, saveOnboarding, patchOnboarding, apiUrl, mockOcrResult,
-         deleteOnboarding, clearLocalData, fetchOcrReady} from '../utils/api'
+         deleteOnboarding, clearLocalData, fetchOcrReady, fetchMatches, DEFAULT_PROFILE } from '../utils/api'
+import { saveJourney, getJourney, getProgress, inferCurrentStep } from '../utils/journey'
 import { generateText } from '../utils/llm/llmProvider'
 import { RotateCcw, LogOut, ChevronRight, AlertTriangle, Trash2 } from 'lucide-react'
 import Header from '../components/layout/Header'
@@ -36,12 +37,23 @@ const FIELDS = [
 
 const KEYWORDS = ['카페', '음식점', '공방', '학원', '미용실', '온라인쇼핑', '편의점', '배달']
 
+// 2-C 준비 체크리스트 항목
+const PREP_ITEMS = [
+  { key: 'hasCategory',  label: '업종을 정했어요' },
+  { key: 'hasBizPlan',   label: '사업계획을 세웠어요' },
+  { key: 'hasLocation',  label: '사업장을 알아봤어요' },
+  { key: 'hasContract',  label: '사업장을 계약했어요' },
+  { key: 'hasEducation', label: '필요한 교육을 받았어요' },
+  { key: 'hasPermit',    label: '영업신고·인허가를 받았어요' },
+]
+
 // 단계별 마이다 말풍선 메시지
 const MARS_MESSAGES = {
   q1:        '화성시 소상공인 지원사업을 같이 찾아드릴게요! 먼저 지금 상황을 알려주세요 🚀',
   field:     '어떤 분야가 끌리세요? 관심 분야부터 가볍게 탐색해봐요!',
   sub:       '요리 쪽이군요! 조금 더 알려주시면 딱 맞는 사업을 찾아드려요!',
   wish:      '어떤 창업을 꿈꾸고 계세요? 키워드로 알려주시면 마이다가 바로 분석해드려요!',
+  prep:      '어디까지 준비하셨는지 알려주세요! 딱 맞는 다음 단계를 안내해드릴게요 🗺️',
   biz:       '사업자등록증을 올려주시면 정보를 자동으로 읽어드려요! 📄',
   'biz-review': '이렇게 읽었어요! 틀린 게 있으면 수정해주세요 ✏️',
   'biz-manual': '직접 입력해주시면 바로 매칭해드릴게요!',
@@ -327,11 +339,32 @@ function WelcomeScreen({ onStart }) {
 
 /* ───────────── 완료 화면 ───────────── */
 function DoneScreen({ count, onConfirm }) {
-  const [phase, setPhase] = useState('loading') // 'loading' | 'result'
+  const [phase,      setPhase]      = useState('loading') // 'loading' | 'result'
+  const [matchCount, setMatchCount] = useState(null)
 
+  const profile  = (() => {
+    try { return JSON.parse(localStorage.getItem('mars-fit-profile') || 'null') } catch { return null }
+  })()
+  const journey  = getJourney()
+  const progress = getProgress(profile, journey)
+  const step     = inferCurrentStep(profile, journey)
+  const hasToken = !!getToken()
+  const status   = profile?.business_status ?? '예비창업자'
+  const category = profile?.category ?? ''
+
+  // 공고 수 비동기 조회 + 1.8초 후 결과 화면 전환
   useEffect(() => {
-    const t = setTimeout(() => setPhase('result'), 1800)
-    return () => clearTimeout(t)
+    let cancelled = false
+    fetchMatches(profile ?? DEFAULT_PROFILE)
+      .then(({ results }) => {
+        if (cancelled) return
+        const available = results.filter(r => r.overall_status === '신청가능').length
+        setMatchCount(available)
+      })
+      .catch(() => {})
+
+    const t = setTimeout(() => { if (!cancelled) setPhase('result') }, 1800)
+    return () => { cancelled = true; clearTimeout(t) }
   }, [])
 
   if (phase === 'loading') {
@@ -341,8 +374,8 @@ function DoneScreen({ count, onConfirm }) {
         <img src={searchImg} alt="" aria-hidden className="w-40 h-40 object-contain"
              style={{ animation: 'doneFloat 2s ease-in-out infinite' }} />
         <div className="text-center">
-          <p className="text-lg font-bold text-navy">마이다가 딱 맞는</p>
-          <p className="text-lg font-bold text-navy">지원사업을 탐색 중이에요</p>
+          <p className="text-lg font-bold text-navy">Ma-DA가 준비 중이에요</p>
+          <p className="text-sm text-warm-text mt-1">맞춤 지원사업을 탐색하고 있어요</p>
         </div>
         <div className="flex gap-1.5">
           {[0, 0.15, 0.3].map((d, i) => (
@@ -355,7 +388,7 @@ function DoneScreen({ count, onConfirm }) {
   }
 
   return (
-    <div className="min-h-screen bg-primary-bg flex flex-col items-center justify-center px-5 gap-6"
+    <div className="min-h-screen bg-primary-bg flex flex-col items-center justify-center px-5 gap-5 pb-10"
          style={{ animation: 'fadeIn 0.5s ease' }}>
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
@@ -364,10 +397,10 @@ function DoneScreen({ count, onConfirm }) {
         <img src={findImg} alt="마이다" className="w-16 h-16 object-contain flex-shrink-0"
              style={{ filter: 'drop-shadow(0 4px 8px rgba(42,60,119,0.2))' }} />
         <div className="relative bg-white border border-warm-gray/30 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm flex-1">
-          <p className="text-sm font-bold text-navy">
-            {count !== null ? `딱 맞는 지원사업 ${count}개를 찾았어요! 🎉` : '설정이 완료됐어요! 🎉'}
+          <p className="text-sm font-bold text-navy">Ma-DA가 준비됐어요! 🚀</p>
+          <p className="text-xs text-warm-text mt-0.5">
+            {category ? `${category} 창업 여정을 함께 시작해요` : '창업 여정을 함께 시작해요'}
           </p>
-          <p className="text-xs text-warm-text mt-0.5">지금 바로 확인해봐요</p>
           <span className="absolute -left-2 bottom-3 w-0 h-0
                            border-t-[6px] border-t-transparent border-r-[8px] border-r-white border-b-[6px] border-b-transparent" />
           <span className="absolute -left-[10px] bottom-[11px] w-0 h-0
@@ -375,18 +408,97 @@ function DoneScreen({ count, onConfirm }) {
         </div>
       </div>
 
-      {/* 완료 카드 */}
-      <div className="w-full max-w-sm bg-white rounded-3xl border border-warm-gray/20 shadow-lg p-6 text-center">
-        <div className="text-4xl mb-3">🚀</div>
-        <p className="text-base font-bold text-navy mb-1">궤도 설정 완료!</p>
-        <p className="text-sm text-warm-text leading-relaxed">
-          사장님 정보를 바탕으로<br />맞춤 지원사업을 준비했어요
-        </p>
+      {/* 준비도 카드 */}
+      <div className="w-full max-w-sm bg-white rounded-3xl border border-warm-gray/20 shadow-lg p-5">
+
+        {/* 창업 준비도 */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-xs font-bold text-navy/60 tracking-wider">창업 준비도</p>
+            <p className="text-base font-bold text-sunset-orange">{progress}%</p>
+          </div>
+          <div className="h-2 bg-warm-gray/15 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-navy to-sunset-orange rounded-full transition-all duration-700"
+              style={{ width: `${progress}%` }} />
+          </div>
+          <p className="text-xs text-warm-text mt-1.5">
+            STEP {step} / 7 — {
+              step === 1 ? '업종·입지 탐색 단계' :
+              step === 2 ? '사업 계획 구체화 단계' :
+              step === 3 ? '사업장 준비 단계' :
+              step === 4 ? '필수 교육·자격 단계' :
+              step === 5 ? '인허가·영업신고 단계' :
+              step === 6 ? '사업자등록 단계' :
+              '사업 운영 시작'
+            }
+          </p>
+        </div>
+
+        <div className="border-t border-warm-gray/10 pt-4 space-y-3">
+
+          {/* 신청 가능 공고 */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-base">📋</span>
+              <p className="text-sm font-semibold text-navy">신청 가능한 지원사업</p>
+            </div>
+            <span className="text-sm font-bold text-navy">
+              {matchCount !== null ? `${matchCount}개` : '탐색 중...'}
+            </span>
+          </div>
+
+          {/* 공고 자동 매칭 */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🔍</span>
+              <p className="text-sm font-semibold text-navy">공고 자동 매칭</p>
+            </div>
+            <span className="text-xs font-bold bg-emerald-50 text-emerald-600
+                             border border-emerald-200 px-2.5 py-1 rounded-full">
+              ON
+            </span>
+          </div>
+
+          {/* 카카오 알림 */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🔔</span>
+              <p className="text-sm font-semibold text-navy">카카오톡 알림</p>
+            </div>
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+              hasToken
+                ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                : 'bg-warm-gray/10 text-warm-text border-warm-gray/20'
+            }`}>
+              {hasToken ? 'ON' : '로그인 후 가능'}
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div className="w-full max-w-sm space-y-3">
+      {/* 로드맵 한 줄 요약 */}
+      <div className="w-full max-w-sm bg-navy/[0.04] border border-navy/10 rounded-2xl px-4 py-3">
+        <p className="text-xs font-bold text-navy/60 mb-2 tracking-wider">창업 로드맵 자동 생성</p>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {['탐색', '계획', '사업장', '교육', '인허가', '사업자등록', '운영'].map((s, i) => (
+            <div key={i} className="flex items-center gap-1">
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                i + 1 < step  ? 'bg-navy/20 text-navy/50' :
+                i + 1 === step ? 'bg-navy text-white' :
+                'bg-warm-gray/15 text-warm-text'
+              }`}>
+                {s}
+              </span>
+              {i < 6 && <span className="text-warm-gray/40 text-[10px]">›</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="w-full max-w-sm">
         <Button variant="navy" size="lg" fullWidth onClick={onConfirm}>
-          지금 바로 확인하기 →
+          항해 시작하기 🚀
         </Button>
       </div>
     </div>
@@ -1074,12 +1186,12 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
 /* ───────────── 본체 ───────────── */
 const COMMON_STEPS = ['age', 'region', 'career', 'asset', 'marital', 'parents']
 
-// 세무일정용 3개. 사업자등록이 있어야 답할 수 있어서 **운영중인 사장님에게만**
+// 세무일정용 3개. 사업자등록이 있어야 답할 수 있어서 **운영중·신규사업자에게만**
 // 묻는다. 예비창업자는 아직 과세유형이 없다.
-//
-// 이걸 안 물으면 세무일정 14건이 통째로 나온다. 간이과세 카페 사장님은
-// 실제로 2건만 하면 되는데 법인세·원천세까지 다 보이게 된다.
 const TAX_STEPS = ['entity', 'vat', 'employee']
+
+// 사업자등록이 완료된 상태 (신규사업자 + 운영중)
+const BIZ_STATUSES = ['운영중', '신규사업자']
 
 const EMPTY = {
   category: '', business_status: '', age: '', region: '',
@@ -1151,6 +1263,11 @@ export default function Onboarding() {
 
   const [path, setPath]       = useState(null)
   const [stage, setStage]     = useState('q1')
+  // 2-C 준비 체크리스트 상태
+  const [prepChecklist, setPrepChecklist] = useState({
+    hasCategory: false, hasBizPlan: false, hasLocation: false,
+    hasContract: false, hasEducation: false, hasPermit: false,
+  })
   const [common, setCommon]   = useState(0)
   const [data, setData]       = useState(EMPTY)
   const [wish, setWish]       = useState('')
@@ -1206,7 +1323,7 @@ export default function Onboarding() {
   // 붙고 다음 화면이 생긴다. nextCommon 이 이 배열을 ref 로 읽는 이유다 —
   // 클릭 시점 클로저를 그대로 쓰면 늘어난 걸 모르고 끝내버린다.
   const steps = useMemo(() => {
-    if (data.business_status !== '운영중') return COMMON_STEPS
+    if (!BIZ_STATUSES.includes(data.business_status)) return COMMON_STEPS
     const tax = [...TAX_STEPS]
     if (data.has_employee === true) tax.push('withholding')
     return [...COMMON_STEPS, ...tax]
@@ -1235,7 +1352,8 @@ export default function Onboarding() {
   const current = useMemo(() => {
     if (stage === 'q1') return 1
     if (stage === 'common') return lead + 1 + common
-    return path === 'A' && stage === 'sub' ? 3 : 2
+    if (path === 'A' && stage === 'sub') return 3
+    return 2  // wish / prep / biz
   }, [stage, common, path, lead])
 
   // 읽어낸 값을 프로필에 옮긴다. mock 과 실제가 같은 것을 쓰게 한 곳이다.
@@ -1301,6 +1419,8 @@ export default function Onboarding() {
     setPath(nextPath)
     setStage('common')
     setCommon(0)
+    // 경로와 체크리스트를 journey에 저장
+    saveJourney({ onboardingPath: nextPath, prepChecklist })
   }
 
   function nextCommon() {
@@ -1346,19 +1466,81 @@ export default function Onboarding() {
   if (stage === 'q1') {
     return (
       <Shell current={current} total={total} marsMessage={marsMsg} stageKey="q1">
-        <Ask title="지금 어떤 상황이신가요?"
-             why="상황에 따라 신청할 수 있는 지원사업이 완전히 달라져요.">
+        <Ask title="지금 어디까지 준비하셨나요?"
+             why="상황에 따라 받을 수 있는 지원사업이 완전히 달라져요.">
           <div className="flex flex-col gap-3">
-            <Choice emoji="🌱" label="아직 구체적인 계획은 없어요"
+            <Choice emoji="🌱" label="아직 뭘 할지 모르겠어요"
               desc="관심 분야부터 가볍게 탐색해봐요"
               onClick={() => { setPath('A'); setStage('field') }} />
             <Choice emoji="💡" label="하고 싶은 게 있어요"
               desc="구체적인 창업 아이디어가 있어요"
               onClick={() => { setPath('B'); setStage('wish') }} />
-            <Choice emoji="🏪" label="이미 사업을 하고 있어요"
-              desc="사업자등록증이 있어요"
-              onClick={() => { setPath('C'); setStage('biz') }} />
+            <Choice emoji="📋" label="창업을 준비하고 있어요"
+              desc="업종·장소·교육 등 준비 중이에요"
+              onClick={() => { setPath('C'); setStage('prep') }} />
+            <Choice emoji="📄" label="사업자등록까지 했어요"
+              desc="사업자등록증이 발급됐어요"
+              onClick={() => { setPath('D'); setStage('biz') }} />
+            <Choice emoji="🏪" label="이미 운영 중이에요"
+              desc="사업자등록증이 있고 운영 중이에요"
+              onClick={() => { setPath('E'); setStage('biz') }} />
           </div>
+        </Ask>
+      </Shell>
+    )
+  }
+
+  /* ── C 창업 준비 체크리스트 ── */
+  if (stage === 'prep') {
+    function startFromPrep() {
+      // 체크된 항목 중 가장 앞선 단계를 기준으로 업종 묻기
+      const needCategory = !prepChecklist.hasCategory
+      const category = needCategory ? '' : (data.category || '')
+      startCommon('C', {
+        category,
+        business_status: '예비창업자',
+      })
+    }
+
+    return (
+      <Shell current={current} total={total} onBack={() => setStage('q1')}
+             marsMessage={marsMsg} stageKey="prep">
+        <Ask title="어디까지 준비하셨어요?"
+             why="완료한 단계를 건너뛰고 딱 필요한 다음 단계부터 안내해드려요.">
+          <div className="flex flex-col gap-2.5 mb-6">
+            {PREP_ITEMS.map(item => {
+              const checked = prepChecklist[item.key]
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => setPrepChecklist(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
+                  className={[
+                    'flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all',
+                    checked
+                      ? 'border-navy bg-navy/5 text-navy'
+                      : 'border-warm-gray/30 bg-white text-gray-700 hover:border-navy/30',
+                  ].join(' ')}>
+                  <span className={[
+                    'w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all',
+                    checked ? 'border-navy bg-navy' : 'border-warm-gray/50',
+                  ].join(' ')}>
+                    {checked && <span className="text-white text-xs font-bold">✓</span>}
+                  </span>
+                  <span className="text-sm font-semibold">{item.label}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          <p className="text-xs text-warm-text mb-4 text-center">
+            아직 아무것도 안 하셨어도 괜찮아요. 처음부터 같이 해요!
+          </p>
+
+          <Button variant="navy" fullWidth onClick={startFromPrep}>
+            {Object.values(prepChecklist).some(Boolean)
+              ? '다음 단계로 이어서 →'
+              : '처음부터 시작할게요 →'}
+          </Button>
         </Ask>
       </Shell>
     )
@@ -1450,8 +1632,11 @@ export default function Onboarding() {
     )
   }
 
-  /* ── C 사업 정보 (OCR 업로드 → 확인 → 또는 직접 입력) ── */
+  /* ── D·E 사업 정보 (OCR 업로드 → 확인 → 또는 직접 입력) ── */
   if (stage === 'biz') {
+    // D = 신규사업자(등록 완료, 아직 운영 전), E = 운영중
+    const bizStatus = path === 'E' ? '운영중' : '신규사업자'
+
     const bizBack = bizMode === 'upload' || bizMode === 'manual'
       ? () => { setBizMode('upload'); setStage('q1') }
       : () => setBizMode('upload')
@@ -1545,7 +1730,7 @@ export default function Onboarding() {
             )}
 
             <Button variant="navy" fullWidth disabled={!data.category}
-              onClick={() => startCommon('C', { business_status: '운영중' })}>
+              onClick={() => startCommon(path, { business_status: bizStatus })}>
               이대로 맞아요 →
             </Button>
             <button onClick={() => setBizMode('upload')}
@@ -1594,7 +1779,7 @@ export default function Onboarding() {
             </div>
 
             <Button variant="navy" fullWidth disabled={!data.category}
-              onClick={() => startCommon('C', { business_status: '운영중' })}>
+              onClick={() => startCommon(path, { business_status: bizStatus })}>
               다음
             </Button>
           </Ask>
@@ -1650,7 +1835,12 @@ export default function Onboarding() {
   const step = steps[common]
   const back = common > 0
     ? () => setCommon(c => c - 1)
-    : () => setStage(path === 'A' ? 'field' : path === 'B' ? 'wish' : 'biz')
+    : () => setStage(
+        path === 'A' ? 'field'
+        : path === 'B' ? 'wish'
+        : path === 'C' ? 'prep'
+        : 'biz'  // D, E
+      )
 
   const stageKey = `common-${step}`
 

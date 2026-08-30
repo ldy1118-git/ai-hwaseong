@@ -290,20 +290,50 @@ def message_for_tax(rows: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def message_for(rows: list[dict]) -> str:
+def _dday_str(end_date: str | None, today) -> str:
+    """마감일 → 'D-7' 형식 문자열. 날짜가 없으면 빈 문자열."""
+    if not end_date:
+        return ""
+    try:
+        due = date.fromisoformat(end_date[:10])
+        left = (due - today).days
+        if left < 0:
+            return ""
+        if left == 0:
+            return "오늘 마감"
+        if left == 1:
+            return "내일 마감"
+        return f"D-{left}"
+    except (ValueError, TypeError):
+        return ""
+
+
+def message_for(rows: list[dict], today=None) -> str:
     """여러 건이어도 카톡은 한 번만 보낸다. 세 건이면 세 번 울린다."""
+    if today is None:
+        from datetime import date as _date
+        today = _date.today()
+
     if len(rows) == 1:
         row = rows[0]
-        return (
-            "새로 뜬 지원사업이 조건에 잘 맞아요\n\n"
-            f"「{row['notice_title']}」\n"
-            f"매칭 {row['match_score']}점"
-            + (f"\n마감 {row['apply_period']['end']}"
-               if (row.get("apply_period") or {}).get("end") else "")
-        )
-    lines = [f"조건에 맞는 지원사업 {len(rows)}건이 새로 떴어요\n"]
+        end = (row.get("apply_period") or {}).get("end")
+        dday = _dday_str(end, today)
+        org  = row.get("organizer") or ""
+        lines = ["사장님 조건에 딱 맞는 지원사업이 새로 떴어요\n"]
+        lines.append(f"「{row['notice_title']}」")
+        if org:
+            lines.append(f"주최: {org}")
+        lines.append(f"매칭 {row['match_score']}점")
+        if dday:
+            lines.append(dday)
+        return "\n".join(lines)
+
+    lines = [f"사장님 조건에 맞는 지원사업 {len(rows)}건이 새로 떴어요\n"]
     for row in rows:
-        lines.append(f"· {row['notice_title']} ({row['match_score']}점)")
+        end  = (row.get("apply_period") or {}).get("end")
+        dday = _dday_str(end, today)
+        suffix = f" · {dday}" if dday else ""
+        lines.append(f"· {row['notice_title']} ({row['match_score']}점{suffix})")
     return "\n".join(lines)
 
 
@@ -463,7 +493,7 @@ def main() -> int:
             if not picked:
                 print(f"  없음 user={user_id} — 조건에 맞는 공고가 없다")
                 continue
-            text = message_for(picked[:1])
+            text = message_for(picked[:1], today)
             if args.dry_run:
                 print(f"  [보냄안함] user={user_id}")
                 print("    " + text.replace("\n", "\n    "))
@@ -512,7 +542,7 @@ def main() -> int:
         if tax_rows:
             parts.append(message_for_tax(tax_rows))
         if fresh:
-            parts.append(message_for(fresh))
+            parts.append(message_for(fresh, today))
         text = "\n\n───────────\n\n".join(parts)
 
         if args.dry_run:
