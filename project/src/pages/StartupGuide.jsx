@@ -254,7 +254,11 @@ export default function StartupGuide({ defaultStep = null }) {
   })()
 
   // defaultStep 이 있으면 그 단계를 현재로 강조, 없으면 자동 추론
-  const currentStep = defaultStep ?? inferCurrentStep(profile, journey)
+  // 추론된 단계가 4 미만(업종탐색·계획·사업장 준비 중)이면 창업 준비 안내의
+  // 첫 단계인 4를 열어준다 — 예비창업자가 /guide 에 처음 올 때 아무것도
+  // 펼쳐지지 않는 걸 막는다.
+  const inferredStep = inferCurrentStep(profile, journey)
+  const currentStep  = defaultStep ?? (inferredStep < 4 ? 4 : inferredStep)
   const category    = profile?.category ?? '기타'
   const emoji       = CATEGORY_EMOJI[category] ?? '🚀'
   const completed   = journey.completedSteps ?? {}

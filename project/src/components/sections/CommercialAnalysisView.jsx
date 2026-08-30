@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, createElement } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { renderToStaticMarkup } from 'react-dom/server'
 import {
   School, Utensils, BookOpen, Coffee, Building2, Search, Train,
@@ -324,6 +325,7 @@ function StepBadge({ n }) {
 
 // ── 메인 컴포넌트 ────────────────────────────────────────────────
 export default function CommercialAnalysisView({ profile }) {
+  const navigate = useNavigate()
   const [position, setPosition]           = useState(HWS_CENTER)
   const [address, setAddress]             = useState('')
   const [searching, setSearching]         = useState(false)
@@ -1118,9 +1120,12 @@ export default function CommercialAnalysisView({ profile }) {
           </button>
 
           {candidateSaved && (
-            <p className="mt-2 text-center text-xs text-emerald-600 font-semibold">
-              홈 화면의 창업 항해 위젯에서 확인할 수 있어요 →
-            </p>
+            <button
+              onClick={() => navigate('/guide')}
+              className="mt-3 w-full py-3 rounded-xl text-sm font-bold
+                         bg-navy text-white hover:bg-navy/90 transition-colors flex items-center justify-center gap-2">
+              다음 단계: 창업 준비 안내 →
+            </button>
           )}
         </div>
       )}
