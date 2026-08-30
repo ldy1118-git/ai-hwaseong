@@ -1450,7 +1450,7 @@ export default function Onboarding() {
       try { return JSON.parse(localStorage.getItem('mars-fit-profile') || 'null') } catch { return null }
     })()
     const isPreStartup = profile?.business_status === '예비창업자'
-    navigate(isPreStartup ? '/guide' : '/home')
+    navigate(isPreStartup ? '/district' : '/home')
   }
 
   /* ── 내 정보 대시보드 ── */
