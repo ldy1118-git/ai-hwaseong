@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ExternalLink, Check, ChevronRight, X } from 'lucide-react'
+import { Check, ChevronRight } from 'lucide-react'
 import Header from '../components/layout/Header'
 import JourneyProgress from '../components/ui/JourneyProgress'
+import SiteLaunchSheet from '../components/ui/SiteLaunchSheet'
 import { EDUCATION, PERMIT, REG_DOCS } from '../data/startupGuide'
 import { getJourney, inferCurrentStep, completeStep } from '../utils/journey'
 
@@ -16,6 +17,39 @@ const STEP_META = {
   6: { icon: '📄', label: '인허가·영업신고' },
 }
 
+// ── 사이트별 진행 순서 ─────────────────────────────────────────────
+function educationSteps(e) {
+  if (!e.url) return []
+  if (e.url.includes('kfia.or.kr')) return [
+    '한국식품산업협회 사이트 접속 → 우측 상단 로그인 (또는 회원가입)',
+    '메뉴 → 식품위생교육 → 신규영업자 위생교육 신청',
+    '교육 일정 선택 후 수강료 결제 (온라인 약 10,000원)',
+    '온라인 영상 6시간 시청 완료',
+    '수료증 출력 또는 PDF 저장 → 영업신고 제출용으로 보관',
+  ]
+  if (e.url.includes('q-net.or.kr')) return [
+    'Q-net 접속 → 로그인 후 자격시험 → 미용사(일반) 검색',
+    '시험 일정 확인 → 원서접수 기간에 필기 신청',
+    '필기 합격 후 실기 시험 신청',
+    '실기 합격 → 면허 신청 (수수료 5,500원)',
+    '면허증 발급 (약 2주) → 영업신고 전 지참',
+  ]
+  return []
+}
+
+function permitSteps(p) {
+  if (!p.url) return []
+  if (p.url.includes('gov.kr')) return [
+    '정부24(gov.kr) 접속 → 로그인 (카카오·네이버 간편인증 가능)',
+    '검색창에 영업 신고 업종 입력 (예: "일반음식점 영업신고") → 선택',
+    '"신청하기" 클릭 → 영업자·사업장 정보 입력',
+    '식품위생교육 이수증·임대차계약서·신분증 파일 첨부',
+    '"민원신청하기" 클릭 → 3~7일 내 영업신고증 발급',
+  ]
+  return []
+}
+
+// ── 항목 데이터 생성 ──────────────────────────────────────────────
 function buildItems(category) {
   const education = EDUCATION[category] ?? EDUCATION['기타']
   const permit    = PERMIT[category]    ?? PERMIT['기타']
@@ -30,22 +64,20 @@ function buildItems(category) {
       url:         e.url,
       tip:         null,
       notRequired: e.required === false,
+      steps:       educationSteps(e),
     })),
     5: [
       {
         title:    '임대차계약서 또는 건물 소유 서류 준비',
         desc:     '사업장 계약 주소가 등록 주소가 됩니다. 자가라면 건물 등기부등본이 필요해요.',
-        where:    null,
-        duration: null,
-        timing:   null,
+        where:    null, duration: null, timing: null,
         docs:     ['임대차계약서 (임차인 경우)', '건물 등기부등본 (자가 경우)', '신분증'],
-        url:      null,
-        tip:      '사업장 주소는 실제 영업 장소여야 해요. 자택은 원칙적으로 불가해요.',
-        notRequired: false,
+        url:      null, tip: '사업장 주소는 실제 영업 장소여야 해요. 자택은 원칙적으로 불가해요.',
+        notRequired: false, steps: [],
       },
       {
         title:    '홈택스에서 사업자등록 신청',
-        desc:     '공인인증서 또는 카카오·네이버 간편인증으로 신청할 수 있어요. 방문 신청은 관할 세무서에서도 가능해요.',
+        desc:     '공인인증서 또는 카카오·네이버 간편인증으로 신청할 수 있어요.',
         where:    '홈택스 온라인 또는 관할 세무서',
         duration: '온라인 신청 후 3영업일 이내',
         timing:   '사업 시작 전',
@@ -53,121 +85,76 @@ function buildItems(category) {
         url:      'https://www.hometax.go.kr',
         tip:      '연 예상 매출이 1억 400만원 미만이면 간이과세 선택 가능해요.',
         notRequired: false,
+        steps: [
+          '홈택스 접속 → 우측 상단 로그인 (카카오·네이버 간편인증 가능)',
+          '상단 메뉴 → 국세청서비스 → "사업자등록 신청" 클릭',
+          '인적사항 확인 → 사업장 주소·업태·종목 입력',
+          '임대차계약서 파일 첨부 (스캔본 또는 사진, 5MB 이하)',
+          '"신청하기" 클릭 → 접수번호 저장 → 3영업일 후 등록증 발급',
+        ],
       },
       {
         title:    '사업자등록증 수령 확인',
-        desc:     '홈택스에서 신청 후 3영업일 이내 발급돼요. PDF로 다운로드해서 보관하세요.',
+        desc:     '홈택스에서 신청 후 3영업일 이내 발급돼요.',
         where:    '홈택스 → 사업자등록 신청/정정 현황',
         duration: '신청 후 3영업일 이내',
-        timing:   null,
-        docs:     [],
+        timing:   null, docs: [],
         url:      'https://www.hometax.go.kr',
         tip:      '사업자등록번호는 카드단말기 등록·세금계산서 발행에 필요해요.',
         notRequired: false,
+        steps: [
+          '홈택스 로그인 → 상단 국세청서비스 탭 클릭',
+          '"사업자등록 신청·정정 현황" 클릭',
+          '처리 상태 "완료" 확인 → "사업자등록증 출력" 클릭',
+          'PDF 저장 또는 인쇄 → 지원사업 신청·영업신고에 사용',
+        ],
       },
     ],
     6: permit.map(p => ({
       title:       p.title,
       desc:        p.desc,
       where:       p.where,
-      duration:    null,
-      timing:      null,
+      duration:    null, timing: null,
       docs:        p.docs ?? [],
       url:         p.url,
       tip:         p.tip ?? null,
       notRequired: false,
+      steps:       permitSteps(p),
     })),
   }
 }
 
-// ── 바로가기 모달 (iframe) ────────────────────────────────────────
-function WebModal({ url, title, onClose }) {
-  useEffect(() => {
-    const handler = e => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [onClose])
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex flex-col sm:items-center sm:justify-center sm:p-4"
-         onClick={onClose}>
-      <div
-        className="bg-white w-full sm:max-w-3xl sm:rounded-2xl flex flex-col overflow-hidden shadow-2xl mt-auto sm:mt-0"
-        style={{ height: '90vh' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* 헤더 */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-warm-gray/20 flex-shrink-0 bg-white">
-          <button onClick={onClose}
-            className="tap flex items-center gap-1.5 text-sm font-semibold text-warm-text hover:text-navy">
-            <X size={16} /> 닫기
-          </button>
-          <p className="flex-1 text-sm font-bold text-navy truncate">{title}</p>
-          <a href={url} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs font-bold text-navy border border-navy/25
-                       px-2.5 py-1.5 rounded-full hover:bg-navy/5 flex-shrink-0">
-            새 탭 <ExternalLink size={10} />
-          </a>
-        </div>
-        {/* 안내 배너 */}
-        <div className="bg-amber-50 border-b border-amber-100 px-4 py-2 flex-shrink-0">
-          <p className="text-xs text-amber-700">
-            화면이 열리지 않으면 위의 <strong>새 탭</strong> 버튼을 눌러주세요
-          </p>
-        </div>
-        {/* iframe */}
-        <iframe
-          src={url}
-          title={title}
-          className="flex-1 w-full border-0"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"
-        />
-      </div>
-    </div>
-  )
-}
-
 // ── 상세 패널 ─────────────────────────────────────────────────────
-function DetailPanel({ stepNum, itemIdx, item, isStepDone, isItemChecked, onToggle, onComplete, isStepAllChecked, navigate, onOpenUrl }) {
+function DetailPanel({
+  stepNum, item,
+  isStepDone, isItemChecked, onToggle,
+  isStepAllChecked, onComplete,
+  navigate, onSiteOpen,
+}) {
   const meta = STEP_META[stepNum]
-  const items = null // placeholder
   return (
     <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm overflow-hidden">
+
       {/* 상단 배지 */}
       <div className="bg-navy/[0.03] border-b border-warm-gray/10 px-5 py-3 flex items-center gap-2">
         <span className="text-lg">{meta?.icon}</span>
         <div>
-          <p className="text-[10px] font-bold text-warm-text/60 tracking-wider">
-            STEP {stepNum} · {meta?.label}
-          </p>
+          <p className="text-[10px] font-bold text-warm-text/60 tracking-wider">STEP {stepNum} · {meta?.label}</p>
           <p className="text-base font-bold text-navy leading-tight">{item.title}</p>
         </div>
       </div>
 
       <div className="p-5 space-y-4">
+
         {/* 설명 */}
-        {item.desc && (
-          <p className="text-sm text-gray-700 leading-relaxed">{item.desc}</p>
-        )}
+        {item.desc && <p className="text-sm text-gray-700 leading-relaxed">{item.desc}</p>}
 
         {/* 메타 정보 */}
         {(item.where || item.duration || item.timing) && (
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-warm-text">
-            {item.where && (
-              <span className="flex items-center gap-1.5">
-                <span className="text-navy/50 text-sm">📍</span> {item.where}
-              </span>
-            )}
-            {item.duration && (
-              <span className="flex items-center gap-1.5">
-                <span className="text-navy/50 text-sm">⏱</span> {item.duration}
-              </span>
-            )}
-            {item.timing && (
-              <span className="flex items-center gap-1.5">
-                <span className="text-navy/50 text-sm">📅</span> {item.timing}
-              </span>
-            )}
+            {item.where    && <span className="flex items-center gap-1.5"><span className="text-sm">📍</span>{item.where}</span>}
+            {item.duration && <span className="flex items-center gap-1.5"><span className="text-sm">⏱</span>{item.duration}</span>}
+            {item.timing   && <span className="flex items-center gap-1.5"><span className="text-sm">📅</span>{item.timing}</span>}
           </div>
         )}
 
@@ -186,6 +173,24 @@ function DetailPanel({ stepNum, itemIdx, item, isStepDone, isItemChecked, onTogg
           </div>
         )}
 
+        {/* 진행 순서 */}
+        {item.steps?.length > 0 && (
+          <div className="space-y-2.5">
+            <p className="text-[11px] font-bold text-navy tracking-wide">진행 순서</p>
+            <ol className="space-y-2">
+              {item.steps.map((step, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-navy/10 text-navy text-[10px] font-bold
+                                   flex items-center justify-center flex-shrink-0 mt-0.5">
+                    {i + 1}
+                  </span>
+                  <span className="text-xs text-gray-700 leading-relaxed">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
         {/* 팁 */}
         {item.tip && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5">
@@ -193,14 +198,14 @@ function DetailPanel({ stepNum, itemIdx, item, isStepDone, isItemChecked, onTogg
           </div>
         )}
 
-        {/* 바로가기 버튼 */}
+        {/* 바로가기 버튼 → SiteLaunchSheet */}
         {item.url && (
           <button
             type="button"
-            onClick={() => onOpenUrl(item.url, item.title)}
+            onClick={() => onSiteOpen({ url: item.url, docName: item.title })}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-xl
                        bg-navy text-white text-sm font-bold hover:bg-navy/90 transition-colors active:scale-[0.99]">
-            바로가기 <ExternalLink size={13} />
+            사이트 열기 →
           </button>
         )}
 
@@ -224,7 +229,7 @@ function DetailPanel({ stepNum, itemIdx, item, isStepDone, isItemChecked, onTogg
               <button
                 onClick={onComplete}
                 className="px-4 py-2 bg-navy text-white text-xs font-bold rounded-xl hover:bg-navy/90 transition-colors">
-                {meta?.label} 완료 →
+                {STEP_META[stepNum]?.label} 완료 →
               </button>
             )}
           </div>
@@ -234,8 +239,7 @@ function DetailPanel({ stepNum, itemIdx, item, isStepDone, isItemChecked, onTogg
       {/* 챗봇 안내 */}
       <div className="border-t border-warm-gray/10 bg-gray-50 px-5 py-3 text-center">
         <p className="text-xs text-warm-text">모르는 게 있으면 마이다에게 물어보세요!</p>
-        <button
-          onClick={() => navigate('/mission')}
+        <button onClick={() => navigate('/mission')}
           className="mt-0.5 text-xs font-bold text-navy underline underline-offset-2">
           챗봇 열기 →
         </button>
@@ -252,32 +256,37 @@ export default function StartupGuide({ defaultStep = null }) {
     try { return JSON.parse(localStorage.getItem('mars-fit-profile') || 'null') } catch { return null }
   })()
 
-  const inferredStep = inferCurrentStep(profile, journey)
-  const initialActive = defaultStep ?? (inferredStep < 4 ? 4 : inferredStep <= 6 ? inferredStep : 6)
+  const category = profile?.category ?? '기타'
+  const allItems = buildItems(category)
 
-  const category  = profile?.category ?? '기타'
-  const emoji     = CATEGORY_EMOJI[category] ?? '🚀'
-  const completed = journey.completedSteps ?? {}
-  const allItems  = buildItems(category)
+  // 프로필에 이미 등록/허가 완료 정보가 있으면 해당 단계를 자동 완료로 처리
+  const [completedSteps, setCompletedSteps] = useState(() => {
+    const steps = { ...(journey.completedSteps ?? {}) }
+    const hasReg = profile?.hasRegistration === true || profile?.business_status === '운영중'
+    const hasPmt = profile?.hasPermit === true      || profile?.business_status === '운영중'
+    if (hasReg && !steps[5]) { completeStep(5); steps[5] = true }
+    if (hasPmt && !steps[6]) { completeStep(6); steps[6] = true }
+    return steps
+  })
 
-  const [webModal, setWebModal] = useState(null) // { url, title }
+  // 완료되지 않은 첫 단계로 자동 진입
+  const firstActive = [4, 5, 6].find(n => !completedSteps[n]) ?? 6
 
-  // 체크 상태: { "4_0": true, ... }
+  const [siteLaunch, setSiteLaunch] = useState(null)  // { url, docName }
   const [checked, setChecked] = useState({})
-  // 선택된 아이템 (상세 패널 표시)
   const [selected, setSelected] = useState(() => {
-    const items = allItems[initialActive] ?? []
-    return items.length > 0 ? { stepNum: initialActive, itemIdx: 0 } : null
+    const items = allItems[firstActive] ?? []
+    return items.length > 0 ? { stepNum: firstActive, itemIdx: 0 } : null
   })
 
   function isChecked(stepNum, itemIdx) {
     const item = allItems[stepNum]?.[itemIdx]
-    if (item?.notRequired) return true
+    if (item?.notRequired || completedSteps[stepNum]) return true
     return !!checked[`${stepNum}_${itemIdx}`]
   }
 
   function toggleCheck(stepNum, itemIdx) {
-    if (completed[stepNum]) return
+    if (completedSteps[stepNum]) return
     setChecked(prev => {
       const key = `${stepNum}_${itemIdx}`
       return { ...prev, [key]: !prev[key] }
@@ -290,24 +299,30 @@ export default function StartupGuide({ defaultStep = null }) {
 
   function handleComplete(stepNum) {
     completeStep(stepNum)
+    const next = { ...completedSteps, [stepNum]: true }
+    setCompletedSteps(next)
     window.dispatchEvent(new Event('mars-journey-updated'))
-    if (stepNum === 4) setSelected({ stepNum: 5, itemIdx: 0 })
-    else if (stepNum === 5) setSelected({ stepNum: 6, itemIdx: 0 })
-    else navigate('/home')
+    const nextStep = [4, 5, 6].find(n => !next[n])
+    if (nextStep) {
+      setSelected({ stepNum: nextStep, itemIdx: 0 })
+    } else {
+      navigate('/home')
+    }
   }
 
   const selectedItem = selected ? allItems[selected.stepNum]?.[selected.itemIdx] : null
-  const panelOpen = !!selected && !!selectedItem
+  const panelOpen    = !!selected && !!selectedItem
 
   return (
     <div className="min-h-screen bg-primary-bg">
-      {webModal && (
-        <WebModal
-          url={webModal.url}
-          title={webModal.title}
-          onClose={() => setWebModal(null)}
+      {siteLaunch && (
+        <SiteLaunchSheet
+          url={siteLaunch.url}
+          docName={siteLaunch.docName}
+          onClose={() => setSiteLaunch(null)}
         />
       )}
+
       <Header onAvatarClick={() => navigate('/onboarding')} />
       <JourneyProgress currentStep={3} />
 
@@ -315,9 +330,9 @@ export default function StartupGuide({ defaultStep = null }) {
         panelOpen ? 'max-w-5xl' : 'max-w-lg'
       }`}>
 
-        {/* 상단 타이틀 */}
+        {/* 타이틀 */}
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl">{emoji}</span>
+          <span className="text-xl">{CATEGORY_EMOJI[category] ?? '🚀'}</span>
           <div>
             <h1 className="text-base font-bold text-navy leading-tight">{category} 창업 준비</h1>
             <p className="text-xs text-warm-text">교육 이수 → 사업자등록 → 인허가·영업신고 순서로 진행해요</p>
@@ -334,8 +349,8 @@ export default function StartupGuide({ defaultStep = null }) {
             {[4, 5, 6].map(stepNum => {
               const meta  = STEP_META[stepNum]
               const items = allItems[stepNum] ?? []
-              const isDone   = !!completed[stepNum]
-              const isActive = !isDone && stepNum <= initialActive + 1
+              const isDone   = !!completedSteps[stepNum]
+              const isActive = !isDone && stepNum <= firstActive + 1
 
               return (
                 <div key={stepNum} className={`bg-white rounded-2xl border-2 overflow-hidden ${
@@ -347,9 +362,7 @@ export default function StartupGuide({ defaultStep = null }) {
                     <span className="text-lg flex-shrink-0">{meta.icon}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] font-bold text-warm-text/60 tracking-wider">STEP {stepNum}</p>
-                      <p className={`text-sm font-bold ${
-                        isDone ? 'text-navy/40' : isActive ? 'text-navy' : 'text-gray-400'
-                      }`}>
+                      <p className={`text-sm font-bold ${isDone ? 'text-navy/40' : isActive ? 'text-navy' : 'text-gray-400'}`}>
                         {meta.label}
                       </p>
                     </div>
@@ -359,8 +372,7 @@ export default function StartupGuide({ defaultStep = null }) {
                         <Check size={9} strokeWidth={3} /> 완료
                       </span>
                     ) : isActive && isStepAllChecked(stepNum) ? (
-                      <button
-                        onClick={() => handleComplete(stepNum)}
+                      <button onClick={() => handleComplete(stepNum)}
                         className="text-[10px] font-bold bg-navy text-white px-2 py-0.5 rounded-full flex-shrink-0">
                         완료 →
                       </button>
@@ -372,35 +384,26 @@ export default function StartupGuide({ defaultStep = null }) {
                     {items.map((item, idx) => {
                       const chk  = isDone || isChecked(stepNum, idx)
                       const isSel = selected?.stepNum === stepNum && selected?.itemIdx === idx
-
                       return (
-                        <button
-                          key={idx}
-                          type="button"
+                        <button key={idx} type="button"
                           onClick={() => setSelected({ stepNum, itemIdx: idx })}
                           className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-all ${
                             isSel ? 'bg-navy/5' : 'hover:bg-gray-50'
                           }`}>
-                          {/* 미니 체크박스 */}
                           <div
-                            role="checkbox"
-                            aria-checked={chk}
+                            role="checkbox" aria-checked={chk}
                             onClick={e => { e.stopPropagation(); toggleCheck(stepNum, idx) }}
                             className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
                               chk ? 'bg-navy border-navy' : 'border-warm-gray/40'
                             }`}>
                             {chk && <Check size={9} className="text-white" strokeWidth={3} />}
                           </div>
-
                           <span className={`flex-1 text-xs font-semibold leading-snug ${
                             chk ? 'text-warm-text/50 line-through' : isSel ? 'text-navy' : 'text-gray-700'
                           }`}>
                             {item.title}
                           </span>
-
-                          <ChevronRight size={12} className={`flex-shrink-0 transition-colors ${
-                            isSel ? 'text-navy' : 'text-warm-gray/30'
-                          }`} />
+                          <ChevronRight size={12} className={`flex-shrink-0 ${isSel ? 'text-navy' : 'text-warm-gray/30'}`} />
                         </button>
                       )
                     })}
@@ -410,11 +413,10 @@ export default function StartupGuide({ defaultStep = null }) {
             })}
 
             {/* 모두 완료 */}
-            {completed[4] && completed[5] && completed[6] && (
+            {completedSteps[4] && completedSteps[5] && completedSteps[6] && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center">
                 <p className="text-sm font-bold text-emerald-700 mb-1">🎉 창업 준비 완료!</p>
-                <button
-                  onClick={() => navigate('/home')}
+                <button onClick={() => navigate('/home')}
                   className="text-xs font-bold text-emerald-700 underline underline-offset-2">
                   지원사업 탐색하기 →
                 </button>
@@ -427,15 +429,14 @@ export default function StartupGuide({ defaultStep = null }) {
             <div className="flex-1 min-w-0 order-first lg:order-last">
               <DetailPanel
                 stepNum={selected.stepNum}
-                itemIdx={selected.itemIdx}
                 item={selectedItem}
-                isStepDone={!!completed[selected.stepNum]}
+                isStepDone={!!completedSteps[selected.stepNum]}
                 isItemChecked={isChecked(selected.stepNum, selected.itemIdx)}
                 onToggle={() => toggleCheck(selected.stepNum, selected.itemIdx)}
                 isStepAllChecked={isStepAllChecked(selected.stepNum)}
                 onComplete={() => handleComplete(selected.stepNum)}
                 navigate={navigate}
-                onOpenUrl={(url, title) => setWebModal({ url, title })}
+                onSiteOpen={({ url, docName }) => setSiteLaunch({ url, docName })}
               />
             </div>
           )}
