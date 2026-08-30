@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Check, ChevronRight, ExternalLink, X } from 'lucide-react'
-import Header from '../components/layout/Header'
 import JourneyProgress from '../components/ui/JourneyProgress'
 import { EDUCATION, PERMIT, REG_DOCS } from '../data/startupGuide'
 import { getJourney, completeStep } from '../utils/journey'
@@ -419,7 +418,6 @@ export default function StartupGuide({ defaultStep = null }) {
         />
       )}
 
-      <Header onAvatarClick={() => navigate('/onboarding')} />
       <JourneyProgress currentStep={3} />
 
       <div className={`mx-auto px-4 pt-4 pb-24 transition-all duration-300 ${

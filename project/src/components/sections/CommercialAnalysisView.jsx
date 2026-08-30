@@ -386,13 +386,11 @@ export default function CommercialAnalysisView({ profile }) {
     if (inputMode === 'address') addressInput.current?.focus()
   }, [inputMode])
 
-  // 프로필에 업종이 있으면 업종 추천 모드로 자동 시작 (게이트 건너뜀)
+  // 프로필에 업종이 있으면 추천 업종 미리 설정 (게이트 선택 후 바로 추천 시작)
   useEffect(() => {
     if (profile?.category) {
       setRecommendCategory(profile.category)
-      setInputMode('category')
       setSelectedCategory(profile.category)
-      setSpaceChoice('none')
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
