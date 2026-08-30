@@ -403,7 +403,11 @@ export default function CommercialAnalysisView({ profile }) {
   useEffect(() => {
     if (!apiData || autoAnalyzeTriggered.current || inputMode !== 'category' || !recommendCategory) return
     autoAnalyzeTriggered.current = true
-    handleAskMaidaRef.current()
+    // setTimeout(0): 이 render의 모든 effect가 끝난 뒤 호출해야
+    // handleAskMaidaRef.current가 최신 ftScore로 업데이트된 상태가 된다.
+    // (handleAskMaidaRef sync effect는 이 effect보다 코드 뒤에 선언되어 있어
+    //  같은 render에서는 stale 클로저를 가리킨다)
+    setTimeout(() => { handleAskMaidaRef.current?.() }, 0)
   }, [apiData, inputMode, recommendCategory]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 추천 핀이 도착하면 바로 "분석 중" 로딩 표시 (LLM 완료 전에도 사용자가 기다림을 인지)
