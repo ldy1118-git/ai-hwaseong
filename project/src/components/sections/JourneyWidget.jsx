@@ -5,13 +5,13 @@ import { getJourney, inferCurrentStep, getProgress, STEPS } from '../../utils/jo
 
 // 각 STEP에서 다음에 할 일 한 줄
 const NEXT_ACTIONS = {
-  1: { text: '상권분석에서 창업 후보를 저장해보세요', path: '/district' },
-  2: { text: '업종과 초기 예산 계획을 세워보세요',    path: null },
-  3: { text: '사업장 계약 전 상권을 다시 확인하세요', path: '/district' },
-  4: { text: '업종별 필수 교육·자격을 확인하세요',   path: '/guide' },
-  5: { text: '관할 시청·구청에 영업신고를 하세요',   path: '/guide' },
-  6: { text: '홈택스에서 사업자등록을 신청하세요',   path: '/guide' },
-  7: { text: '나에게 맞는 지원사업을 확인해보세요',  path: '/home' },
+  1: { text: '상권분석에서 창업 후보를 저장해보세요',           path: '/district' },
+  2: { text: '업종과 초기 예산 계획을 세워보세요',             path: null },
+  3: { text: '사업장 계약 전 상권을 다시 확인하세요',          path: '/district' },
+  4: { text: '업종별 필수 교육·자격을 확인하세요',             path: '/guide/education' },
+  5: { text: '홈택스 또는 세무서에서 사업자등록을 하세요',     path: '/guide/registration' },
+  6: { text: '관할 시청·구청에 영업신고·인허가를 받으세요',   path: '/guide/permit' },
+  7: { text: '나에게 맞는 지원사업을 확인해보세요',            path: '/home' },
 }
 
 // 업종 이모지
@@ -134,39 +134,49 @@ export default function JourneyWidget({ profile }) {
             {STEPS.map((s, i) => {
               const isDone    = completed[s.num] || s.num < step
               const isCurrent = s.num === step
-              const isNext    = s.num > step
+              const canNav    = !!s.path
+
+              const label = (
+                <div className="flex items-center gap-1.5 flex-1">
+                  <span className={[
+                    'text-xs font-semibold',
+                    isCurrent ? 'text-navy' : isDone ? 'text-navy/40 line-through' : 'text-warm-gray/50',
+                  ].join(' ')}>
+                    {s.label}
+                  </span>
+                  {isCurrent && (
+                    <span className="text-[10px] font-bold text-sunset-orange shrink-0">← 지금</span>
+                  )}
+                </div>
+              )
 
               return (
                 <div key={s.num} className="flex items-center gap-3">
-                  {/* 연결선 */}
                   <div className="flex flex-col items-center shrink-0">
                     {isDone ? (
                       <CheckCircle2 size={18} className="text-navy" />
                     ) : isCurrent ? (
-                      <div className="w-[18px] h-[18px] rounded-full border-2 border-navy
-                                      bg-navy flex items-center justify-center">
+                      <div className="w-[18px] h-[18px] rounded-full bg-navy flex items-center justify-center">
                         <span className="text-white text-[9px] font-bold">{s.num}</span>
                       </div>
                     ) : (
-                      <Circle size={18} className="text-warm-gray/40" />
+                      <Circle size={18} className="text-warm-gray/30" />
                     )}
                     {i < STEPS.length - 1 && (
-                      <div className={`w-px h-5 mt-0.5 ${
-                        isDone ? 'bg-navy/30' : 'bg-warm-gray/20'
-                      }`} />
+                      <div className={`w-px h-5 mt-0.5 ${isDone ? 'bg-navy/25' : 'bg-warm-gray/15'}`} />
                     )}
                   </div>
 
-                  {/* 레이블 */}
-                  <p className={[
-                    'text-xs font-semibold pb-4 flex-1',
-                    isCurrent ? 'text-navy' : isDone ? 'text-navy/50 line-through' : 'text-warm-gray/60',
-                  ].join(' ')}>
-                    {s.label}
-                    {isCurrent && (
-                      <span className="ml-1.5 text-sunset-orange text-[10px] font-bold">← 지금 여기</span>
-                    )}
-                  </p>
+                  {canNav ? (
+                    <button
+                      onClick={() => navigate(s.path)}
+                      className="pb-4 flex-1 text-left flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+                      {label}
+                      {(isCurrent || isDone) && <ArrowRight size={11} className="text-navy/40 shrink-0" />}
+                    </button>
+                  ) : (
+                    <div className="pb-4 flex-1">{label}</div>
+                  )}
                 </div>
               )
             })}

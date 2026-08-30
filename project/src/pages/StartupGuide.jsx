@@ -246,14 +246,15 @@ function RegistrationContent({ category }) {
 }
 
 /* ── 메인 페이지 ── */
-export default function StartupGuide() {
+export default function StartupGuide({ defaultStep = null }) {
   const navigate  = useNavigate()
   const journey   = getJourney()
   const profile   = (() => {
     try { return JSON.parse(localStorage.getItem('mars-fit-profile') || 'null') } catch { return null }
   })()
 
-  const currentStep = inferCurrentStep(profile, journey)
+  // defaultStep 이 있으면 그 단계를 현재로 강조, 없으면 자동 추론
+  const currentStep = defaultStep ?? inferCurrentStep(profile, journey)
   const category    = profile?.category ?? '기타'
   const emoji       = CATEGORY_EMOJI[category] ?? '🚀'
   const completed   = journey.completedSteps ?? {}
@@ -280,7 +281,7 @@ export default function StartupGuide() {
             <h1 className="text-lg font-bold text-navy">{category} 창업 안내</h1>
           </div>
           <p className="text-xs text-warm-text">
-            영업 시작 전 필요한 교육·인허가·사업자등록을 순서대로 안내해드려요.
+            영업 시작 전 필요한 교육·사업자등록·인허가를 순서대로 안내해드려요.
           </p>
         </div>
 
@@ -298,29 +299,29 @@ export default function StartupGuide() {
           </div>
         </StepSection>
 
-        {/* STEP 5: 인허가·영업신고 */}
+        {/* STEP 5: 사업자등록 */}
         <StepSection
           stepNum={5}
-          title="인허가·영업신고"
+          title="사업자등록"
           isCurrentStep={currentStep === 5}
           isDone={!!completed[5]}
+          onComplete={handleComplete}>
+          <div className="mt-3">
+            <RegistrationContent category={category} />
+          </div>
+        </StepSection>
+
+        {/* STEP 6: 인허가·영업신고 */}
+        <StepSection
+          stepNum={6}
+          title="인허가·영업신고"
+          isCurrentStep={currentStep === 6}
+          isDone={!!completed[6]}
           onComplete={handleComplete}>
           <div className="space-y-3 mt-3">
             {permit.map((item, i) => (
               <GuideCard key={i} item={item} />
             ))}
-          </div>
-        </StepSection>
-
-        {/* STEP 6: 사업자등록 */}
-        <StepSection
-          stepNum={6}
-          title="사업자등록"
-          isCurrentStep={currentStep === 6}
-          isDone={!!completed[6]}
-          onComplete={handleComplete}>
-          <div className="mt-3">
-            <RegistrationContent category={category} />
           </div>
         </StepSection>
 

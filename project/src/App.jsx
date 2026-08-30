@@ -84,7 +84,10 @@ function AnimatedRoutes() {
           <Route path="/mission"    element={<MissionControl />} />
           <Route path="/schedule"   element={<Schedule />} />
           <Route path="/district"   element={<District />} />
-          <Route path="/guide"      element={<StartupGuide />} />
+          <Route path="/guide"              element={<StartupGuide />} />
+          <Route path="/guide/education"  element={<StartupGuide defaultStep={4} />} />
+          <Route path="/guide/registration" element={<StartupGuide defaultStep={5} />} />
+          <Route path="/guide/permit"     element={<StartupGuide defaultStep={6} />} />
           <Route path="*"           element={<Landing />} />
         </Routes>
       </motion.div>

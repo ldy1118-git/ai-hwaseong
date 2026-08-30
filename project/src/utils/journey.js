@@ -12,13 +12,13 @@ const KEY = 'mars-fit-journey'
 
 // STEP 정의
 export const STEPS = [
-  { num: 1, label: '업종·입지 탐색',      path: '/district' },
-  { num: 2, label: '사업 계획 구체화',     path: null },
-  { num: 3, label: '사업장 준비',          path: null },
-  { num: 4, label: '필수 교육·자격',       path: '/guide/education' },
-  { num: 5, label: '인허가·영업신고',      path: '/guide/permit' },
-  { num: 6, label: '사업자등록',           path: '/guide/registration' },
-  { num: 7, label: '사업 운영 시작',       path: '/home' },
+  { num: 1, label: '업종·입지 탐색',   path: '/district' },
+  { num: 2, label: '사업 계획 구체화', path: null },
+  { num: 3, label: '사업장 준비',      path: null },
+  { num: 4, label: '필수 교육·자격',  path: '/guide/education' },
+  { num: 5, label: '사업자등록',       path: '/guide/registration' },
+  { num: 6, label: '인허가·영업신고', path: '/guide/permit' },
+  { num: 7, label: '사업 운영 시작',   path: '/home' },
 ]
 
 const DEFAULT = {
@@ -27,12 +27,13 @@ const DEFAULT = {
 
   // 2-C에서 선택한 준비 체크리스트
   prepChecklist: {
-    hasCategory:  false,  // 업종을 정했어요
-    hasBizPlan:   false,  // 사업계획을 세웠어요
-    hasLocation:  false,  // 사업장을 알아봤어요
-    hasContract:  false,  // 사업장을 계약했어요
-    hasEducation: false,  // 필요한 교육을 받았어요
-    hasPermit:    false,  // 영업신고·인허가를 받았어요
+    hasCategory:    false,  // 업종을 정했어요
+    hasBizPlan:     false,  // 사업계획을 세웠어요
+    hasLocation:    false,  // 사업장을 알아봤어요
+    hasContract:    false,  // 사업장을 계약했어요
+    hasEducation:   false,  // 필요한 교육을 받았어요
+    hasRegistration:false,  // 사업자등록을 했어요 (STEP 5)
+    hasPermit:      false,  // 영업신고·인허가를 받았어요 (STEP 6)
   },
 
   // 현재 창업 후보 (상권분석에서 저장)
@@ -125,16 +126,16 @@ export function inferCurrentStep(profile, journey) {
   const prep   = journey?.prepChecklist ?? {}
   const done   = journey?.completedSteps ?? {}
 
-  // 운영 중 or 신규사업자 → 7단계 (운영 시작)
+  // 운영 중 → 7단계 (운영 시작)
   if (status === '운영중') return 7
 
-  // 사업자등록 완료 (2-D 경로 or STEP 6 완료)
-  if (journey?.onboardingPath === 'D' || done[6]) return 7
+  // 인허가·영업신고 완료 (STEP 6) → 7단계
+  if (prep.hasPermit || done[6]) return 7
 
-  // 인허가·영업신고 완료
-  if (prep.hasPermit || done[5]) return 6
+  // 사업자등록 완료 (STEP 5, 2-D 경로 포함) → 6단계
+  if (prep.hasRegistration || done[5] || journey?.onboardingPath === 'D') return 6
 
-  // 필수 교육 완료
+  // 필수 교육 완료 (STEP 4) → 5단계
   if (prep.hasEducation || done[4]) return 5
 
   // 사업장 계약 완료

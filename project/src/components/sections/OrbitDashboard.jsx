@@ -685,6 +685,34 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
   return (
     <section className="px-5 pb-28 space-y-7">
 
+      {/* ── 지금 신청 가능한 지원사업 ── */}
+      {(applicableItems.length > 0 || loading) && (
+        <div>
+          <SectionHead label="지금 신청 가능한 지원사업"
+            count={!loading ? applicableItems.length : undefined}
+            accent="emerald" />
+          <div className="grid grid-cols-1 gap-2.5">
+            {loading
+              ? [1, 2, 3].map(i => <SkeletonCard key={i} />)
+              : applicableVisible.map(item => (
+                  <ProgramCard key={item.id} item={item} accent="navy"
+                    onDetail={() => handleDetail(item)}
+                    aiDesc={aiDescs[item.id]} termDefs={termDefs} />
+                ))
+            }
+          </div>
+          {!loading && applicableItems.length > APPLICABLE_INIT && (
+            <button type="button"
+              onClick={() => setApplicableExpanded(v => !v)}
+              className="w-full flex items-center justify-center gap-1 py-2 mt-1
+                         border-t border-warm-gray/20 text-[13px] font-semibold text-emerald-600 hover:underline">
+              {applicableExpanded ? '접기' : `${applicableItems.length - APPLICABLE_INIT}건 더보기`}
+              <ChevronDown size={13} className={`transition-transform duration-150 ${applicableExpanded ? 'rotate-180' : ''}`} />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* ── 긴급 마감 ── */}
       {urgentItems.length > 0 && (
         <div>
@@ -726,34 +754,6 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
                          border-t border-warm-gray/20 text-[13px] font-semibold text-purple-600 hover:underline">
               {newExpanded ? '접기' : `${newItems.length - NEW_INIT}건 더보기`}
               <ChevronDown size={13} className={`transition-transform duration-150 ${newExpanded ? 'rotate-180' : ''}`} />
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* ── 지금 신청 가능한 지원사업 ── */}
-      {(applicableItems.length > 0 || loading) && (
-        <div>
-          <SectionHead label="지금 신청 가능한 지원사업"
-            count={!loading ? applicableItems.length : undefined}
-            accent="emerald" />
-          <div className="grid grid-cols-1 gap-2.5">
-            {loading
-              ? [1, 2, 3].map(i => <SkeletonCard key={i} />)
-              : applicableVisible.map(item => (
-                  <ProgramCard key={item.id} item={item} accent="navy"
-                    onDetail={() => handleDetail(item)}
-                    aiDesc={aiDescs[item.id]} termDefs={termDefs} />
-                ))
-            }
-          </div>
-          {!loading && applicableItems.length > APPLICABLE_INIT && (
-            <button type="button"
-              onClick={() => setApplicableExpanded(v => !v)}
-              className="w-full flex items-center justify-center gap-1 py-2 mt-1
-                         border-t border-warm-gray/20 text-[13px] font-semibold text-emerald-600 hover:underline">
-              {applicableExpanded ? '접기' : `${applicableItems.length - APPLICABLE_INIT}건 더보기`}
-              <ChevronDown size={13} className={`transition-transform duration-150 ${applicableExpanded ? 'rotate-180' : ''}`} />
             </button>
           )}
         </div>

@@ -37,14 +37,15 @@ const FIELDS = [
 
 const KEYWORDS = ['카페', '음식점', '공방', '학원', '미용실', '온라인쇼핑', '편의점', '배달']
 
-// 2-C 준비 체크리스트 항목
+// 2-C 준비 체크리스트 항목 (STEP 순서대로)
 const PREP_ITEMS = [
-  { key: 'hasCategory',  label: '업종을 정했어요' },
-  { key: 'hasBizPlan',   label: '사업계획을 세웠어요' },
-  { key: 'hasLocation',  label: '사업장을 알아봤어요' },
-  { key: 'hasContract',  label: '사업장을 계약했어요' },
-  { key: 'hasEducation', label: '필요한 교육을 받았어요' },
-  { key: 'hasPermit',    label: '영업신고·인허가를 받았어요' },
+  { key: 'hasCategory',    label: '업종을 정했어요' },
+  { key: 'hasBizPlan',     label: '사업계획을 세웠어요' },
+  { key: 'hasLocation',    label: '사업장을 알아봤어요' },
+  { key: 'hasContract',    label: '사업장을 계약했어요' },
+  { key: 'hasEducation',   label: '필요한 교육을 받았어요' },
+  { key: 'hasRegistration',label: '사업자등록을 했어요' },
+  { key: 'hasPermit',      label: '영업신고·인허가를 받았어요' },
 ]
 
 // 단계별 마이다 말풍선 메시지
@@ -428,8 +429,8 @@ function DoneScreen({ count, onConfirm }) {
               step === 2 ? '사업 계획 구체화 단계' :
               step === 3 ? '사업장 준비 단계' :
               step === 4 ? '필수 교육·자격 단계' :
-              step === 5 ? '인허가·영업신고 단계' :
-              step === 6 ? '사업자등록 단계' :
+              step === 5 ? '사업자등록 단계' :
+              step === 6 ? '인허가·영업신고 단계' :
               '사업 운영 시작'
             }
           </p>
