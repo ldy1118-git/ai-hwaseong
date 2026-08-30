@@ -341,6 +341,7 @@ export default function CommercialAnalysisView({ profile }) {
   const [recommendPins, setRecommendPins]       = useState([])    // [{lat, lng, count, rank}]
   const [recommendLoading, setRecommendLoading] = useState(false)
   const [recommendCategory, setRecommendCategory] = useState(null) // 현재 추천 업종
+  const [spaceChoice, setSpaceChoice]           = useState(null)  // null | 'has' | 'none'
   const debounceRef  = useRef(null)
   const addressInput = useRef(null)
   const autoAnalyzeTriggered = useRef(false)
@@ -385,12 +386,13 @@ export default function CommercialAnalysisView({ profile }) {
     if (inputMode === 'address') addressInput.current?.focus()
   }, [inputMode])
 
-  // 프로필에 업종이 있으면 업종 추천 모드로 자동 시작
+  // 프로필에 업종이 있으면 업종 추천 모드로 자동 시작 (게이트 건너뜀)
   useEffect(() => {
     if (profile?.category) {
       setRecommendCategory(profile.category)
       setInputMode('category')
       setSelectedCategory(profile.category)
+      setSpaceChoice('none')
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -557,8 +559,48 @@ export default function CommercialAnalysisView({ profile }) {
     window.dispatchEvent(new Event('mars-journey-updated'))
   }, [selectedCategory, profile, ftScore, address])
 
+  // 공간 여부 게이트 — 프로필에 업종이 없으면 먼저 물어봄
+  if (spaceChoice === null) {
+    return (
+      <div className="max-w-lg mx-auto px-4 pb-10 pt-2">
+        <div className="bg-white rounded-2xl border-2 border-navy/15 shadow-sm p-6 space-y-5">
+          <div className="text-center space-y-1.5">
+            <p className="text-3xl">🏪</p>
+            <h2 className="text-base font-bold text-navy">영업하실 공간이 있으신가요?</h2>
+            <p className="text-sm text-warm-text">계약 완료 또는 구체적인 자리를 검토 중이라면 주변 상권을 바로 분석해드려요</p>
+          </div>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => { setSpaceChoice('has'); setInputMode('address') }}
+              className="w-full py-4 rounded-2xl border-2 border-navy text-left px-5 hover:bg-navy group transition-all">
+              <p className="text-sm font-bold text-navy group-hover:text-white">✅  네, 자리가 있어요</p>
+              <p className="text-xs text-warm-text group-hover:text-white/70 mt-0.5">주소를 입력하면 그 주변 경쟁률·유동인구를 분석해드려요</p>
+            </button>
+            <button
+              onClick={() => { setSpaceChoice('none'); setInputMode('category') }}
+              className="w-full py-4 rounded-2xl border-2 border-sunset-orange text-left px-5 hover:bg-sunset-orange group transition-all">
+              <p className="text-sm font-bold text-sunset-orange group-hover:text-white">🗺  아직 찾고 있어요</p>
+              <p className="text-xs text-warm-text group-hover:text-white/70 mt-0.5">업종을 고르면 화성시 내 최적 상권을 추천해드려요</p>
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
+
+      {/* 다시 고르기 */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-navy/60">
+          {spaceChoice === 'has' ? '📍 내 공간 주변 상권 분석' : '🗺 최적 상권 추천 중'}
+        </p>
+        <button onClick={() => setSpaceChoice(null)}
+          className="text-xs text-warm-text/50 hover:text-navy underline underline-offset-2">
+          다시 고르기
+        </button>
+      </div>
 
       {/* ── 지도 카드 ─────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm p-4 flex flex-col gap-3">
@@ -664,33 +706,65 @@ export default function CommercialAnalysisView({ profile }) {
           })}
         </div>
 
-        {/* 지도 */}
-        <div
-          className="relative rounded-xl overflow-hidden border border-warm-gray/15 transition-all duration-300"
-          style={{ height: inputMode === 'address' ? 220 : 320 }}
-        >
-          <LeafletMap
-            position={position} onMove={handleMarkerMove} radii={effectiveRadii}
-            markers={inputMode === 'category' ? [] : displayMarkers.filter(m => enabledFacilities[m.key])}
-            sizeKey={`${showDetailSliders}-${inputMode}`}
-            recommendPins={inputMode === 'category' ? recommendPins : []}
-          />
-          {inputMode === 'map' && (
-            <button onClick={() => setExpanded(true)}
-              aria-label="지도 크게 보기"
-              className="tap absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-warm-gray/30
-                         rounded-lg px-2 py-1.5 shadow hover:bg-white transition-colors
-                         flex items-center gap-1 text-[11px] font-bold text-navy"
-              style={{ zIndex: 1000 }}>
-              <Maximize2 size={13} /> 크게 보기
-            </button>
-          )}
-          {inputMode === 'address' && (
-            <div className="absolute bottom-2 inset-x-0 flex justify-center pointer-events-none"
-              style={{ zIndex: 1000 }}>
-              <span className="bg-navy/80 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full">
-                핀을 드래그해서 위치를 미세 조정할 수 있어요
-              </span>
+        {/* 지도 + (업종 추천 모드: 오른쪽 추천 목록) */}
+        <div className="flex gap-2.5"
+          style={{ height: inputMode === 'address' ? 220 : 320 }}>
+          <div className="relative flex-1 rounded-xl overflow-hidden border border-warm-gray/15">
+            <LeafletMap
+              position={position} onMove={handleMarkerMove} radii={effectiveRadii}
+              markers={inputMode === 'category' ? [] : displayMarkers.filter(m => enabledFacilities[m.key])}
+              sizeKey={`${showDetailSliders}-${inputMode}-${recommendPins.length}`}
+              recommendPins={inputMode === 'category' ? recommendPins : []}
+            />
+            {inputMode === 'map' && (
+              <button onClick={() => setExpanded(true)}
+                aria-label="지도 크게 보기"
+                className="tap absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-warm-gray/30
+                           rounded-lg px-2 py-1.5 shadow hover:bg-white transition-colors
+                           flex items-center gap-1 text-[11px] font-bold text-navy"
+                style={{ zIndex: 1000 }}>
+                <Maximize2 size={13} /> 크게 보기
+              </button>
+            )}
+            {inputMode === 'address' && (
+              <div className="absolute bottom-2 inset-x-0 flex justify-center pointer-events-none"
+                style={{ zIndex: 1000 }}>
+                <span className="bg-navy/80 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full">
+                  핀을 드래그해서 위치를 미세 조정할 수 있어요
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* 추천 상권 목록 패널 */}
+          {inputMode === 'category' && recommendPins.length > 0 && (
+            <div className="w-40 sm:w-44 flex-shrink-0 flex flex-col rounded-xl border border-warm-gray/15 overflow-hidden">
+              <div className="bg-navy/[0.03] px-3 py-2 border-b border-warm-gray/10 flex-shrink-0">
+                <p className="text-[10px] font-bold text-navy/60 tracking-wide">추천 상권</p>
+              </div>
+              <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+                {recommendPins.map(pin => {
+                  const bg      = ['#cb6b3d', '#2a3c77', '#10b981'][(pin.rank - 1) % 3]
+                  const isActive = Math.abs(position.lat - pin.lat) < 0.0002 &&
+                                   Math.abs(position.lng - pin.lng) < 0.0002
+                  return (
+                    <button key={pin.rank}
+                      onClick={() => setPosition({ lat: pin.lat, lng: pin.lng })}
+                      className={`w-full flex items-center gap-2 p-2 rounded-xl transition-colors text-left ${
+                        isActive ? 'bg-navy/8 ring-1 ring-navy/20' : 'hover:bg-gray-50 active:bg-gray-100'
+                      }`}>
+                      <span className="w-7 h-7 rounded-full text-white text-sm font-black flex items-center justify-center flex-shrink-0"
+                        style={{ background: bg }}>
+                        {pin.rank}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-bold text-navy">{pin.rank}위 추천</p>
+                        <p className="text-[10px] text-warm-text">동종 {pin.count}개</p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           )}
         </div>

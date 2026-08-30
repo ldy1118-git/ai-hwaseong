@@ -113,6 +113,15 @@ function buildItems(category) {
   }
 }
 
+// 국세청·정부24 등 X-Frame-Options: DENY 사이트
+const IFRAME_BLOCKED = ['hometax.go.kr', 'gov.kr', 'mss.go.kr', 'nhis.or.kr', 'minwon.go.kr']
+function isIframeBlocked(url) {
+  try {
+    const host = new URL(url).hostname.replace('www.', '')
+    return IFRAME_BLOCKED.some(d => host === d || host.endsWith('.' + d))
+  } catch { return false }
+}
+
 // ── 사이트 + 진행 순서 동시 표시 가이드 ────────────────────────────
 function WebGuide({ url, title, steps, onClose }) {
   useEffect(() => {
@@ -122,6 +131,7 @@ function WebGuide({ url, title, steps, onClose }) {
   }, [onClose])
 
   const hasSteps = steps?.length > 0
+  const blocked  = isIframeBlocked(url)
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-white">
@@ -140,42 +150,89 @@ function WebGuide({ url, title, steps, onClose }) {
         </a>
       </div>
 
-      {/* 바디: 모바일 상하 / 데스크탑 좌우 */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      {/* 바디 */}
+      {blocked ? (
+        /* ─── iframe 차단 사이트: 순서 + 새탭 버튼 ─── */
+        <div className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
 
-        {/* 진행 순서 패널 */}
-        {hasSteps && (
-          <div className="bg-navy/[0.02] border-b lg:border-b-0 lg:border-r border-warm-gray/20
-                          lg:w-72 lg:flex-shrink-0 overflow-y-auto
-                          h-44 lg:h-auto flex-shrink-0">
-            <div className="p-4 space-y-3">
-              <p className="text-[11px] font-bold text-navy/60 tracking-wider">진행 순서</p>
-              <ol className="space-y-2.5">
-                {steps.map((step, i) => (
-                  <li key={i} className="flex items-start gap-2.5">
-                    <span className="w-5 h-5 rounded-full bg-navy text-white text-[10px] font-bold
-                                     flex items-center justify-center flex-shrink-0 mt-0.5">
-                      {i + 1}
-                    </span>
-                    <span className="text-xs text-gray-700 leading-relaxed">{step}</span>
-                  </li>
-                ))}
-              </ol>
-              <p className="text-[10px] text-warm-text/50 pt-1">
-                화면이 열리지 않으면 우측 상단 <strong>새 탭</strong>을 눌러주세요
-              </p>
+            {/* 진행 순서 — 전체 너비 */}
+            {hasSteps && (
+              <div className="bg-white rounded-2xl border border-warm-gray/20 p-5 space-y-3 shadow-sm">
+                <p className="text-[11px] font-bold text-navy/60 tracking-wider">진행 순서</p>
+                <ol className="space-y-3">
+                  {steps.map((step, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <span className="w-6 h-6 rounded-full bg-navy text-white text-xs font-bold
+                                       flex items-center justify-center flex-shrink-0 mt-0.5">
+                        {i + 1}
+                      </span>
+                      <span className="text-sm text-gray-700 leading-relaxed">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {/* 새탭 CTA */}
+            <div className="bg-white rounded-2xl border border-warm-gray/20 p-5 shadow-sm text-center space-y-4">
+              <p className="text-2xl">🖥</p>
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-navy">이 창 안에서는 바로 열 수 없어요</p>
+                <p className="text-xs text-warm-text">보안 설정(X-Frame-Options)으로 인해 새 탭에서만 열려요</p>
+              </div>
+              <a href={url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3.5
+                           bg-navy text-white font-bold rounded-xl text-sm hover:bg-navy/90">
+                새 탭에서 열기 <ExternalLink size={13} />
+              </a>
+              <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5">
+                <p className="text-xs text-amber-700 leading-relaxed">
+                  💡 <strong>팁:</strong> 새 탭을 열고 이 안내 창을 옆에 나란히 두면<br/>
+                  순서를 보면서 진행할 수 있어요
+                </p>
+              </div>
             </div>
           </div>
-        )}
+        </div>
+      ) : (
+        /* ─── iframe 표시 가능: 모바일 상하 / 데스크탑 좌우 ─── */
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
 
-        {/* iframe */}
-        <iframe
-          src={url}
-          title={title}
-          className="flex-1 w-full border-0 min-h-0"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"
-        />
-      </div>
+          {/* 진행 순서 패널 */}
+          {hasSteps && (
+            <div className="bg-navy/[0.02] border-b lg:border-b-0 lg:border-r border-warm-gray/20
+                            lg:w-72 lg:flex-shrink-0 overflow-y-auto
+                            h-44 lg:h-auto flex-shrink-0">
+              <div className="p-4 space-y-3">
+                <p className="text-[11px] font-bold text-navy/60 tracking-wider">진행 순서</p>
+                <ol className="space-y-2.5">
+                  {steps.map((step, i) => (
+                    <li key={i} className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-navy text-white text-[10px] font-bold
+                                       flex items-center justify-center flex-shrink-0 mt-0.5">
+                        {i + 1}
+                      </span>
+                      <span className="text-xs text-gray-700 leading-relaxed">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="text-[10px] text-warm-text/50 pt-1">
+                  화면이 열리지 않으면 우측 상단 <strong>새 탭</strong>을 눌러주세요
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* iframe */}
+          <iframe
+            src={url}
+            title={title}
+            className="flex-1 w-full border-0 min-h-0"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"
+          />
+        </div>
+      )}
     </div>
   )
 }
