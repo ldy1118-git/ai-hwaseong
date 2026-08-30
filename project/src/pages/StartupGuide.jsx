@@ -4,6 +4,7 @@ import { Check, ChevronRight, ExternalLink, X } from 'lucide-react'
 import JourneyProgress from '../components/ui/JourneyProgress'
 import { EDUCATION, PERMIT, REG_DOCS } from '../data/startupGuide'
 import { getJourney, completeStep } from '../utils/journey'
+import { patchOnboarding } from '../utils/api'
 
 const CATEGORY_EMOJI = {
   카페: '☕', 음식점: '🍜', 소매업: '🛍', 제조업: '🔧', 기타: '🎨',
@@ -411,6 +412,18 @@ export default function StartupGuide({ defaultStep = null }) {
     const next = { ...completedSteps, [stepNum]: true }
     setCompletedSteps(next)
     window.dispatchEvent(new Event('mars-journey-updated'))
+
+    // 사업자등록 완료 → 신규사업자, 영업신고 완료 → 운영중
+    const statusByStep = { 5: '신규사업자', 6: '운영중' }
+    if (statusByStep[stepNum]) {
+      const patch = { business_status: statusByStep[stepNum] }
+      try {
+        const cur = JSON.parse(localStorage.getItem('mars-fit-profile') ?? '{}')
+        localStorage.setItem('mars-fit-profile', JSON.stringify({ ...cur, ...patch }))
+      } catch {}
+      patchOnboarding(patch).catch(() => {})
+    }
+
     const nextStep = [4, 5, 6].find(n => !next[n])
     if (nextStep) setSelected({ stepNum: nextStep, itemIdx: 0 })
     else navigate('/home')
