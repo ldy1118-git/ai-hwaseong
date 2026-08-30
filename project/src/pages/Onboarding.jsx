@@ -1449,7 +1449,8 @@ export default function Onboarding() {
     const profile = (() => {
       try { return JSON.parse(localStorage.getItem('mars-fit-profile') || 'null') } catch { return null }
     })()
-    navigate('/home')
+    const isPreStartup = profile?.business_status === '예비창업자'
+    navigate(isPreStartup ? '/guide' : '/home')
   }
 
   /* ── 내 정보 대시보드 ── */
