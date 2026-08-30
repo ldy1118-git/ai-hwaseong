@@ -239,7 +239,7 @@ function WebGuide({ url, title, steps, onClose }) {
 // ── 상세 패널 ─────────────────────────────────────────────────────
 function DetailPanel({
   stepNum, item,
-  isStepDone, isItemChecked, onToggle,
+  isStepDone, isItemChecked, onCheck,
   isStepAllChecked, onComplete,
   navigate, onSiteOpen,
 }) {
@@ -318,14 +318,14 @@ function DetailPanel({
 
         {!item.notRequired && (
           <div className="pt-2 border-t border-warm-gray/15 flex items-center justify-between">
-            <button type="button" onClick={onToggle} disabled={isStepDone}
+            <button type="button" onClick={onCheck} disabled={isStepDone}
               className="flex items-center gap-2 text-sm font-semibold text-navy disabled:opacity-40">
               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
                 isItemChecked ? 'bg-navy border-navy' : 'border-navy/40'
               }`}>
                 {isItemChecked && <Check size={11} className="text-white" strokeWidth={3} />}
               </div>
-              완료했어요
+              {isItemChecked ? '완료 ✓' : '완료했어요'}
             </button>
             {isStepAllChecked && !isStepDone && (
               <button onClick={onComplete}
@@ -402,6 +402,35 @@ export default function StartupGuide({ defaultStep = null }) {
     const nextStep = [4, 5, 6].find(n => !next[n])
     if (nextStep) setSelected({ stepNum: nextStep, itemIdx: 0 })
     else navigate('/home')
+  }
+
+  // 완료했어요 클릭 → 다음 미완료 항목으로 이동, 스텝 내 모두 완료 시 다음 스텝으로
+  function handleCheckAndAdvance(stepNum, itemIdx) {
+    if (completedSteps[stepNum]) return
+    const key = `${stepNum}_${itemIdx}`
+    const alreadyChecked = !!checked[key]
+
+    if (alreadyChecked) {
+      setChecked(prev => ({ ...prev, [key]: false }))
+      return
+    }
+
+    const newChecked = { ...checked, [key]: true }
+    setChecked(newChecked)
+
+    const items = allItems[stepNum] ?? []
+    // 현재 항목 이후 중 필수·미완료 항목 탐색
+    const nextIdx = items.findIndex((it, i) =>
+      i > itemIdx && !it.notRequired && !newChecked[`${stepNum}_${i}`]
+    )
+
+    if (nextIdx !== -1) {
+      setSelected({ stepNum, itemIdx: nextIdx })
+    } else {
+      // 스텝 내 모든 필수 항목 완료 → 자동 스텝 완료
+      const allDone = items.every((it, i) => it.notRequired || newChecked[`${stepNum}_${i}`])
+      if (allDone) setTimeout(() => handleComplete(stepNum), 200)
+    }
   }
 
   const selectedItem = selected ? allItems[selected.stepNum]?.[selected.itemIdx] : null
@@ -519,7 +548,7 @@ export default function StartupGuide({ defaultStep = null }) {
                 item={selectedItem}
                 isStepDone={!!completedSteps[selected.stepNum]}
                 isItemChecked={isChecked(selected.stepNum, selected.itemIdx)}
-                onToggle={() => toggleCheck(selected.stepNum, selected.itemIdx)}
+                onCheck={() => handleCheckAndAdvance(selected.stepNum, selected.itemIdx)}
                 isStepAllChecked={isStepAllChecked(selected.stepNum)}
                 onComplete={() => handleComplete(selected.stepNum)}
                 navigate={navigate}
