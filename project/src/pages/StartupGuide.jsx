@@ -18,7 +18,7 @@ const STEP_META = {
 // ── 사이트별 진행 순서 ─────────────────────────────────────────────
 function educationSteps(e) {
   if (!e.url) return []
-  if (e.url.includes('kfia21.or.kr') || e.url.includes('kfia.or.kr')) return [
+  if (e.url.includes('kfia.or.kr')) return [
     '한국식품산업협회 사이트 접속 → 우측 상단 로그인 (또는 회원가입)',
     '메뉴 → 식품위생교육 → 신규영업자 위생교육 신청',
     '교육 일정 선택 후 수강료 결제 (온라인 약 10,000원)',
@@ -113,7 +113,7 @@ function buildItems(category) {
 }
 
 // 국세청·정부24 등 X-Frame-Options: DENY 사이트
-const IFRAME_BLOCKED = ['hometax.go.kr', 'gov.kr', 'mss.go.kr', 'nhis.or.kr', 'minwon.go.kr']
+const IFRAME_BLOCKED = ['hometax.go.kr', 'gov.kr', 'mss.go.kr', 'nhis.or.kr', 'minwon.go.kr', 'kfia.or.kr']
 function isIframeBlocked(url) {
   try {
     const host = new URL(url).hostname.replace('www.', '')
