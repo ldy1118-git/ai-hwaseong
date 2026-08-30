@@ -1,10 +1,10 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, CalendarDays, MessageCircle, UserCircle2 } from 'lucide-react'
+import { Home, Store, CalendarDays, MessageCircle, UserCircle2 } from 'lucide-react'
 import logoImg from '../../../design/logo.png'
 import MarsAvatar from '../ui/MarsAvatar'
 import NotificationBell from '../ui/NotificationBell'
 
-const TABS = [
+const BASE_TABS = [
   { icon: Home,          label: '공고',    path: '/home' },
   { icon: CalendarDays,  label: '일정',    path: '/schedule' },
   { icon: MessageCircle, label: '챗봇',    path: '/mission' },
@@ -14,6 +14,8 @@ const TABS = [
 export default function Header({ onAvatarClick, className = '' }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+
+  const TABS = [BASE_TABS[0], { icon: Store, label: '내 매장', path: '/district' }, ...BASE_TABS.slice(1)]
 
   return (
     /* 상단바가 휴대폰 하단 탭바를 그대로 위로 올려놓은 모양이었다 —

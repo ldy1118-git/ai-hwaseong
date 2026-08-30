@@ -232,11 +232,11 @@ export default function MyStore() {
   }, [matches])
 
   const nextN = next ? dDay(next.dueDate) : null
-  const isOwner = profile?.business_status === '운영중'
+  const isOwner = ['운영중', '신규사업자'].includes(profile?.business_status)
 
   return (
     <div className="min-h-screen bg-primary-bg pb-24">
-      {isOwner && <Header />}
+      <Header />
 
       {/* 예비창업자 — 창업 여정 진행 표시 (상권 추천 = 2단계) */}
       {!isOwner && <JourneyProgress currentStep={2} />}

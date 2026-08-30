@@ -64,6 +64,23 @@ function restoreChecked(newItems, noticeId) {
   })
 }
 
+// 프로필에 이미 있는 정보로 확인 가능한 서류를 자동 완료 처리.
+// 저장된 항목(사용자가 직접 체크/해제)은 건드리지 않는다.
+function applyAutoChecks(items, profile, noticeId) {
+  const saved = getProgress(noticeId)
+  const savedLabels = new Set(saved?.items?.map(si => si.label) ?? [])
+  const hasBizReg = ['운영중', '신규사업자'].includes(profile?.business_status)
+
+  return items.map(it => {
+    if (savedLabels.has(it.label) || it.checked) return it
+    const label = it.label ?? ''
+    if (hasBizReg && (label.includes('사업자등록') || label.includes('사업자 등록'))) {
+      return { ...it, checked: true, autoChecked: true }
+    }
+    return it
+  })
+}
+
 const STATIC_ITEMS = [
   { id: 1, label: '사업자등록증 사본',     desc: '주소·업종 변경 여부 확인 후 제출',  issueUrl: 'https://www.hometax.go.kr', checked: false },
   { id: 2, label: '신분증 사본',           desc: '대표자 신분증 앞면',                issueUrl: null,                       checked: false },
@@ -390,8 +407,9 @@ export default function ApplicationGuide() {
         console.error('AI checklist LLM error:', llmErr)
         setLlmWarn(`AI 서버에 연결하지 못했어요 (${llmErr?.message ?? '알 수 없는 오류'}). 기본 서류 목록을 보여드려요.`)
       }
-      // 이전에 체크한 항목 복원
-      setItems(restoreChecked(baseItems, matched.notice_id))
+      // 이전에 체크한 항목 복원 → 프로필 기반 자동 완료 적용
+      const restored = restoreChecked(baseItems, matched.notice_id)
+      setItems(applyAutoChecks(restored, profile, matched.notice_id))
     } catch (err) {
       // 매칭 자체가 실패한 경우 — 이때만 에러 화면
       console.error('AI checklist error:', err)

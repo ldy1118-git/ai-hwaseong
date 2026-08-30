@@ -570,7 +570,7 @@ const EDIT_CFG = {
     title: '사업 상태 변경',
     type: 'choice',
     options: [
-      { value: '예비창업자', label: '예비창업자', emoji: '💡' },
+      { value: '신규사업자', label: '신규사업자', emoji: '📄' },
       { value: '운영중',     label: '운영 중',    emoji: '🏪' },
     ],
   },
@@ -1366,6 +1366,11 @@ export default function Onboarding() {
   // 기본값으로만 넣는다.
   function applyOcr(r, profile = {}) {
     setOcrResult(r)
+    // 사업자등록증 확인 = 사업자 신분 확정. 이후 "항해 시작하기"도 같은 값을
+    // 덮어쓰므로 여기서 먼저 써둬도 결과가 달라지지 않는다.
+    if (path === 'D' || path === 'E') {
+      set('business_status', path === 'E' ? '운영중' : '신규사업자')
+    }
     if (r.업종) set('category', r.업종)
     if (r.개업일) {
       setOpenDate(r.개업일)
@@ -1443,8 +1448,7 @@ export default function Onboarding() {
     const profile = (() => {
       try { return JSON.parse(localStorage.getItem('mars-fit-profile') || 'null') } catch { return null }
     })()
-    const isPreStartup = profile?.business_status === '예비창업자'
-    navigate(isPreStartup ? '/district' : '/home')
+    navigate('/home')
   }
 
   /* ── 내 정보 대시보드 ── */
@@ -1472,18 +1476,9 @@ export default function Onboarding() {
   if (stage === 'q1') {
     return (
       <Shell current={current} total={total} marsMessage={marsMsg} stageKey="q1">
-        <Ask title="지금 어디까지 준비하셨나요?"
+        <Ask title="사업 현황을 알려주세요"
              why="상황에 따라 받을 수 있는 지원사업이 완전히 달라져요.">
           <div className="flex flex-col gap-3">
-            <Choice emoji="🌱" label="아직 뭘 할지 모르겠어요"
-              desc="관심 분야부터 가볍게 탐색해봐요"
-              onClick={() => { setPath('A'); setStage('field') }} />
-            <Choice emoji="💡" label="하고 싶은 게 있어요"
-              desc="구체적인 창업 아이디어가 있어요"
-              onClick={() => { setPath('B'); setStage('wish') }} />
-            <Choice emoji="📋" label="창업을 준비하고 있어요"
-              desc="업종·장소·교육 등 준비 중이에요"
-              onClick={() => { setPath('C'); setStage('prep') }} />
             <Choice emoji="📄" label="사업자등록까지 했어요"
               desc="사업자등록증이 발급됐어요"
               onClick={() => { setPath('D'); setStage('biz') }} />
