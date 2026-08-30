@@ -2,16 +2,13 @@ import { useState, useEffect, useRef, useCallback, useMemo, createElement } from
 import { useNavigate } from 'react-router-dom'
 import { renderToStaticMarkup } from 'react-dom/server'
 import {
-  School, Utensils, BookOpen, Coffee, Building2, Search, Train,
-  Maximize2, X as XIcon, Sparkles, Users, CreditCard, MapPin,
+  School, Utensils, BookOpen, Coffee, Search, Train,
+  Maximize2, X as XIcon, Sparkles, Users, MapPin,
   ChevronDown, ChevronUp, ShoppingBag, Scissors, Stethoscope,
-  ChevronLeft, ChevronRight, Database,
 } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { apiUrl } from '../../utils/api'
-import marsImg   from '../../../design/mars.png'
-import searchImg from '../../../design/search.png'
 import findImg   from '../../../design/find.png'
 import { saveCandidate } from '../../utils/journey'
 
@@ -122,15 +119,6 @@ function LeafletMap({ position, onMove, radii, markers, sizeKey, recommendPins =
 // ── 상수 ─────────────────────────────────────────────────────────
 const HWS_CENTER = { lat: 37.1999, lng: 126.8317 }
 
-const DATA_GALLERY = [
-  { src: '/screenshots/data-list.png',   label: '전체 데이터 목록',                   desc: '상권분석에 사용된 공공 데이터 출처 일람' },
-  { src: '/screenshots/stores.png',      label: '소상공인시장진흥공단 상가(상권)정보', desc: '경기도 내 상가 업종·위치 정보 (2026.06)' },
-  { src: '/screenshots/schools.png',     label: '경기도교육청 학교기본정보',           desc: '초·중·고등학교 위치 및 현황' },
-  { src: '/screenshots/stations.png',    label: '국가철도공단 지하철 주소데이터',      desc: '코레일 및 수도권 전철 역 위치 (2025.06)' },
-  { src: '/screenshots/passengers.png',  label: '한국철도공사 역별 승하차 현황',      desc: '역별 연간 승하차 인원 (2024.12)' },
-  { src: '/screenshots/card-sales.png',  label: '분석시스템 카드매출 시간대별',       desc: '화성시 행정동별 카드 소비 시간대 데이터' },
-  { src: '/screenshots/apartments.png',  label: 'K-apt 단지·면적 정보',              desc: '경기도 아파트 단지 세대수 현황 (2026.08)' },
-]
 
 const TZ_LABELS = {
   TZ01: '자정~새벽',  TZ02: '새벽',    TZ03: '오전',
@@ -201,7 +189,7 @@ function fmtWon(won) {
   return `약 ${Math.round(won / 10000).toLocaleString()}만원`
 }
 
-async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPassengersTotal, radii, ftScore, ftLevel }) {
+async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPassengersTotal, radii, ftScore, ftLevel, targetCategory = null }) {
   const lines = []
 
   lines.push(`유동인구 예측: 약 ${ftScore.toLocaleString()}명/일 (${ftLevel.text} — ${ftLevel.desc})`)
@@ -266,9 +254,22 @@ async function fetchCommercialSummary({ amenities, aptDong, cardSales, stationPa
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      system: `당신은 마이다(Mar-DA)입니다. 화성시 소상공인을 응원하는 친근한 상권 분석 도우미예요.
+      system: targetCategory
+        ? `당신은 마이다(Mar-DA)입니다. 화성시 소상공인을 응원하는 친근한 상권 분석 도우미예요.
+지금 사용자는 「${targetCategory}」 창업을 준비 중이에요. 이 위치의 데이터를 보고 ${targetCategory} 창업에 얼마나 좋은 자리인지 분석해주세요.
+
+반드시 아래 JSON 형식으로만 답하세요:
+{"bullets":["문장1","문장2","문장3"],"advice":"핵심 조언","top_categories":["카페","소매업"]}
+
+규칙:
+• bullets 3-5개, 각 항목은 완성된 한 문장 (40-80자)
+• "${targetCategory} 창업"을 중심으로 이 위치가 얼마나 적합한지 설명
+• 유동인구·경쟁 현황·주변 인프라(역·학교·아파트)를 근거로 자연스럽게 녹여 쓸 것
+• "~해요", "~있어요", "~것 같아요" 친근한 말투
+• advice: ${targetCategory}로 이 위치에 창업할 때 핵심 포인트, 50자 이내
+• top_categories: 이 위치 최적 업종 1-3개 ["카페","음식점","소매업","제조업","기타"]에서 선택`
+        : `당신은 마이다(Mar-DA)입니다. 화성시 소상공인을 응원하는 친근한 상권 분석 도우미예요.
 창업을 고민하는 사장님께 데이터를 보여주는 게 아니라, 그 숫자가 뜻하는 바를 사람 말로 풀어주세요.
-숫자는 근거로만 쓰고, 핵심은 "그래서 이 동네는 어떤 곳이다" "이 업종을 하면 어떨 것 같다"는 해석이에요.
 
 반드시 아래 JSON 형식으로만 답하세요:
 {"bullets":["문장1","문장2","문장3"],"advice":"핵심 조언","top_categories":["카페","소매업"]}
@@ -313,16 +314,6 @@ function HighlightedText({ text }) {
   )
 }
 
-// ── 단계 번호 뱃지 ────────────────────────────────────────────────
-function StepBadge({ n }) {
-  return (
-    <span className="w-8 h-8 rounded-full bg-navy text-white text-sm font-black
-                     flex items-center justify-center flex-shrink-0">
-      {n}
-    </span>
-  )
-}
-
 // ── 메인 컴포넌트 ────────────────────────────────────────────────
 export default function CommercialAnalysisView({ profile }) {
   const navigate = useNavigate()
@@ -333,8 +324,6 @@ export default function CommercialAnalysisView({ profile }) {
   const [activePreset, setActivePreset]   = useState(500)
   const [showDetailSliders, setShowDetailSliders] = useState(false)
   const [expanded, setExpanded]           = useState(false)
-  const [showGallery, setShowGallery]     = useState(false)
-  const [galleryIdx, setGalleryIdx]       = useState(0)
   const [apiData, setApiData]             = useState(null)
   const [llmSummary, setLlmSummary]       = useState(null)
   const [llmLoading, setLlmLoading]       = useState(false)
@@ -350,6 +339,7 @@ export default function CommercialAnalysisView({ profile }) {
   const [recommendCategory, setRecommendCategory] = useState(null) // 현재 추천 업종
   const debounceRef  = useRef(null)
   const addressInput = useRef(null)
+  const autoAnalyzeTriggered = useRef(false)
 
   /* 펼친 지도는 화면을 통째로 덮는다(`fixed inset-0`, z-index 9999).
      나가는 길이 오른쪽 위 아이콘 하나뿐이라 못 찾고 갇히는 일이 있었다.
@@ -390,6 +380,27 @@ export default function CommercialAnalysisView({ profile }) {
   useEffect(() => {
     if (inputMode === 'address') addressInput.current?.focus()
   }, [inputMode])
+
+  // 프로필에 업종이 있으면 업종 추천 모드로 자동 시작
+  useEffect(() => {
+    if (profile?.category) {
+      setRecommendCategory(profile.category)
+      setInputMode('category')
+      setSelectedCategory(profile.category)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    autoAnalyzeTriggered.current = false
+    setLlmAsked(false)
+    setLlmSummary(null)
+  }, [recommendCategory])
+
+  useEffect(() => {
+    if (!apiData || autoAnalyzeTriggered.current || inputMode !== 'category' || !recommendCategory) return
+    autoAnalyzeTriggered.current = true
+    handleAskMaidaRef.current()
+  }, [apiData, inputMode, recommendCategory]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 업종 모드: 업종 선택 시 /api/recommend 호출 → 지도에 핀 표시
   useEffect(() => {
@@ -450,8 +461,6 @@ export default function CommercialAnalysisView({ profile }) {
     [amenities, stationPassengersTotal, aptDong]
   )
   const ftLevel  = footTrafficLevel(ftScore)
-  const bizTotal = amenities.restaurants + amenities.cafes + amenities.academies +
-    amenities.retail + amenities.beauty + amenities.medical
 
   const applyPreset = useCallback((meters) => {
     setActivePreset(meters)
@@ -504,7 +513,7 @@ export default function CommercialAnalysisView({ profile }) {
     setLlmAsked(true)
     setCandidateSaved(false)
     try {
-      const result = await fetchCommercialSummary({ amenities, aptDong, cardSales, stationPassengersTotal, radii, ftScore, ftLevel })
+      const result = await fetchCommercialSummary({ amenities, aptDong, cardSales, stationPassengersTotal, radii, ftScore, ftLevel, targetCategory: recommendCategory || profile?.category || null })
       setLlmSummary(result)
       // LLM 이 추천한 업종 중 첫 번째로 미리 선택
       if (result.top_categories?.length > 0 && !selectedCategory) {
@@ -515,7 +524,10 @@ export default function CommercialAnalysisView({ profile }) {
     } finally {
       setLlmLoading(false)
     }
-  }, [amenities, aptDong, cardSales, stationPassengersTotal, radii, ftScore, ftLevel, selectedCategory])
+  }, [amenities, aptDong, cardSales, stationPassengersTotal, radii, ftScore, ftLevel, selectedCategory, recommendCategory, profile])
+
+  const handleAskMaidaRef = useRef(handleAskMaida)
+  useEffect(() => { handleAskMaidaRef.current = handleAskMaida }, [handleAskMaida])
 
   const handleSaveCandidate = useCallback(() => {
     // ftScore 를 0-100 창업 적합도로 변환 (4000=65, 8000=92)
@@ -533,538 +545,312 @@ export default function CommercialAnalysisView({ profile }) {
   return (
     <div className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
 
-      {/* ── 인트로 배너 ─────────────────────────────────────────── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-navy to-navy/80 rounded-2xl px-6 py-4 flex items-center gap-6">
-        <div className="absolute top-2 right-32 w-1.5 h-1.5 rounded-full bg-white/20" />
-        <div className="absolute top-6 right-44 w-1 h-1 rounded-full bg-white/15" />
-        <img src={marsImg} alt="마이다" className="w-16 h-16 object-contain flex-shrink-0"
-          style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }} />
-        <div className="flex-1">
-          <p className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-0.5">마이다 상권분석</p>
-          <p className="text-lg font-extrabold text-white leading-snug">
-            창업 예정지의 상권을 실제 데이터로 분석해드려요
-          </p>
-          <p className="text-sm text-white/70 mt-1">
-            위치를 고르면 유동인구·매출·경쟁 현황을 한눈에 볼 수 있어요
-          </p>
-          <button
-            onClick={() => { setGalleryIdx(0); setShowGallery(true) }}
-            className="mt-3 flex items-center gap-1.5 text-xs font-semibold
-                       bg-white/15 hover:bg-white/25 text-white rounded-lg px-3 py-1.5
-                       transition-colors duration-150 border border-white/20">
-            <Database size={11} />
-            실제 데이터 미리보기
+      {/* ── 지도 카드 ─────────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm p-4 flex flex-col gap-3">
+
+        {/* 업종 기반 개인화 안내 */}
+        {(profile?.category || recommendCategory) && (
+          <div className="flex items-center gap-2">
+            <span className="text-base">{CATEGORY_EMOJI[recommendCategory || profile?.category] ?? '🚀'}</span>
+            <div>
+              <p className="text-sm font-bold text-navy">
+                {(recommendCategory || profile?.category)} 창업에 맞는 상권을 찾아드려요
+              </p>
+              <p className="text-xs text-warm-text">업종을 바꾸거나 직접 위치를 고를 수도 있어요</p>
+            </div>
+          </div>
+        )}
+
+        {/* 입력 방식 탭 */}
+        <div className="flex bg-gray-50 border border-warm-gray/20 rounded-xl p-0.5">
+          <button type="button" onClick={() => setInputMode('map')}
+            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all
+              ${inputMode === 'map' ? 'bg-white text-navy shadow-sm' : 'text-warm-text hover:text-navy'}`}>
+            <MapPin size={11} /> 지도
+          </button>
+          <button type="button" onClick={() => setInputMode('address')}
+            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all
+              ${inputMode === 'address' ? 'bg-white text-navy shadow-sm' : 'text-warm-text hover:text-navy'}`}>
+            <Search size={11} /> 주소
+          </button>
+          <button type="button" onClick={() => setInputMode('category')}
+            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all
+              ${inputMode === 'category' ? 'bg-white text-sunset-orange shadow-sm' : 'text-warm-text hover:text-navy'}`}>
+            <Sparkles size={11} /> 업종 추천
           </button>
         </div>
-      </div>
 
-      {/* ── ROW 1: 지도 + 범위 설정 ─────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-
-        {/* 지도 카드 (lg: 3/5) */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-warm-gray/20 shadow-sm p-4 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <StepBadge n={1} />
-            <p className="text-base font-bold text-navy leading-tight">어디서 창업하고 싶으세요?</p>
-          </div>
-
-          {/* 입력 방식 탭 */}
-          <div className="flex bg-gray-50 border border-warm-gray/20 rounded-xl p-0.5">
-            <button type="button" onClick={() => setInputMode('map')}
-              className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all
-                ${inputMode === 'map' ? 'bg-white text-navy shadow-sm' : 'text-warm-text hover:text-navy'}`}>
-              <MapPin size={11} /> 지도
-            </button>
-            <button type="button" onClick={() => setInputMode('address')}
-              className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all
-                ${inputMode === 'address' ? 'bg-white text-navy shadow-sm' : 'text-warm-text hover:text-navy'}`}>
-              <Search size={11} /> 주소
-            </button>
-            <button type="button" onClick={() => setInputMode('category')}
-              className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all
-                ${inputMode === 'category' ? 'bg-white text-sunset-orange shadow-sm' : 'text-warm-text hover:text-navy'}`}>
-              <Sparkles size={11} /> 업종 추천
-            </button>
-          </div>
-
-          {/* 업종 모드: 업종 선택 → 화성시 내 추천 위치 표시 */}
-          {inputMode === 'category' && (
-            <div className="space-y-2">
-              <p className="text-xs text-warm-text">업종을 고르면 화성시 내 최적 상권을 지도에 표시해드려요</p>
-              <div className="flex flex-wrap gap-2">
-                {['카페', '음식점', '소매업', '제조업', '기타'].map(cat => (
-                  <button key={cat} type="button"
-                    onClick={() => setRecommendCategory(cat)}
-                    className={[
-                      'px-3 py-1.5 rounded-full text-xs font-bold border transition-all',
-                      recommendCategory === cat
-                        ? 'bg-sunset-orange text-white border-sunset-orange'
-                        : 'bg-white text-navy border-navy/25 hover:border-navy/50',
-                    ].join(' ')}>
-                    {CATEGORY_EMOJI[cat]} {cat}
-                  </button>
-                ))}
-              </div>
-              {recommendLoading && (
-                <div className="flex items-center gap-2 text-xs text-warm-text py-1">
-                  <span className="w-3 h-3 rounded-full border-2 border-navy/30 border-t-navy animate-spin" />
-                  화성시 최적 상권을 찾고 있어요...
-                </div>
-              )}
-              {!recommendLoading && recommendPins.length > 0 && (
-                <p className="text-xs font-semibold text-sunset-orange">
-                  ✓ 번호 핀을 누르면 그 위치로 이동해요 →
-                </p>
-              )}
+        {/* 업종 모드: 업종 선택 → 화성시 내 추천 위치 표시 */}
+        {inputMode === 'category' && (
+          <div className="space-y-2">
+            <p className="text-xs text-warm-text">업종을 고르면 화성시 내 최적 상권을 지도에 표시해드려요</p>
+            <div className="flex flex-wrap gap-2">
+              {['카페', '음식점', '소매업', '제조업', '기타'].map(cat => (
+                <button key={cat} type="button"
+                  onClick={() => setRecommendCategory(cat)}
+                  className={[
+                    'px-3 py-1.5 rounded-full text-xs font-bold border transition-all',
+                    recommendCategory === cat
+                      ? 'bg-sunset-orange text-white border-sunset-orange'
+                      : 'bg-white text-navy border-navy/25 hover:border-navy/50',
+                  ].join(' ')}>
+                  {CATEGORY_EMOJI[cat]} {cat}
+                </button>
+              ))}
             </div>
-          )}
+            {recommendLoading && (
+              <div className="flex items-center gap-2 text-xs text-warm-text py-1">
+                <span className="w-3 h-3 rounded-full border-2 border-navy/30 border-t-navy animate-spin" />
+                화성시 최적 상권을 찾고 있어요...
+              </div>
+            )}
+            {!recommendLoading && recommendPins.length > 0 && (
+              <p className="text-xs font-semibold text-sunset-orange">
+                ✓ 번호 핀을 누르면 그 위치로 이동해요 →
+              </p>
+            )}
+          </div>
+        )}
 
-          {/* 주소 모드: 검색폼 위로 */}
-          {inputMode === 'address' && (
-            <form onSubmit={handleSearch} className="flex gap-1.5">
-              <input
-                ref={addressInput}
-                type="text" value={address} onChange={e => setAddress(e.target.value)}
-                placeholder="예: 동탄역, 병점동, 봉담읍, 동탄2신도시..."
-                className="flex-1 min-w-0 text-sm bg-gray-50 border border-navy/30 rounded-xl
-                           px-3 py-3 text-navy placeholder:text-warm-gray/50
-                           focus:outline-none focus:border-navy focus:bg-white transition-colors"
-              />
-              <button type="submit" disabled={searching}
-                className="flex-shrink-0 bg-navy text-white rounded-xl px-4 py-3 text-xs font-semibold
-                           disabled:opacity-50 flex items-center gap-1.5">
-                <Search size={13} />검색
-              </button>
-            </form>
-          )}
-
-          {/* 지도 */}
-          <div
-            className="relative rounded-xl overflow-hidden border border-warm-gray/15 flex-1 transition-all duration-300"
-            style={{ minHeight: inputMode === 'address' ? 180 : 260 }}
-          >
-            <LeafletMap
-              position={position} onMove={handleMarkerMove} radii={effectiveRadii}
-              markers={inputMode === 'category' ? [] : displayMarkers.filter(m => enabledFacilities[m.key])}
-              sizeKey={`${showDetailSliders}-${inputMode}`}
-              recommendPins={inputMode === 'category' ? recommendPins : []}
+        {/* 주소 모드: 검색폼 위로 */}
+        {inputMode === 'address' && (
+          <form onSubmit={handleSearch} className="flex gap-1.5">
+            <input
+              ref={addressInput}
+              type="text" value={address} onChange={e => setAddress(e.target.value)}
+              placeholder="예: 동탄역, 병점동, 봉담읍, 동탄2신도시..."
+              className="flex-1 min-w-0 text-sm bg-gray-50 border border-navy/30 rounded-xl
+                         px-3 py-3 text-navy placeholder:text-warm-gray/50
+                         focus:outline-none focus:border-navy focus:bg-white transition-colors"
             />
-            {inputMode === 'map' && (
-              <button onClick={() => setExpanded(true)}
-                aria-label="지도 크게 보기"
-                className="tap absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-warm-gray/30
-                           rounded-lg px-2 py-1.5 shadow hover:bg-white transition-colors
-                           flex items-center gap-1 text-[11px] font-bold text-navy"
-                style={{ zIndex: 1000 }}>
-                <Maximize2 size={13} /> 크게 보기
+            <button type="submit" disabled={searching}
+              className="flex-shrink-0 bg-navy text-white rounded-xl px-4 py-3 text-xs font-semibold
+                         disabled:opacity-50 flex items-center gap-1.5">
+              <Search size={13} />검색
+            </button>
+          </form>
+        )}
+
+        {/* 범위 프리셋 */}
+        <div className="flex gap-2">
+          {RANGE_PRESETS.map(({ label, meters }) => {
+            const active = activePreset === meters
+            return (
+              <button key={meters} onClick={() => applyPreset(meters)}
+                className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl border-2 text-xs font-bold transition-all
+                  ${active
+                    ? 'border-navy bg-navy text-white'
+                    : 'border-warm-gray/30 bg-gray-50 text-warm-text hover:border-navy/40 hover:bg-white'
+                  }`}>
+                <span className="font-extrabold">{label}</span>
+                <span className={`font-normal ${active ? 'text-white/70' : 'text-navy/50'}`}>{meters}m</span>
               </button>
-            )}
-            {inputMode === 'address' && (
-              <div className="absolute bottom-2 inset-x-0 flex justify-center pointer-events-none"
-                style={{ zIndex: 1000 }}>
-                <span className="bg-navy/80 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full">
-                  핀을 드래그해서 위치를 미세 조정할 수 있어요
-                </span>
-              </div>
-            )}
-          </div>
+            )
+          })}
+        </div>
 
-          {address && (
-            <div className="flex items-center gap-1.5 text-sm text-warm-text -mt-1">
-              <MapPin size={11} className="text-navy flex-shrink-0" />
-              <span>선택한 위치: <strong className="text-navy">{address}</strong></span>
-            </div>
-          )}
-
-          {/* 지도 모드: 검색폼 아래로 */}
+        {/* 지도 */}
+        <div
+          className="relative rounded-xl overflow-hidden border border-warm-gray/15 flex-1 transition-all duration-300"
+          style={{ minHeight: inputMode === 'address' ? 180 : 260 }}
+        >
+          <LeafletMap
+            position={position} onMove={handleMarkerMove} radii={effectiveRadii}
+            markers={inputMode === 'category' ? [] : displayMarkers.filter(m => enabledFacilities[m.key])}
+            sizeKey={`${showDetailSliders}-${inputMode}`}
+            recommendPins={inputMode === 'category' ? recommendPins : []}
+          />
           {inputMode === 'map' && (
-            <form onSubmit={handleSearch} className="flex gap-1.5">
-              <input
-                type="text" value={address} onChange={e => setAddress(e.target.value)}
-                placeholder="예: 동탄역, 병점동, 봉담읍..."
-                className="flex-1 min-w-0 text-sm bg-gray-50 border border-warm-gray/30 rounded-xl
-                           px-3 py-2 text-navy placeholder:text-warm-gray/50
-                           focus:outline-none focus:border-navy focus:bg-white transition-colors"
-              />
-              <button type="submit" disabled={searching}
-                className="flex-shrink-0 bg-navy text-white rounded-xl px-3 py-2 text-xs font-semibold
-                           disabled:opacity-50 flex items-center gap-1">
-                <Search size={13} />검색
-              </button>
-            </form>
+            <button onClick={() => setExpanded(true)}
+              aria-label="지도 크게 보기"
+              className="tap absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-warm-gray/30
+                         rounded-lg px-2 py-1.5 shadow hover:bg-white transition-colors
+                         flex items-center gap-1 text-[11px] font-bold text-navy"
+              style={{ zIndex: 1000 }}>
+              <Maximize2 size={13} /> 크게 보기
+            </button>
+          )}
+          {inputMode === 'address' && (
+            <div className="absolute bottom-2 inset-x-0 flex justify-center pointer-events-none"
+              style={{ zIndex: 1000 }}>
+              <span className="bg-navy/80 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full">
+                핀을 드래그해서 위치를 미세 조정할 수 있어요
+              </span>
+            </div>
           )}
         </div>
 
-        {/* 범위 + 시설 카드 (lg: 2/5) */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-warm-gray/20 shadow-sm p-4 flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <StepBadge n={2} />
-            <div>
-              <p className="text-base font-bold text-navy leading-tight">범위를 설정해보세요</p>
-              <p className="text-sm text-warm-text">걸어서 이동 가능한 거리 기준</p>
-            </div>
+        {/* 유동인구 한 줄 */}
+        {apiData && (
+          <div className="flex items-center gap-2 text-xs text-warm-text">
+            <Users size={11} className="flex-shrink-0" style={{ color: ftLevel.color }} />
+            <span>
+              유동인구 예측{' '}
+              <strong className="text-navy tabular-nums">
+                {ftScore >= 10000
+                  ? `${(ftScore / 10000).toFixed(1)}만`
+                  : ftScore.toLocaleString()}명/일
+              </strong>
+              {' '}·{' '}
+              <span className="font-semibold" style={{ color: ftLevel.color }}>{ftLevel.text}</span>
+            </span>
           </div>
+        )}
 
-          {/* 프리셋 */}
-          <div className="grid grid-cols-3 gap-2">
-            {RANGE_PRESETS.map(({ label, meters, walk, recommended }) => {
-              const active = activePreset === meters
-              return (
-                <button key={meters} onClick={() => applyPreset(meters)}
-                  className={`relative flex flex-col items-center py-3 px-1 rounded-xl border-2 transition-all
-                    ${active
-                      ? 'border-navy bg-navy text-white shadow-md'
-                      : 'border-warm-gray/30 bg-gray-50 text-warm-text hover:border-navy/40 hover:bg-white'
-                    }`}
-                >
-                  {recommended && (
-                    <span className={`absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-bold px-1.5 py-0.5 rounded-full
-                      ${active ? 'bg-white text-navy' : 'bg-star-yellow text-navy'}`}>추천</span>
-                  )}
-                  <span className="text-base font-extrabold">{label}</span>
-                  <span className={`text-sm ${active ? 'text-white/80' : 'text-navy/60'}`}>{walk}</span>
-                </button>
-              )
-            })}
+        {address && (
+          <div className="flex items-center gap-1.5 text-sm text-warm-text">
+            <MapPin size={11} className="text-navy flex-shrink-0" />
+            <span>선택한 위치: <strong className="text-navy">{address}</strong></span>
           </div>
+        )}
 
-          {/* 시설 현황 */}
-          <div>
-            <p className="text-xs font-semibold text-warm-text mb-2">반경 내 시설 현황 <span className="font-normal opacity-60">(아이콘 클릭으로 끄기/켜기)</span></p>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+        {/* 지도 모드: 검색폼 아래로 */}
+        {inputMode === 'map' && (
+          <form onSubmit={handleSearch} className="flex gap-1.5">
+            <input
+              type="text" value={address} onChange={e => setAddress(e.target.value)}
+              placeholder="예: 동탄역, 병점동, 봉담읍..."
+              className="flex-1 min-w-0 text-sm bg-gray-50 border border-warm-gray/30 rounded-xl
+                         px-3 py-2 text-navy placeholder:text-warm-gray/50
+                         focus:outline-none focus:border-navy focus:bg-white transition-colors"
+            />
+            <button type="submit" disabled={searching}
+              className="flex-shrink-0 bg-navy text-white rounded-xl px-3 py-2 text-xs font-semibold
+                         disabled:opacity-50 flex items-center gap-1">
+              <Search size={13} />검색
+            </button>
+          </form>
+        )}
+
+        {/* 세부 슬라이더 */}
+        <div>
+          <button onClick={() => setShowDetailSliders(v => !v)}
+            className="flex items-center gap-1 text-xs text-navy/50 hover:text-navy transition-colors">
+            {showDetailSliders ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+            시설 종류별로 따로 설정
+          </button>
+          {showDetailSliders && (
+            <div className="mt-2 space-y-3">
               {AMENITY_CONFIG.map(({ key, label, Icon, color }) => {
                 const enabled = enabledFacilities[key]
                 return (
-                  <button key={key} onClick={() => toggleFacility(key)}
-                    className={`flex items-center gap-2 text-left transition-opacity rounded-lg px-1 py-0.5 hover:bg-gray-50 ${enabled ? '' : 'opacity-35'}`}>
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: color + '22', border: `2px solid ${enabled ? color : '#ccc'}` }}>
-                      <Icon size={12} style={{ color: enabled ? color : '#aaa' }} />
-                    </div>
-                    <span className="text-xs text-warm-text flex-1">{label}</span>
-                    <span className="text-sm font-extrabold text-navy tabular-nums">{amenities[key]}</span>
-                    <span className="text-xs text-warm-text">개</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* 세부 슬라이더 */}
-          <div>
-            <button onClick={() => setShowDetailSliders(v => !v)}
-              className="flex items-center gap-1 text-sm text-navy/50 hover:text-navy transition-colors">
-              {showDetailSliders ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-              시설 종류별로 따로 설정
-            </button>
-            {showDetailSliders && (
-              <div className="mt-2 space-y-3">
-                {AMENITY_CONFIG.map(({ key, label, Icon, color }) => {
-                  const enabled = enabledFacilities[key]
-                  return (
-                    <div key={key} className={`transition-opacity ${enabled ? '' : 'opacity-50'}`}>
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-1.5">
-                          <Icon size={9} style={{ color: enabled ? color : '#aaa' }} />
-                          <span className="text-xs text-warm-text">{label}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {enabled && (
-                            <span className="text-xs font-semibold tabular-nums" style={{ color }}>
-                              {radii[key] >= 1000 ? `${radii[key] / 1000}km` : `${radii[key]}m`}
-                            </span>
-                          )}
-                          {/* 토글 스위치 */}
-                          <button
-                            onClick={() => toggleFacility(key)}
-                            className="relative flex-shrink-0 rounded-full transition-colors duration-200"
-                            style={{ width: 32, height: 18, background: enabled ? color : '#d1d5db' }}
-                            title={enabled ? '끄기' : '켜기'}
-                          >
-                            <span
-                              className="absolute w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-all duration-200"
-                              style={{ top: 2, left: enabled ? 16 : 2 }}
-                            />
-                          </button>
-                        </div>
-                      </div>
-                      {enabled && (
-                        <input type="range" min={100} max={3000} step={50}
-                          value={radii[key]} onChange={e => setRadius(key, e.target.value)}
-                          className="w-full h-1.5 cursor-pointer" style={{ accentColor: color }} />
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── ROW 2: 핵심 지표 4개 ────────────────────────────────── */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <StepBadge n={3} />
-          <p className="text-base font-bold text-navy">이 위치의 상권은 어때요?</p>
-          <img src={searchImg} alt="" className="w-7 h-7 object-contain ml-auto" />
-        </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-
-          {/* 유동인구 */}
-          <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-3">
-            <div className="flex items-center gap-1 mb-1.5">
-              <Users size={10} className="text-warm-text" />
-              <p className="text-xs text-warm-text font-medium">유동인구 예측</p>
-            </div>
-            <p className="text-2xl font-extrabold text-navy tabular-nums leading-none">
-              {ftScore >= 10000
-                ? `${(ftScore / 10000).toFixed(1)}만`
-                : ftScore.toLocaleString()}
-              <span className="text-xs font-normal text-warm-text ml-1">명/일</span>
-            </p>
-            <span className="inline-block mt-2 text-xs font-semibold px-1.5 py-0.5 rounded-full"
-              style={{ color: ftLevel.color, background: ftLevel.color + '18' }}>
-              {ftLevel.text}
-            </span>
-            <p className="text-xs text-warm-text mt-1 leading-snug">{ftLevel.desc}</p>
-          </div>
-
-          {/* 카드매출
-
-                **어디 매출인지를 화면에 적는다.** 서버는 행정동을 못 찾으면
-                화성시 평균으로 떨어지면서 `area_name: "화성시 평균"` 을 같이
-                보낸다. 그런데 화면이 그걸 안 읽고 「이 지역 카드매출」이라고만
-                써서, 수원대에서도 동탄역에서도 똑같은 21억이 「이 자리 매출」로
-                보였다. 출처 없는 숫자를 두지 않는다는 원칙의 정반대다.
-
-                평균일 때는 피크 시간대를 안 그린다 — 그 경우 `peak_pct` 가
-                0.0 이라 「피크 오후 (0.0%)」라고 뜬다. */}
-          <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-3">
-            <div className="flex items-center gap-1 mb-1.5">
-              <CreditCard size={10} className="text-warm-text" />
-              <p className="text-xs text-warm-text font-medium">
-                  {isAvgSales ? '화성시 평균 카드매출' : '이 지역 카드매출'}
-                </p>
-            </div>
-            {cardSales ? (
-              <>
-                <p className="text-2xl font-extrabold text-navy tabular-nums leading-none">
-                  {Math.round(cardSales.total_sales / 1e8).toLocaleString()}
-                  <span className="text-xs font-normal text-warm-text ml-1">억/월</span>
-                </p>
-                {isAvgSales ? (
-                    <p className="text-xs text-warm-text mt-2 leading-snug">
-                      이 자리의 행정동 집계가 없어 <strong className="text-navy">화성시 평균</strong>이에요
-                    </p>
-                  ) : (
-                    <p className="text-xs text-warm-text mt-2 leading-snug">
-                    피크 <strong className="text-navy">{TZ_LABELS[cardSales.peak_tz] || cardSales.peak_tz}</strong>
-                  {' '}({cardSales.peak_pct.toFixed(1)}%)
-                  </p>
-                  )}
-              </>
-            ) : (
-              <>
-                <p className="text-lg font-bold text-warm-text/30 mt-1">—</p>
-                <p className="text-xs text-warm-text mt-2">화성시 집계 밖 지역이에요</p>
-              </>
-            )}
-          </div>
-
-          {/* 아파트 */}
-          <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-3">
-            <div className="flex items-center gap-1 mb-1.5">
-              <Building2 size={10} className="text-warm-text" />
-              <p className="text-xs text-warm-text font-medium">
-                주변 아파트
-                {aptDong?.dong && <span className="ml-1 font-bold text-navy">· {aptDong.dong}</span>}
-              </p>
-            </div>
-            {aptDong && aptDong.total_units > 0 ? (
-              <>
-                <p className="text-2xl font-extrabold text-navy tabular-nums leading-none">
-                  {aptDong.total_units.toLocaleString()}
-                  <span className="text-xs font-normal text-warm-text ml-1">세대</span>
-                </p>
-                <p className="text-xs text-warm-text mt-2">단지 {aptDong.complexes}개</p>
-              </>
-            ) : (
-              <>
-                <p className="text-lg font-bold text-warm-text/30 mt-1">—</p>
-                <p className="text-xs text-warm-text mt-2">아파트 정보 없음</p>
-              </>
-            )}
-          </div>
-
-          {/* 역세권 */}
-          <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm px-4 py-3">
-            <div className="flex items-center gap-1 mb-1.5">
-              <Train size={10} className="text-warm-text" />
-              <p className="text-xs text-warm-text font-medium">역세권</p>
-            </div>
-            {amenities.stations > 0 ? (
-              <>
-                <p className="text-2xl font-extrabold text-navy tabular-nums leading-none">
-                  {amenities.stations}
-                  <span className="text-xs font-normal text-warm-text ml-1">개역</span>
-                </p>
-                <p className="text-xs text-warm-text mt-2">
-                  {stationPassengersTotal > 0
-                    ? <>일 <strong className="text-navy">
-                        {stationPassengersTotal >= 10000
-                          ? `${(stationPassengersTotal / 10000).toFixed(1)}만`
-                          : stationPassengersTotal.toLocaleString()}
-                      </strong>명 이용</>
-                    : '이용객 수 미집계'
-                  }
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-lg font-bold text-warm-text/30 mt-1">—</p>
-                <p className="text-xs text-warm-text mt-2">범위 내 역 없음</p>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── ROW 3: 경쟁 현황 + 마이다 분석 ─────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-        {/* 경쟁 현황 */}
-        <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm p-4">
-          <p className="text-base font-bold text-navy mb-4">경쟁 현황 · 예상 매출</p>
-
-          {bizTotal > 0 ? (
-            <div className="space-y-4">
-              {[
-                { key: 'restaurants', label: '음식점',   max: 200 },
-                { key: 'cafes',       label: '카페',     max: 80  },
-                { key: 'academies',   label: '학원',     max: 80  },
-                { key: 'retail',      label: '소매점',   max: 150 },
-                { key: 'beauty',      label: '이용·미용', max: 60  },
-                { key: 'medical',     label: '보건의료', max: 40  },
-              ].map(({ key, label, max }) => {
-                const count    = amenities[key]
-                const pct      = Math.min((count / max) * 100, 100)
-                const lvl      = competitionLevel(key, count)
-                const perStore = (cardSales && count > 0)
-                  ? cardSales.total_sales / count : null
-                return (
-                  <div key={key}>
+                  <div key={key} className={`transition-opacity ${enabled ? '' : 'opacity-50'}`}>
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm text-navy font-semibold">
-                        {label} <span className="tabular-nums">{count}개</span>
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <Icon size={9} style={{ color: enabled ? color : '#aaa' }} />
+                        <span className="text-xs text-warm-text">{label}</span>
+                      </div>
                       <div className="flex items-center gap-2">
-                        {perStore != null && (
-                          <span className="text-xs font-semibold text-navy tabular-nums">
-                            {fmtWon(perStore)}/월
+                        {enabled && (
+                          <span className="text-xs font-semibold tabular-nums" style={{ color }}>
+                            {radii[key] >= 1000 ? `${radii[key] / 1000}km` : `${radii[key]}m`}
                           </span>
                         )}
-                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full"
-                          style={{ color: lvl.color, background: lvl.bg }}>
-                          {lvl.emoji} {lvl.label}
-                        </span>
+                        <button
+                          onClick={() => toggleFacility(key)}
+                          className="relative flex-shrink-0 rounded-full transition-colors duration-200"
+                          style={{ width: 32, height: 18, background: enabled ? color : '#d1d5db' }}
+                          title={enabled ? '끄기' : '켜기'}
+                        >
+                          <span
+                            className="absolute w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-all duration-200"
+                            style={{ top: 2, left: enabled ? 16 : 2 }}
+                          />
+                        </button>
                       </div>
                     </div>
-                    <div className="h-1.5 bg-warm-gray/15 rounded-full overflow-hidden mb-1">
-                      <div className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%`, background: lvl.color }} />
-                    </div>
-                    <p className="text-xs text-warm-text">{lvl.tip}</p>
+                    {enabled && (
+                      <input type="range" min={100} max={3000} step={50}
+                        value={radii[key]} onChange={e => setRadius(key, e.target.value)}
+                        className="w-full h-1.5 cursor-pointer" style={{ accentColor: color }} />
+                    )}
                   </div>
                 )
               })}
-
-              {amenities.schools > 0 && (
-                <div className="pt-3 border-t border-warm-gray/10">
-                  <p className="text-sm text-warm-text">
-                    <School size={10} className="inline text-blue-500 mr-1 mb-0.5" />
-                    학교 <strong className="text-navy">{amenities.schools}개</strong> — 하교 시간대 고객 유입 기대
-                  </p>
-                </div>
-              )}
             </div>
-          ) : (
-            <p className="text-xs text-warm-text/50 py-2">범위 안에 업체 데이터가 없어요</p>
-          )}
-
-          {cardSales && bizTotal > 0 && (
-            <p className="mt-4 text-xs text-warm-text/55 leading-relaxed border-t border-warm-gray/10 pt-3">
-              * 예상 매출은 행정동 전체 카드 소비를 반경 내 가게 수로 나눈
-              데이터 기반 예상치예요. 실제 매출은 업종·규모·운영 방식에 따라
-              크게 달라질 수 있어요.
-            </p>
           )}
         </div>
 
-        {/* 마이다 종합 분석 */}
-        <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm p-4 flex flex-col">
-          <div className="flex items-start gap-3 mb-4">
-            <StepBadge n={4} />
-            <div className="flex-1">
-              <p className="text-base font-bold text-navy">마이다의 종합 한마디</p>
-              <p className="text-sm text-warm-text mt-0.5">위 데이터를 보고 마이다가 분석해드려요</p>
-            </div>
-            <img src={findImg} alt="마이다" className="w-10 h-10 object-contain flex-shrink-0" />
+        {/* 시설 끄기/켜기 */}
+        <div className="flex flex-wrap gap-1.5">
+          {AMENITY_CONFIG.map(({ key, label, Icon, color }) => {
+            const enabled = enabledFacilities[key]
+            return (
+              <button key={key} onClick={() => toggleFacility(key)}
+                className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full border transition-all
+                  ${enabled
+                    ? 'border-navy/20 text-navy bg-navy/5'
+                    : 'border-warm-gray/30 text-warm-text/40 bg-white'}`}>
+                <Icon size={9} style={{ color: enabled ? color : '#ccc' }} />
+                {label}
+                <span className="font-bold tabular-nums ml-0.5">{amenities[key]}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── 마이다에게 묻기 ───────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <img src={findImg} alt="마이다" className="w-10 h-10 object-contain flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-base font-bold text-navy">마이다에게 묻기</p>
+            <p className="text-sm text-warm-text">위치 데이터를 보고 마이다가 분석해드려요</p>
           </div>
-
-          <button onClick={handleAskMaida} disabled={llmLoading || !apiData}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm
-                       transition-all disabled:opacity-50 bg-navy text-white hover:bg-navy/90 active:scale-[0.99]">
-            <Sparkles size={14} />
-            {llmLoading ? '분석 중이에요...' : '이 위치 상권 물어보기'}
-          </button>
-
-          {llmAsked && (
-            <div className="mt-4 flex-1">
-              {llmLoading ? (
-                <div className="space-y-3 animate-pulse">
-                  {[0.9, 0.75, 0.85].map((w, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-warm-gray/30 flex-shrink-0" />
-                      <div className="h-3 bg-warm-gray/20 rounded-full flex-1"
-                        style={{ width: `${w * 100}%` }} />
-                    </div>
-                  ))}
-                  <div className="mt-3 h-3 bg-navy/10 rounded-full w-4/5" />
-                </div>
-              ) : llmSummary && (
-                <div className="space-y-3">
-                  {llmSummary.bullets?.map((b, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <span className="w-6 h-6 rounded-full bg-navy text-white text-xs font-bold
-                                       flex items-center justify-center flex-shrink-0 mt-0.5">
-                        {i + 1}
-                      </span>
-                      <p className="text-sm text-gray-700 leading-relaxed">
-                        <HighlightedText text={b} />
-                      </p>
-                    </div>
-                  ))}
-                  {llmSummary.advice && (
-                    <div className="mt-4 pt-3 border-t border-warm-gray/20 flex items-start gap-2.5 bg-navy/4 rounded-xl p-3">
-                      <span className="text-lg flex-shrink-0">💡</span>
-                      <p className="text-sm font-bold text-navy leading-snug">
-                        <HighlightedText text={llmSummary.advice} />
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {!llmAsked && (
-            <p className="mt-3 text-center text-xs text-warm-text/50">
-              위 분석을 확인한 뒤 눌러보세요
-            </p>
-          )}
         </div>
+
+        <button onClick={handleAskMaida} disabled={llmLoading || !apiData}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm
+                     transition-all disabled:opacity-50 bg-navy text-white hover:bg-navy/90 active:scale-[0.99]">
+          <Sparkles size={14} />
+          {llmLoading ? '분석 중이에요...' : '이 위치 상권 물어보기'}
+        </button>
+
+        {llmAsked && (
+          <div>
+            {llmLoading ? (
+              <div className="space-y-3 animate-pulse">
+                {[0.9, 0.75, 0.85].map((w, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-warm-gray/30 flex-shrink-0" />
+                    <div className="h-3 bg-warm-gray/20 rounded-full flex-1"
+                      style={{ width: `${w * 100}%` }} />
+                  </div>
+                ))}
+                <div className="mt-3 h-3 bg-navy/10 rounded-full w-4/5" />
+              </div>
+            ) : llmSummary && (
+              <div className="space-y-3">
+                {llmSummary.bullets?.map((b, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <span className="w-6 h-6 rounded-full bg-navy text-white text-xs font-bold
+                                     flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      <HighlightedText text={b} />
+                    </p>
+                  </div>
+                ))}
+                {llmSummary.advice && (
+                  <div className="mt-4 pt-3 border-t border-warm-gray/20 flex items-start gap-2.5 bg-navy/4 rounded-xl p-3">
+                    <span className="text-lg flex-shrink-0">💡</span>
+                    <p className="text-sm font-bold text-navy leading-snug">
+                      <HighlightedText text={llmSummary.advice} />
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!llmAsked && (
+          <p className="text-center text-xs text-warm-text/50">
+            위치를 고른 뒤 눌러보세요
+          </p>
+        )}
       </div>
 
       {/* ── 창업 후보로 저장 ─────────────────────────────────────── */}
@@ -1127,76 +913,6 @@ export default function CommercialAnalysisView({ profile }) {
               다음 단계: 창업 준비 안내 →
             </button>
           )}
-        </div>
-      )}
-
-      {/* ── 데이터 갤러리 모달 ──────────────────────────────────── */}
-      {showGallery && (
-        <div className="fixed inset-0 z-[9999] bg-black/75 flex items-center justify-center p-4"
-          onClick={() => setShowGallery(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col overflow-hidden"
-            style={{ maxHeight: '90vh' }}
-            onClick={e => e.stopPropagation()}>
-
-            {/* 헤더 */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-warm-gray/20 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <Database size={14} className="text-navy" />
-                <p className="text-sm font-bold text-navy">{DATA_GALLERY[galleryIdx].label}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-warm-text tabular-nums">
-                  {galleryIdx + 1} / {DATA_GALLERY.length}
-                </span>
-                <button onClick={() => setShowGallery(false)}
-                  className="p-1 rounded-lg hover:bg-warm-gray/15 transition-colors">
-                  <XIcon size={18} className="text-navy" />
-                </button>
-              </div>
-            </div>
-
-            {/* 이미지 */}
-            <div className="flex-1 overflow-auto bg-gray-50 flex items-center justify-center p-4 min-h-0">
-              <img
-                key={galleryIdx}
-                src={DATA_GALLERY[galleryIdx].src}
-                alt={DATA_GALLERY[galleryIdx].label}
-                className="max-w-full max-h-full object-contain rounded-lg shadow-sm"
-              />
-            </div>
-
-            {/* 설명 + 네비게이션 */}
-            <div className="flex items-center gap-3 px-5 py-3 border-t border-warm-gray/20 flex-shrink-0 bg-white">
-              <button
-                onClick={() => setGalleryIdx(i => Math.max(0, i - 1))}
-                disabled={galleryIdx === 0}
-                className="p-2 rounded-xl border border-warm-gray/30 bg-white hover:bg-gray-50
-                           disabled:opacity-25 transition-all flex-shrink-0">
-                <ChevronLeft size={16} className="text-navy" />
-              </button>
-
-              <div className="flex-1 text-center">
-                <p className="text-xs text-warm-text leading-snug">{DATA_GALLERY[galleryIdx].desc}</p>
-                {/* 점 인디케이터 */}
-                <div className="flex justify-center gap-1.5 mt-2">
-                  {DATA_GALLERY.map((_, i) => (
-                    <button key={i} onClick={() => setGalleryIdx(i)}
-                      className={`w-1.5 h-1.5 rounded-full transition-all ${
-                        i === galleryIdx ? 'bg-navy w-4' : 'bg-warm-gray/40 hover:bg-warm-gray/70'
-                      }`} />
-                  ))}
-                </div>
-              </div>
-
-              <button
-                onClick={() => setGalleryIdx(i => Math.min(DATA_GALLERY.length - 1, i + 1))}
-                disabled={galleryIdx === DATA_GALLERY.length - 1}
-                className="p-2 rounded-xl border border-warm-gray/30 bg-white hover:bg-gray-50
-                           disabled:opacity-25 transition-all flex-shrink-0">
-                <ChevronRight size={16} className="text-navy" />
-              </button>
-            </div>
-          </div>
         </div>
       )}
 

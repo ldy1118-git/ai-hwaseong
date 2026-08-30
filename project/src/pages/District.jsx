@@ -236,7 +236,7 @@ export default function MyStore() {
 
   return (
     <div className="min-h-screen bg-primary-bg pb-24">
-      <Header />
+      {isOwner && <Header />}
 
       {/* 예비창업자 — 창업 여정 진행 표시 (상권 추천 = 2단계) */}
       {!isOwner && <JourneyProgress currentStep={2} />}
