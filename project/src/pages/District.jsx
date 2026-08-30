@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import Header from '../components/layout/Header'
 import CommercialAnalysisView from '../components/sections/CommercialAnalysisView'
+import JourneyProgress from '../components/ui/JourneyProgress'
 import { useNavigate } from 'react-router-dom'
 import { fetchMatches, DEFAULT_PROFILE, fetchOcrReady } from '../utils/api'
 import { listApplied, subscribeApplied } from '../utils/appliedPrograms'
@@ -237,18 +238,19 @@ export default function MyStore() {
     <div className="min-h-screen bg-primary-bg pb-24">
       <Header />
 
-      <div className="max-w-4xl mx-auto px-5 pt-4 pb-2 lg:max-w-6xl lg:pt-6">
-        <h1 className="text-lg font-extrabold text-navy">
-          {isOwner ? '내 매장 현황' : '상권 분석'}
-        </h1>
-        <p className="text-xs text-warm-text mt-0.5">
-          {isOwner
-            ? '챙겨야 할 신고와 받을 수 있는 지원사업을 한 곳에 모았어요'
-            : '화성시 주요 상권 현황과 업종별 경쟁 밀도를 확인해보세요'}
-        </p>
-      </div>
+      {/* 예비창업자 — 창업 여정 진행 표시 (상권 추천 = 2단계) */}
+      {!isOwner && <JourneyProgress currentStep={2} />}
 
       {!isOwner && <CommercialAnalysisView profile={profile} />}
+
+      {isOwner && (
+      <div className="max-w-4xl mx-auto px-5 pt-4 pb-2 lg:max-w-6xl lg:pt-6">
+        <h1 className="text-lg font-extrabold text-navy">내 매장 현황</h1>
+        <p className="text-xs text-warm-text mt-0.5">
+          챙겨야 할 신고와 받을 수 있는 지원사업을 한 곳에 모았어요
+        </p>
+      </div>
+      )}
 
       {isOwner && <div className="max-w-4xl mx-auto px-5 space-y-5
                                   lg:max-w-6xl lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]

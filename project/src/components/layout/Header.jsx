@@ -1,12 +1,11 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, BarChart2, CalendarDays, MessageCircle, UserCircle2 } from 'lucide-react'
+import { Home, CalendarDays, MessageCircle, UserCircle2 } from 'lucide-react'
 import logoImg from '../../../design/logo.png'
 import MarsAvatar from '../ui/MarsAvatar'
 import NotificationBell from '../ui/NotificationBell'
 
-const BASE_TABS = [
-  { icon: Home,          label: '홈',      path: '/home' },
-  { icon: BarChart2,     label: null,       path: '/district' },
+const TABS = [
+  { icon: Home,          label: '공고',    path: '/home' },
   { icon: CalendarDays,  label: '일정',    path: '/schedule' },
   { icon: MessageCircle, label: '챗봇',    path: '/mission' },
   { icon: UserCircle2,   label: '내 정보', path: '/onboarding' },
@@ -15,15 +14,6 @@ const BASE_TABS = [
 export default function Header({ onAvatarClick, className = '' }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-
-  const profile = (() => {
-    try { return JSON.parse(localStorage.getItem('mars-fit-profile')) } catch { return null }
-  })()
-  const isOwner = profile?.business_status === '운영중'
-
-  const TABS = BASE_TABS.map(t =>
-    t.path === '/district' ? { ...t, label: isOwner ? '내 매장' : '상권분석' } : t
-  )
 
   return (
     /* 상단바가 휴대폰 하단 탭바를 그대로 위로 올려놓은 모양이었다 —
