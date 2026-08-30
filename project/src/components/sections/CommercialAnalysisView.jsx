@@ -37,6 +37,10 @@ function LeafletMap({ position, onMove, radii, markers, sizeKey, recommendPins =
   }, [sizeKey])
 
   useEffect(() => {
+    if (mapReady) setTimeout(() => mapRef.current?.invalidateSize(), 100)
+  }, [mapReady])
+
+  useEffect(() => {
     if (!containerRef.current || mapRef.current) return
     const map = L.map(containerRef.current, { center: [position.lat, position.lng], zoom: 14, zoomControl: false })
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
@@ -402,6 +406,13 @@ export default function CommercialAnalysisView({ profile }) {
     handleAskMaidaRef.current()
   }, [apiData, inputMode, recommendCategory]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 추천 핀이 도착하면 바로 "분석 중" 로딩 표시 (LLM 완료 전에도 사용자가 기다림을 인지)
+  useEffect(() => {
+    if (inputMode !== 'category' || !recommendPins.length || !recommendCategory) return
+    setLlmAsked(true)
+    setLlmLoading(true)
+  }, [recommendPins.length, inputMode, recommendCategory]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // 업종 모드: 업종 선택 시 /api/recommend 호출 → 지도에 핀 표시
   useEffect(() => {
     if (inputMode !== 'category' || !recommendCategory) return
@@ -651,8 +662,8 @@ export default function CommercialAnalysisView({ profile }) {
 
         {/* 지도 */}
         <div
-          className="relative rounded-xl overflow-hidden border border-warm-gray/15 flex-1 transition-all duration-300"
-          style={{ minHeight: inputMode === 'address' ? 180 : 260 }}
+          className="relative rounded-xl overflow-hidden border border-warm-gray/15 transition-all duration-300"
+          style={{ height: inputMode === 'address' ? 220 : 320 }}
         >
           <LeafletMap
             position={position} onMove={handleMarkerMove} radii={effectiveRadii}

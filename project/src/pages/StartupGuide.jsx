@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ExternalLink, Check, ChevronRight } from 'lucide-react'
+import { ExternalLink, Check, ChevronRight, X } from 'lucide-react'
 import Header from '../components/layout/Header'
 import JourneyProgress from '../components/ui/JourneyProgress'
 import { EDUCATION, PERMIT, REG_DOCS } from '../data/startupGuide'
@@ -80,8 +80,55 @@ function buildItems(category) {
   }
 }
 
+// ── 바로가기 모달 (iframe) ────────────────────────────────────────
+function WebModal({ url, title, onClose }) {
+  useEffect(() => {
+    const handler = e => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex flex-col sm:items-center sm:justify-center sm:p-4"
+         onClick={onClose}>
+      <div
+        className="bg-white w-full sm:max-w-3xl sm:rounded-2xl flex flex-col overflow-hidden shadow-2xl mt-auto sm:mt-0"
+        style={{ height: '90vh' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* 헤더 */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-warm-gray/20 flex-shrink-0 bg-white">
+          <button onClick={onClose}
+            className="tap flex items-center gap-1.5 text-sm font-semibold text-warm-text hover:text-navy">
+            <X size={16} /> 닫기
+          </button>
+          <p className="flex-1 text-sm font-bold text-navy truncate">{title}</p>
+          <a href={url} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs font-bold text-navy border border-navy/25
+                       px-2.5 py-1.5 rounded-full hover:bg-navy/5 flex-shrink-0">
+            새 탭 <ExternalLink size={10} />
+          </a>
+        </div>
+        {/* 안내 배너 */}
+        <div className="bg-amber-50 border-b border-amber-100 px-4 py-2 flex-shrink-0">
+          <p className="text-xs text-amber-700">
+            화면이 열리지 않으면 위의 <strong>새 탭</strong> 버튼을 눌러주세요
+          </p>
+        </div>
+        {/* iframe */}
+        <iframe
+          src={url}
+          title={title}
+          className="flex-1 w-full border-0"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"
+        />
+      </div>
+    </div>
+  )
+}
+
 // ── 상세 패널 ─────────────────────────────────────────────────────
-function DetailPanel({ stepNum, itemIdx, item, isStepDone, isItemChecked, onToggle, onComplete, isStepAllChecked, navigate }) {
+function DetailPanel({ stepNum, itemIdx, item, isStepDone, isItemChecked, onToggle, onComplete, isStepAllChecked, navigate, onOpenUrl }) {
   const meta = STEP_META[stepNum]
   const items = null // placeholder
   return (
@@ -148,14 +195,13 @@ function DetailPanel({ stepNum, itemIdx, item, isStepDone, isItemChecked, onTogg
 
         {/* 바로가기 버튼 */}
         {item.url && (
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => onOpenUrl(item.url, item.title)}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-xl
-                       bg-navy text-white text-sm font-bold hover:bg-navy/90 transition-colors">
+                       bg-navy text-white text-sm font-bold hover:bg-navy/90 transition-colors active:scale-[0.99]">
             바로가기 <ExternalLink size={13} />
-          </a>
+          </button>
         )}
 
         {/* 완료 체크 */}
@@ -214,6 +260,8 @@ export default function StartupGuide({ defaultStep = null }) {
   const completed = journey.completedSteps ?? {}
   const allItems  = buildItems(category)
 
+  const [webModal, setWebModal] = useState(null) // { url, title }
+
   // 체크 상태: { "4_0": true, ... }
   const [checked, setChecked] = useState({})
   // 선택된 아이템 (상세 패널 표시)
@@ -253,6 +301,13 @@ export default function StartupGuide({ defaultStep = null }) {
 
   return (
     <div className="min-h-screen bg-primary-bg">
+      {webModal && (
+        <WebModal
+          url={webModal.url}
+          title={webModal.title}
+          onClose={() => setWebModal(null)}
+        />
+      )}
       <Header onAvatarClick={() => navigate('/onboarding')} />
       <JourneyProgress currentStep={3} />
 
@@ -380,6 +435,7 @@ export default function StartupGuide({ defaultStep = null }) {
                 isStepAllChecked={isStepAllChecked(selected.stepNum)}
                 onComplete={() => handleComplete(selected.stepNum)}
                 navigate={navigate}
+                onOpenUrl={(url, title) => setWebModal({ url, title })}
               />
             </div>
           )}
