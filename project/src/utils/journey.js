@@ -82,6 +82,13 @@ export function saveJourney(partial) {
   return save({ ...current, ...partial })
 }
 
+// ── 초기화 ────────────────────────────────────────────────────────────────
+
+export function clearJourney() {
+  localStorage.removeItem(KEY)
+  window.dispatchEvent(new Event('mars-journey-reset'))
+}
+
 // ── STEP 완료 표시 ─────────────────────────────────────────────────────────
 
 export function completeStep(stepNum) {

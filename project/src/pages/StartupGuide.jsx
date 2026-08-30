@@ -378,6 +378,18 @@ export default function StartupGuide({ defaultStep = null }) {
     return items.length > 0 ? { stepNum: firstActive, itemIdx: 0 } : null
   })
 
+  // 탈퇴·재입력으로 journey가 초기화됐을 때 React state도 재설정
+  useEffect(() => {
+    const reset = () => {
+      const j = getJourney()
+      setCompletedSteps({ ...(j.completedSteps ?? {}) })
+      setChecked({})
+      setSelected({ stepNum: 4, itemIdx: 0 })
+    }
+    window.addEventListener('mars-journey-reset', reset)
+    return () => window.removeEventListener('mars-journey-reset', reset)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   function isChecked(stepNum, itemIdx) {
     const item = allItems[stepNum]?.[itemIdx]
     if (item?.notRequired || completedSteps[stepNum]) return true

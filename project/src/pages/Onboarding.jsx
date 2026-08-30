@@ -8,7 +8,7 @@ import findImg from '../../design/find.png'
 import searchImg from '../../design/search.png'
 import { getToken, clearToken, saveOnboarding, patchOnboarding, apiUrl, mockOcrResult,
          deleteOnboarding, clearLocalData, fetchOcrReady, fetchMatches, DEFAULT_PROFILE } from '../utils/api'
-import { saveJourney, getJourney, getProgress, inferCurrentStep } from '../utils/journey'
+import { saveJourney, getJourney, getProgress, inferCurrentStep, clearJourney } from '../utils/journey'
 import { generateText } from '../utils/llm/llmProvider'
 import { RotateCcw, LogOut, ChevronRight, AlertTriangle, Trash2 } from 'lucide-react'
 import Header from '../components/layout/Header'
@@ -984,6 +984,7 @@ function ProfileDashboard({ profile: initProfile, onReset, navigate }) {
       // 로그인이 풀렸거나 서버가 죽어도 이 기기는 비워주는 게 낫다.
       setLeaveError(err.message)
     }
+    clearJourney()    // clearLocalData 포함이지만 명시적으로 먼저 지운다
     clearLocalData()
     clearToken()
     navigate('/')
@@ -1451,7 +1452,7 @@ export default function Onboarding() {
     return (
       <ProfileDashboard
         profile={savedProfile}
-        onReset={() => { setShowDashboard(false); setShowWelcome(false) }}
+        onReset={() => { clearJourney(); setShowDashboard(false); setShowWelcome(false) }}
         navigate={navigate}
       />
     )
