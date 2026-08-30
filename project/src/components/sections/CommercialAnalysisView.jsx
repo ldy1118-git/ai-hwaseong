@@ -23,12 +23,13 @@ const leafletIcon = L.icon({
 })
 
 // ── 순수 Leaflet 지도 컴포넌트 ──────────────────────────────────
-function LeafletMap({ position, onMove, radii, markers, sizeKey }) {
-  const containerRef = useRef(null)
-  const mapRef       = useRef(null)
-  const markerRef    = useRef(null)
-  const overlayRef   = useRef(null)
-  const onMoveRef    = useRef(onMove)
+function LeafletMap({ position, onMove, radii, markers, sizeKey, recommendPins = [] }) {
+  const containerRef    = useRef(null)
+  const mapRef          = useRef(null)
+  const markerRef       = useRef(null)
+  const overlayRef      = useRef(null)
+  const recommendRef    = useRef(null)
+  const onMoveRef       = useRef(onMove)
   const [mapReady, setMapReady] = useState(false)
 
   useEffect(() => { onMoveRef.current = onMove }, [onMove])
@@ -46,12 +47,14 @@ function LeafletMap({ position, onMove, radii, markers, sizeKey }) {
       const { lat, lng } = marker.getLatLng()
       onMoveRef.current({ lat, lng })
     })
-    overlayRef.current = L.layerGroup().addTo(map)
+    overlayRef.current   = L.layerGroup().addTo(map)
+    recommendRef.current = L.layerGroup().addTo(map)
     mapRef.current = map; markerRef.current = marker
     setMapReady(true)
     return () => {
       map.remove()
-      mapRef.current = null; markerRef.current = null; overlayRef.current = null
+      mapRef.current = null; markerRef.current = null
+      overlayRef.current = null; recommendRef.current = null
       setMapReady(false)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -84,6 +87,33 @@ function LeafletMap({ position, onMove, radii, markers, sizeKey }) {
       if (popup) m.bindPopup(popup)
     })
   }, [mapReady, position.lat, position.lng, radii, markers])
+
+  // 추천 핀 (업종 모드에서만 사용)
+  useEffect(() => {
+    if (!mapReady || !recommendRef.current) return
+    recommendRef.current.clearLayers()
+    if (!recommendPins.length) return
+
+    recommendPins.forEach(pin => {
+      const colors  = ['#cb6b3d', '#2a3c77', '#10b981']
+      const bg      = colors[(pin.rank - 1) % colors.length]
+      const m = L.marker([pin.lat, pin.lng], {
+        icon: L.divIcon({
+          html: `<div style="width:32px;height:32px;background:${bg};border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.4);cursor:pointer">
+                   <span style="color:white;font-size:13px;font-weight:900">${pin.rank}</span>
+                 </div>`,
+          className: '', iconSize: [32, 32], iconAnchor: [16, 16],
+        }),
+        zIndexOffset: 1000,
+      }).addTo(recommendRef.current)
+      m.bindPopup(`<b>${pin.rank}위 추천 상권</b><br>반경 내 동종업종 ${pin.count}개`)
+      m.on('click', () => onMoveRef.current({ lat: pin.lat, lng: pin.lng }))
+    })
+
+    if (recommendPins[0]) {
+      mapRef.current?.setView([recommendPins[0].lat, recommendPins[0].lng], 13, { animate: true })
+    }
+  }, [mapReady, recommendPins])
 
   return <div ref={containerRef} style={{ height: '100%', width: '100%' }} />
 }
@@ -312,7 +342,10 @@ export default function CommercialAnalysisView({ profile }) {
   )
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [candidateSaved, setCandidateSaved]     = useState(false)
-  const [inputMode, setInputMode]               = useState('map') // 'map' | 'address'
+  const [inputMode, setInputMode]               = useState('map') // 'map' | 'address' | 'category'
+  const [recommendPins, setRecommendPins]       = useState([])    // [{lat, lng, count, rank}]
+  const [recommendLoading, setRecommendLoading] = useState(false)
+  const [recommendCategory, setRecommendCategory] = useState(null) // 현재 추천 업종
   const debounceRef  = useRef(null)
   const addressInput = useRef(null)
 
@@ -355,6 +388,29 @@ export default function CommercialAnalysisView({ profile }) {
   useEffect(() => {
     if (inputMode === 'address') addressInput.current?.focus()
   }, [inputMode])
+
+  // 업종 모드: 업종 선택 시 /api/recommend 호출 → 지도에 핀 표시
+  useEffect(() => {
+    if (inputMode !== 'category' || !recommendCategory) return
+    setRecommendLoading(true)
+    setRecommendPins([])
+    fetch('/api/recommend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categories: [recommendCategory], top_n: 3 }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        const locs = data.recommendations?.[0]?.locations ?? []
+        setRecommendPins(locs.map((l, i) => ({ ...l, rank: i + 1 })))
+        if (locs[0]) {
+          // 1위 위치로 지도 중심 이동
+          setPosition({ lat: locs[0].lat, lng: locs[0].lng })
+        }
+      })
+      .catch(() => setRecommendPins([]))
+      .finally(() => setRecommendLoading(false))
+  }, [inputMode, recommendCategory])
 
   const { amenities, displayMarkers, stationPassengersTotal, aptDong, cardSales, isAvgSales } = useMemo(() => {
     const counts  = apiData?.counts  || {}
@@ -512,29 +568,54 @@ export default function CommercialAnalysisView({ profile }) {
 
           {/* 입력 방식 탭 */}
           <div className="flex bg-gray-50 border border-warm-gray/20 rounded-xl p-0.5">
-            <button
-              type="button"
-              onClick={() => setInputMode('map')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all
-                ${inputMode === 'map'
-                  ? 'bg-white text-navy shadow-sm'
-                  : 'text-warm-text hover:text-navy'}`}
-            >
-              <MapPin size={12} />
-              지도에서 선택
+            <button type="button" onClick={() => setInputMode('map')}
+              className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all
+                ${inputMode === 'map' ? 'bg-white text-navy shadow-sm' : 'text-warm-text hover:text-navy'}`}>
+              <MapPin size={11} /> 지도
             </button>
-            <button
-              type="button"
-              onClick={() => setInputMode('address')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all
-                ${inputMode === 'address'
-                  ? 'bg-white text-navy shadow-sm'
-                  : 'text-warm-text hover:text-navy'}`}
-            >
-              <Search size={12} />
-              주소로 찾기
+            <button type="button" onClick={() => setInputMode('address')}
+              className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all
+                ${inputMode === 'address' ? 'bg-white text-navy shadow-sm' : 'text-warm-text hover:text-navy'}`}>
+              <Search size={11} /> 주소
+            </button>
+            <button type="button" onClick={() => setInputMode('category')}
+              className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all
+                ${inputMode === 'category' ? 'bg-white text-sunset-orange shadow-sm' : 'text-warm-text hover:text-navy'}`}>
+              <Sparkles size={11} /> 업종 추천
             </button>
           </div>
+
+          {/* 업종 모드: 업종 선택 → 화성시 내 추천 위치 표시 */}
+          {inputMode === 'category' && (
+            <div className="space-y-2">
+              <p className="text-xs text-warm-text">업종을 고르면 화성시 내 최적 상권을 지도에 표시해드려요</p>
+              <div className="flex flex-wrap gap-2">
+                {['카페', '음식점', '소매업', '제조업', '기타'].map(cat => (
+                  <button key={cat} type="button"
+                    onClick={() => setRecommendCategory(cat)}
+                    className={[
+                      'px-3 py-1.5 rounded-full text-xs font-bold border transition-all',
+                      recommendCategory === cat
+                        ? 'bg-sunset-orange text-white border-sunset-orange'
+                        : 'bg-white text-navy border-navy/25 hover:border-navy/50',
+                    ].join(' ')}>
+                    {CATEGORY_EMOJI[cat]} {cat}
+                  </button>
+                ))}
+              </div>
+              {recommendLoading && (
+                <div className="flex items-center gap-2 text-xs text-warm-text py-1">
+                  <span className="w-3 h-3 rounded-full border-2 border-navy/30 border-t-navy animate-spin" />
+                  화성시 최적 상권을 찾고 있어요...
+                </div>
+              )}
+              {!recommendLoading && recommendPins.length > 0 && (
+                <p className="text-xs font-semibold text-sunset-orange">
+                  ✓ 번호 핀을 누르면 그 위치로 이동해요 →
+                </p>
+              )}
+            </div>
+          )}
 
           {/* 주소 모드: 검색폼 위로 */}
           {inputMode === 'address' && (
@@ -562,8 +643,9 @@ export default function CommercialAnalysisView({ profile }) {
           >
             <LeafletMap
               position={position} onMove={handleMarkerMove} radii={effectiveRadii}
-              markers={displayMarkers.filter(m => enabledFacilities[m.key])}
+              markers={inputMode === 'category' ? [] : displayMarkers.filter(m => enabledFacilities[m.key])}
               sizeKey={`${showDetailSliders}-${inputMode}`}
+              recommendPins={inputMode === 'category' ? recommendPins : []}
             />
             {inputMode === 'map' && (
               <button onClick={() => setExpanded(true)}
