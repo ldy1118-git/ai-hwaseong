@@ -170,12 +170,12 @@ function WebGuide({ url, title, steps, onClose }) {
       {/* 바디 — 좌측 진행순서 / 우측 사이트 또는 새탭 안내 */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
 
-        {/* 진행 순서 사이드바 */}
+        {/* 진행 순서: 모바일에서 전체 영역, lg에서 사이드바 */}
         {hasSteps && (
-          <div className="bg-navy/[0.02] border-b lg:border-b-0 lg:border-r border-warm-gray/20
+          <div className="bg-navy/[0.02] lg:border-r border-warm-gray/20
                           lg:w-72 lg:flex-shrink-0 overflow-y-auto
-                          h-44 lg:h-auto flex-shrink-0">
-            <div className="p-4 space-y-3">
+                          flex-1 lg:flex-none">
+            <div className="p-5 space-y-3">
               <p className="text-[11px] font-bold text-navy/60 tracking-wider">진행 순서</p>
               <ol className="space-y-2.5">
                 {steps.map((step, i) => (
@@ -192,36 +192,39 @@ function WebGuide({ url, title, steps, onClose }) {
           </div>
         )}
 
-        {blocked ? (
-          /* ─── iframe 차단 사이트: 새탭 안내 ─── */
-          <div className="flex-1 overflow-y-auto bg-gray-50 flex items-center justify-center p-6">
-            <div className="bg-white rounded-2xl border border-warm-gray/20 p-6 shadow-sm text-center space-y-4 w-full max-w-sm">
-              <p className="text-2xl">🖥</p>
-              <div className="space-y-1">
-                <p className="text-sm font-bold text-navy">이 창 안에서는 바로 열 수 없어요</p>
-                <p className="text-xs text-warm-text">보안 설정(X-Frame-Options)으로 인해 새 탭에서만 열려요</p>
-              </div>
-              <a href={url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-3.5
-                           bg-navy text-white font-bold rounded-xl text-sm hover:bg-navy/90">
-                새 탭에서 열기 <ExternalLink size={13} />
-              </a>
-              <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5">
-                <p className="text-xs text-amber-700 leading-relaxed">
-                  💡 왼쪽 순서를 보면서 새 탭에서 진행할 수 있어요
-                </p>
+        {/* 우측 패널: 진행순서 있으면 모바일에서 숨김, lg에서만 표시 */}
+        <div className={`flex-1 overflow-hidden ${hasSteps ? 'hidden lg:flex' : 'flex'} flex-col`}>
+          {blocked ? (
+            /* ─── iframe 차단 사이트: 새탭 안내 ─── */
+            <div className="flex-1 overflow-y-auto bg-gray-50 flex items-center justify-center p-6">
+              <div className="bg-white rounded-2xl border border-warm-gray/20 p-6 shadow-sm text-center space-y-4 w-full max-w-sm">
+                <p className="text-2xl">🖥</p>
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-navy">이 창 안에서는 바로 열 수 없어요</p>
+                  <p className="text-xs text-warm-text">보안 설정(X-Frame-Options)으로 인해 새 탭에서만 열려요</p>
+                </div>
+                <a href={url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-3.5
+                             bg-navy text-white font-bold rounded-xl text-sm hover:bg-navy/90">
+                  새 탭에서 열기 <ExternalLink size={13} />
+                </a>
+                <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5">
+                  <p className="text-xs text-amber-700 leading-relaxed">
+                    💡 왼쪽 순서를 보면서 새 탭에서 진행할 수 있어요
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          /* ─── iframe 표시 가능 ─── */
-          <iframe
-            src={url}
-            title={title}
-            className="flex-1 w-full border-0 min-h-0"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"
-          />
-        )}
+          ) : (
+            /* ─── iframe 표시 가능 ─── */
+            <iframe
+              src={url}
+              title={title}
+              className="flex-1 w-full border-0 min-h-0"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"
+            />
+          )}
+        </div>
       </div>
     </div>
   )
