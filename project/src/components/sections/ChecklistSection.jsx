@@ -58,12 +58,7 @@ export default function ChecklistSection({ items, onToggle, onDetail }) {
 
             {/* 상태 배지 */}
             {item.checked ? (
-              <span className={[
-                'flex-shrink-0 text-xs font-semibold self-start mt-0.5',
-                item.autoChecked ? 'text-navy/50' : 'text-emerald-500',
-              ].join(' ')}>
-                {item.autoChecked ? '앱 등록' : '완료'}
-              </span>
+              <span className="flex-shrink-0 text-xs font-semibold self-start mt-0.5 text-emerald-500">완료</span>
             ) : (
               <span className="flex-shrink-0 text-warm-gray/40 text-xl self-start leading-none">›</span>
             )}

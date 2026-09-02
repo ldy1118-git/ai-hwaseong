@@ -64,10 +64,6 @@ function restoreChecked(newItems, noticeId) {
   })
 }
 
-function applyAutoChecks(items) {
-  return items
-}
-
 const STATIC_ITEMS = [
   { id: 1, label: '사업자등록증 사본',     desc: '주소·업종 변경 여부 확인 후 제출',  issueUrl: 'https://www.hometax.go.kr', checked: false },
   { id: 2, label: '신분증 사본',           desc: '대표자 신분증 앞면',                issueUrl: null,                       checked: false },
@@ -394,9 +390,8 @@ export default function ApplicationGuide() {
         console.error('AI checklist LLM error:', llmErr)
         setLlmWarn(`AI 서버에 연결하지 못했어요 (${llmErr?.message ?? '알 수 없는 오류'}). 기본 서류 목록을 보여드려요.`)
       }
-      // 이전에 체크한 항목 복원 → 프로필 기반 자동 완료 적용
-      const restored = restoreChecked(baseItems, matched.notice_id)
-      setItems(applyAutoChecks(restored))
+      // 이전에 체크한 항목 복원
+      setItems(restoreChecked(baseItems, matched.notice_id))
     } catch (err) {
       // 매칭 자체가 실패한 경우 — 이때만 에러 화면
       console.error('AI checklist error:', err)
