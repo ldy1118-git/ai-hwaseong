@@ -64,21 +64,8 @@ function restoreChecked(newItems, noticeId) {
   })
 }
 
-// 프로필에 이미 있는 정보로 확인 가능한 서류를 자동 완료 처리.
-// 저장된 항목(사용자가 직접 체크/해제)은 건드리지 않는다.
-function applyAutoChecks(items, profile, noticeId) {
-  const saved = getProgress(noticeId)
-  const savedLabels = new Set(saved?.items?.map(si => si.label) ?? [])
-  const hasBizReg = ['운영중', '신규사업자'].includes(profile?.business_status)
-
-  return items.map(it => {
-    if (savedLabels.has(it.label) || it.checked) return it
-    const label = it.label ?? ''
-    if (hasBizReg && (label.includes('사업자등록') || label.includes('사업자 등록'))) {
-      return { ...it, checked: true, autoChecked: true }
-    }
-    return it
-  })
+function applyAutoChecks(items) {
+  return items
 }
 
 const STATIC_ITEMS = [
@@ -409,7 +396,7 @@ export default function ApplicationGuide() {
       }
       // 이전에 체크한 항목 복원 → 프로필 기반 자동 완료 적용
       const restored = restoreChecked(baseItems, matched.notice_id)
-      setItems(applyAutoChecks(restored, profile, matched.notice_id))
+      setItems(applyAutoChecks(restored))
     } catch (err) {
       // 매칭 자체가 실패한 경우 — 이때만 에러 화면
       console.error('AI checklist error:', err)
