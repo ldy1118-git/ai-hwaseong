@@ -1,0 +1,33 @@
+{
+ "notice_id": "PBLN_000000000125996",
+ "title": "2026년 중소기업 AX 우수사례 공모전 참가기업 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000125996",
+ "summary": ", 추진성과 최종선정\n 평가기준 등 이메일 접수 등 외부전문가 평가 시상 및 사례발표\n 9.1 ~9.21 10월 11월\n (중기부) (지방청) (중기부, 중진공) (중기부, 중진공)\n\n * 상기 절차 및 일정은 추진 상황에 따라 일부 조정될 수 있음",
+ "apply_period": {
+  "start": "2026-09-01",
+  "end": "2026-09-21"
+ },
+ "eligibility": {
+  "business_status": [
+   "운영중"
+  ]
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_method": "이메일 접수\r\n- 접수처 : 관할구역 내 지방중소벤처기업청별 담당자 \r\n※ 자세한 신청방법 및 담당자 이메일 주소 공고문 참조",
+ "contact": "(서울청) 02-2110-6361, yangsubby@korea.kr (부산청) 051-601-5157, smba@korea.kr 및 기타 문의처 공고문 참조",
+ "organizer": "중소벤처기업부",
+ "operator": "지방중소벤처기업청"
+}

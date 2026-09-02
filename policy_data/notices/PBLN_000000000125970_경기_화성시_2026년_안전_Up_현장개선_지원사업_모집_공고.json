@@ -1,0 +1,36 @@
+{
+ "notice_id": "PBLN_000000000125970",
+ "title": "[경기] 화성시 2026년 안전-Up 현장개선 지원사업 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000125970",
+ "summary": "화성산업안전지킴의 현장진단을 통해 도출된 위험요인을 분석하고 기업특성에 맞는 맞춤형 현장개선 추진을 수행하여 실효성있는 산업재해 예방효과 도모를 위한 “2026년 안전-Up 현장개선 지원사업”을 시행합니다. 관내 50인 미만 제조업 기업들의 많은 관심과 지원 바랍니다. ☞ 화성시 관내 상시근로자 수 50인 미만 제조업 중소사업장 ☞ 일반개선형(기업당 최대 100만원), 화재예방형(기업당 최대500만원) 지원 ※ '일반개선형 (최대100만원) 종합' 원출처 첨부파일 참조",
+ "apply_period": {
+  "start": "2026-09-01",
+  "end": "2026-09-30"
+ },
+ "eligibility": {
+  "requirements_unknown": "화성시 관내 상시근로자 수 50인 미만 제조업 중소사업장",
+  "regions": [
+   "화성시",
+   "화성특례시"
+  ]
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_url": "https://platform.hsbiz.or.kr/business/detail/N/1302",
+ "apply_method": "온라인 접수 (화성시 기업지원플랫폼)",
+ "contact": "화성산업진흥원 안전지원팀 031-278-6466, mi33korea@hsbiz.or.kr",
+ "organizer": "경기도",
+ "operator": "화성산업진흥원"
+}

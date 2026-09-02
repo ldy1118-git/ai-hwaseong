@@ -1,0 +1,69 @@
+{
+ "notice_id": "PBLN_000000000125972",
+ "title": "[경기] 화성시 2026년 1차 오프라인 판매기획전 화성별별상점 참여기업 추가모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000125972",
+ "summary": ") 관내 본사 또는 공장 소재 생활소비재 관련 중소기업\n ※ 생활소비재 범위: 생활용품, 식품, 뷰티, 유아용품 등 B2C 거래가 가능한 완제품\n\n□ (모집기간) 공고일 ~ 2026. 9. 4.(금) 18:00\n ※ 행사기간: 2026. 10. 13.(화)~10. 18.(일) 6일간, 롯데백화점 동탄점 진행\n\n□ (지원내용) 관내 생활소비재 관련 중소기업을 대상으로 국내 대형\n 유통사와 협업하여 오프라인 판매기획전 진행\n\n□ (지원규모) 30개사 내외(MD상담회 참여기업은 우선선발 연계)\n ※ 식품업종의 경우 영업신고증, 취급 품목리스트 등 식품 관련 인증 등 필수\n\n□ (추진일정)\n 기업모집 오프라인\n 사전 교육 결과보고\n 및 선정 판매기획전\n 진흥원 전문업체, 기업 전문업체, 기업 진흥원, 기업\n 기업모",
+ "apply_period": {
+  "start": "2026-08-28",
+  "end": "2026-09-04"
+ },
+ "eligibility": {
+  "requirements_unknown": "관내 본사 또는 공장 소재 생활소비재 관련 중소기업 ※ 생활소비재 범위 : 생활용품, 식품, 뷰티, 유아용품 등 B2C 거래가 가능한 완제품",
+  "regions": [
+   "화성시",
+   "화성특례시"
+  ]
+ },
+ "documents": [
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 사업신청서"
+  },
+  {
+   "name": "개인정보이용동의서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "성실참여 확약서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 필수제출 ⑤ 사업자등록증명원"
+  },
+  {
+   "name": "국세납세증명서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 국세 완납증명"
+  },
+  {
+   "name": "지방세납세증명서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 지방세 완납증명"
+  },
+  {
+   "name": "중소기업확인서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 중소기업 확인서"
+  },
+  {
+   "name": "사본 등",
+   "type": "common",
+   "confidence": "confirmed"
+  }
+ ],
+ "apply_url": "https://platform.hsbiz.or.kr/business/detail/N/1301",
+ "apply_method": "온라인 접수 (화성시 기업지원플랫폼)",
+ "contact": "화성산업진흥원 (사업문의) 031-374-4394, sjg98@hsbiz.or.kr (기업지원플랫폼 시스템) 031-278-4392, namhee@hsbiz.or.kr",
+ "organizer": "경기도",
+ "operator": "화성산업진흥원"
+}
