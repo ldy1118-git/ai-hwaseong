@@ -3,10 +3,10 @@
   "notices": 76,
   "documents": 217,
   "conditions": 104,
-  "rich_summaries": 65,
+  "rich_summaries": 64,
   "per_notice": {
     "HSCITY_141338": [2, 2, 0],
-    "HSCITY_141781": [2, 3, 1],
+    "HSCITY_141781": [2, 3, 0],
     "HSCITY_149377": [2, 2, 1],
     "PBLN_000000000092578": [2, 2, 1],
     "PBLN_000000000116741": [1, 1, 1],
