@@ -5,6 +5,8 @@ import JourneyProgress from '../components/ui/JourneyProgress'
 import { EDUCATION, PERMIT, REG_DOCS } from '../data/startupGuide'
 import { getJourney, completeStep } from '../utils/journey'
 import { patchOnboarding } from '../utils/api'
+import DocumentStepDrawer from '../components/ui/DocumentStepDrawer'
+import termsData from '../data/terms.json'
 
 const CATEGORY_EMOJI = {
   카페: '☕', 음식점: '🍜', 소매업: '🛍', 제조업: '🔧', 기타: '🎨',
@@ -65,11 +67,31 @@ function buildItems(category) {
     5: [
       {
         title: '임대차계약서 또는 건물 소유 서류 준비',
-        desc: '사업장 계약 주소가 등록 주소가 됩니다. 자가라면 건물 등기부등본이 필요해요.',
+        desc: '사업장 계약 주소가 등록 주소가 됩니다.',
         where: null, duration: null, timing: null,
-        docs: ['임대차계약서 (임차인 경우)', '건물 등기부등본 (자가 경우)', '신분증'],
-        url: null, tip: '사업장 주소는 실제 영업 장소여야 해요. 자택은 원칙적으로 불가해요.',
+        docs: [], url: null,
+        tip: '사업장 주소는 실제 영업 장소여야 해요. 자택은 원칙적으로 불가해요.',
         notRequired: false, steps: [],
+        variants: [
+          {
+            key: 'tenant', label: '임차인 (전월세)', emoji: '🏢',
+            docs: ['임대차계약서'],
+            steps: [
+              '계약 전 임대인에게 "사업자등록 목적으로 사용 가능한지" 반드시 확인 — 거부하면 전대차 동의서 별도 요청',
+              '임대차계약서에 임차인(내) 이름·사업장 주소·임대 기간을 정확히 기재 후 임대인·임차인 서명·날인',
+              '계약서를 스캔하거나 선명하게 촬영 (5MB 이하, JPG·PDF 가능) → 홈택스 첨부용으로 저장',
+            ],
+          },
+          {
+            key: 'owner', label: '자가 (건물주)', emoji: '🏠',
+            docs: ['건물 등기부등본'],
+            steps: [
+              '인터넷등기소(iros.go.kr) 접속 → 상단 메뉴 "열람/발급" → 부동산 고유번호 또는 주소로 검색',
+              '갑구+을구 포함 전체 선택 → 발급하기 클릭 (수수료 700원) → PDF 저장 또는 인쇄',
+              '발급일 기준 3개월 이내 서류만 유효 → 홈택스 첨부 전 날짜 확인',
+            ],
+          },
+        ],
       },
       {
         title: '홈택스에서 사업자등록 신청',
@@ -95,12 +117,7 @@ function buildItems(category) {
         docs: [], url: 'https://www.hometax.go.kr',
         tip: '사업자등록번호는 카드단말기 등록·세금계산서 발행에 필요해요.',
         notRequired: false,
-        steps: [
-          '홈택스 로그인 → 상단 국세청서비스 탭 클릭',
-          '"사업자등록 신청·정정 현황" 클릭',
-          '처리 상태 "완료" 확인 → "사업자등록증 출력" 클릭',
-          'PDF 저장 또는 인쇄 → 지원사업 신청·영업신고에 사용',
-        ],
+        steps: [],
       },
     ],
     6: permit.map(p => ({
@@ -150,32 +167,35 @@ function WebGuide({ url, title, steps, onClose }) {
         </a>
       </div>
 
-      {/* 바디 */}
-      {blocked ? (
-        /* ─── iframe 차단 사이트: 순서 + 새탭 버튼 ─── */
-        <div className="flex-1 overflow-y-auto bg-gray-50">
-          <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+      {/* 바디 — 좌측 진행순서 / 우측 사이트 또는 새탭 안내 */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
 
-            {/* 진행 순서 — 전체 너비 */}
-            {hasSteps && (
-              <div className="bg-white rounded-2xl border border-warm-gray/20 p-5 space-y-3 shadow-sm">
-                <p className="text-[11px] font-bold text-navy/60 tracking-wider">진행 순서</p>
-                <ol className="space-y-3">
-                  {steps.map((step, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                      <span className="w-6 h-6 rounded-full bg-navy text-white text-xs font-bold
-                                       flex items-center justify-center flex-shrink-0 mt-0.5">
-                        {i + 1}
-                      </span>
-                      <span className="text-sm text-gray-700 leading-relaxed">{step}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
+        {/* 진행 순서 사이드바 */}
+        {hasSteps && (
+          <div className="bg-navy/[0.02] border-b lg:border-b-0 lg:border-r border-warm-gray/20
+                          lg:w-72 lg:flex-shrink-0 overflow-y-auto
+                          h-44 lg:h-auto flex-shrink-0">
+            <div className="p-4 space-y-3">
+              <p className="text-[11px] font-bold text-navy/60 tracking-wider">진행 순서</p>
+              <ol className="space-y-2.5">
+                {steps.map((step, i) => (
+                  <li key={i} className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-navy text-white text-[10px] font-bold
+                                     flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <span className="text-xs text-gray-700 leading-relaxed">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        )}
 
-            {/* 새탭 CTA */}
-            <div className="bg-white rounded-2xl border border-warm-gray/20 p-5 shadow-sm text-center space-y-4">
+        {blocked ? (
+          /* ─── iframe 차단 사이트: 새탭 안내 ─── */
+          <div className="flex-1 overflow-y-auto bg-gray-50 flex items-center justify-center p-6">
+            <div className="bg-white rounded-2xl border border-warm-gray/20 p-6 shadow-sm text-center space-y-4 w-full max-w-sm">
               <p className="text-2xl">🖥</p>
               <div className="space-y-1">
                 <p className="text-sm font-bold text-navy">이 창 안에서는 바로 열 수 없어요</p>
@@ -188,51 +208,21 @@ function WebGuide({ url, title, steps, onClose }) {
               </a>
               <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5">
                 <p className="text-xs text-amber-700 leading-relaxed">
-                  💡 <strong>팁:</strong> 새 탭을 열고 이 안내 창을 옆에 나란히 두면<br/>
-                  순서를 보면서 진행할 수 있어요
+                  💡 왼쪽 순서를 보면서 새 탭에서 진행할 수 있어요
                 </p>
               </div>
             </div>
           </div>
-        </div>
-      ) : (
-        /* ─── iframe 표시 가능: 모바일 상하 / 데스크탑 좌우 ─── */
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-
-          {/* 진행 순서 패널 */}
-          {hasSteps && (
-            <div className="bg-navy/[0.02] border-b lg:border-b-0 lg:border-r border-warm-gray/20
-                            lg:w-72 lg:flex-shrink-0 overflow-y-auto
-                            h-44 lg:h-auto flex-shrink-0">
-              <div className="p-4 space-y-3">
-                <p className="text-[11px] font-bold text-navy/60 tracking-wider">진행 순서</p>
-                <ol className="space-y-2.5">
-                  {steps.map((step, i) => (
-                    <li key={i} className="flex items-start gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-navy text-white text-[10px] font-bold
-                                       flex items-center justify-center flex-shrink-0 mt-0.5">
-                        {i + 1}
-                      </span>
-                      <span className="text-xs text-gray-700 leading-relaxed">{step}</span>
-                    </li>
-                  ))}
-                </ol>
-                <p className="text-[10px] text-warm-text/50 pt-1">
-                  화면이 열리지 않으면 우측 상단 <strong>새 탭</strong>을 눌러주세요
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* iframe */}
+        ) : (
+          /* ─── iframe 표시 가능 ─── */
           <iframe
             src={url}
             title={title}
             className="flex-1 w-full border-0 min-h-0"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"
           />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
@@ -244,76 +234,156 @@ function DetailPanel({
   isStepAllChecked, onComplete,
   navigate, onSiteOpen,
 }) {
-  const meta = STEP_META[stepNum]
+  const meta       = STEP_META[stepNum]
+  const hasVariants = !!(item.variants?.length)
+
+  const [selectedVariant, setSelectedVariant] = useState(null)
+
+  const activeDocs  = hasVariants ? (selectedVariant?.docs  ?? []) : (item.docs  ?? [])
+  const activeSteps = hasVariants ? (selectedVariant?.steps ?? []) : (item.steps ?? [])
+
+  const [docItems, setDocItems] = useState(() =>
+    activeDocs.map((d, i) => ({ id: i, label: d, checked: false }))
+  )
+  const [drawerDoc, setDrawerDoc] = useState(null)
+
+  useEffect(() => {
+    setDocItems((selectedVariant?.docs ?? []).map((d, i) => ({ id: i, label: d, checked: false })))
+    setDrawerDoc(null)
+  }, [selectedVariant])
+
+  function toggleDoc(id) {
+    setDocItems(prev => prev.map(d => d.id === id ? { ...d, checked: !d.checked } : d))
+  }
+  function completeDoc(id) {
+    setDocItems(prev => prev.map(d => d.id === id ? { ...d, checked: true } : d))
+    setDrawerDoc(null)
+  }
+
   return (
     <div className="bg-white rounded-2xl border border-warm-gray/20 shadow-sm overflow-hidden">
 
+      {/* 헤더 */}
       <div className="bg-navy/[0.03] border-b border-warm-gray/10 px-5 py-3 flex items-center gap-2">
-        <span className="text-lg">{meta?.icon}</span>
+        <span className="text-xl">{meta?.icon}</span>
         <div>
-          <p className="text-[10px] font-bold text-warm-text/60 tracking-wider">STEP {stepNum} · {meta?.label}</p>
-          <p className="text-base font-bold text-navy leading-tight">{item.title}</p>
+          <p className="text-xs font-bold text-warm-text/60 tracking-wider">STEP {stepNum} · {meta?.label}</p>
+          <p className="text-lg font-bold text-navy leading-tight">{item.title}</p>
         </div>
       </div>
 
       <div className="p-5 space-y-4">
 
-        {item.desc && <p className="text-sm text-gray-700 leading-relaxed">{item.desc}</p>}
+        {item.desc && <p className="text-base text-gray-700 leading-relaxed">{item.desc}</p>}
 
         {(item.where || item.duration || item.timing) && (
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-warm-text">
-            {item.where    && <span className="flex items-center gap-1.5"><span className="text-sm">📍</span>{item.where}</span>}
-            {item.duration && <span className="flex items-center gap-1.5"><span className="text-sm">⏱</span>{item.duration}</span>}
-            {item.timing   && <span className="flex items-center gap-1.5"><span className="text-sm">📅</span>{item.timing}</span>}
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-warm-text">
+            {item.where    && <span className="flex items-center gap-1.5"><span>📍</span>{item.where}</span>}
+            {item.duration && <span className="flex items-center gap-1.5"><span>⏱</span>{item.duration}</span>}
+            {item.timing   && <span className="flex items-center gap-1.5"><span>📅</span>{item.timing}</span>}
           </div>
         )}
 
-        {item.docs?.length > 0 && (
-          <div className="bg-gray-50 rounded-xl p-3.5">
-            <p className="text-[11px] font-bold text-navy mb-2 tracking-wide">필요 서류</p>
-            <ul className="space-y-1.5">
-              {item.docs.map((d, i) => (
-                <li key={i} className="flex items-center gap-2 text-xs text-gray-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-navy/40 flex-shrink-0" />
-                  {d}
-                </li>
+        {/* 유형 선택 */}
+        {hasVariants && !selectedVariant && (
+          <div className="space-y-2">
+            <p className="text-sm font-bold text-navy">사업장 유형을 골라주세요</p>
+            <div className="grid grid-cols-2 gap-2">
+              {item.variants.map(v => (
+                <button key={v.key} type="button"
+                  onClick={() => setSelectedVariant(v)}
+                  className="flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 border-navy/20
+                             hover:border-navy hover:bg-navy/[0.03] transition-all">
+                  <span className="text-2xl">{v.emoji}</span>
+                  <span className="text-sm font-semibold text-navy">{v.label}</span>
+                </button>
               ))}
-            </ul>
+            </div>
+          </div>
+        )}
+
+        {/* 선택된 유형 표시 */}
+        {hasVariants && selectedVariant && (
+          <div className="flex items-center justify-between bg-navy/[0.04] rounded-xl px-3.5 py-2.5">
+            <span className="text-sm font-bold text-navy">{selectedVariant.emoji} {selectedVariant.label}</span>
+            <button type="button" onClick={() => setSelectedVariant(null)}
+              className="text-xs text-warm-text underline underline-offset-2">변경</button>
+          </div>
+        )}
+
+        {/* 필요 서류 체크리스트 */}
+        {docItems.length > 0 && (
+          <div className="bg-gray-50 rounded-xl p-3.5 space-y-1.5">
+            <p className="text-xs font-bold text-navy mb-2 tracking-wide">필요 서류</p>
+            {docItems.map(doc => (
+              <div key={doc.id}>
+                <div className="flex items-center justify-between gap-2">
+                  <button type="button" onClick={() => toggleDoc(doc.id)}
+                    className="flex items-center gap-2 flex-1 text-left">
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                      doc.checked ? 'bg-navy border-navy' : 'border-navy/40'
+                    }`}>
+                      {doc.checked && <Check size={9} className="text-white" strokeWidth={3} />}
+                    </div>
+                    <span className={`text-sm ${doc.checked ? 'line-through text-warm-text/50' : 'text-gray-700'}`}>
+                      {doc.label}
+                    </span>
+                  </button>
+                  {termsData[doc.label] && (
+                    <button type="button"
+                      onClick={() => setDrawerDoc(drawerDoc?.label === doc.label ? null : { label: doc.label })}
+                      className="text-xs text-navy font-medium shrink-0 hover:underline">
+                      발급 절차 보기 →
+                    </button>
+                  )}
+                </div>
+                {drawerDoc?.label === doc.label && (
+                  <DocumentStepDrawer
+                    doc={doc.label}
+                    termsData={termsData}
+                    onComplete={() => completeDoc(doc.id)}
+                    onClose={() => setDrawerDoc(null)}
+                  />
+                )}
+              </div>
+            ))}
           </div>
         )}
 
         {item.tip && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5">
-            <p className="text-xs text-amber-800 font-medium leading-relaxed">💡 {item.tip}</p>
+            <p className="text-sm text-amber-800 font-medium leading-relaxed">💡 {item.tip}</p>
           </div>
         )}
 
-        {/* 사이트 열기: 진행 순서 미리보기 + 버튼 */}
-        {item.url && (
+        {/* 진행 순서 + 사이트 버튼 */}
+        {(activeSteps.length > 0 || item.url) && (
           <div className="border border-navy/15 rounded-xl overflow-hidden">
-            {item.steps?.length > 0 && (
+            {activeSteps.length > 0 && (
               <div className="bg-navy/[0.03] px-4 py-3 border-b border-navy/10">
-                <p className="text-[11px] font-bold text-navy/60 tracking-wide mb-2">진행 순서</p>
+                <p className="text-xs font-bold text-navy/60 tracking-wide mb-2">진행 순서</p>
                 <ol className="space-y-1.5">
-                  {item.steps.map((step, i) => (
+                  {activeSteps.map((step, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <span className="w-4 h-4 rounded-full bg-navy/10 text-navy text-[9px] font-bold
                                        flex items-center justify-center flex-shrink-0 mt-0.5">
                         {i + 1}
                       </span>
-                      <span className="text-[11px] text-gray-600 leading-relaxed">{step}</span>
+                      <span className="text-xs text-gray-600 leading-relaxed">{step}</span>
                     </li>
                   ))}
                 </ol>
               </div>
             )}
-            <button
-              type="button"
-              onClick={() => onSiteOpen({ url: item.url, title: item.title, steps: item.steps })}
-              className="flex items-center justify-center gap-2 w-full py-3 px-4
-                         bg-navy text-white text-sm font-bold hover:bg-navy/90 transition-colors active:scale-[0.99]">
-              사이트 열어서 진행하기 →
-            </button>
+            {item.url && (
+              <button
+                type="button"
+                onClick={() => onSiteOpen({ url: item.url, title: item.title, steps: activeSteps })}
+                className="flex items-center justify-center gap-2 w-full py-3 px-4
+                           bg-navy text-white text-sm font-bold hover:bg-navy/90 transition-colors active:scale-[0.99]">
+                사이트 열어서 진행하기 →
+              </button>
+            )}
           </div>
         )}
 
@@ -339,9 +409,9 @@ function DetailPanel({
       </div>
 
       <div className="border-t border-warm-gray/10 bg-gray-50 px-5 py-3 text-center">
-        <p className="text-xs text-warm-text">모르는 게 있으면 마이다에게 물어보세요!</p>
+        <p className="text-sm text-warm-text">모르는 게 있으면 마이다에게 물어보세요!</p>
         <button onClick={() => navigate('/mission')}
-          className="mt-0.5 text-xs font-bold text-navy underline underline-offset-2">
+          className="mt-0.5 text-sm font-bold text-navy underline underline-offset-2">
           챗봇 열기 →
         </button>
       </div>
@@ -362,8 +432,11 @@ export default function StartupGuide({ defaultStep = null }) {
 
   const [completedSteps, setCompletedSteps] = useState(() => {
     const steps = { ...(journey.completedSteps ?? {}) }
-    const hasReg = profile?.hasRegistration === true || profile?.business_status === '운영중'
-    const hasPmt = profile?.hasPermit === true      || profile?.business_status === '운영중'
+    const prep  = journey.prepChecklist ?? {}
+    const hasEdu = prep.hasEducation === true
+    const hasReg = profile?.hasRegistration === true || prep.hasRegistration === true || profile?.business_status === '운영중'
+    const hasPmt = profile?.hasPermit === true      || prep.hasPermit === true      || profile?.business_status === '운영중'
+    if (hasEdu && !steps[4]) { completeStep(4); steps[4] = true }
     if (hasReg && !steps[5]) { completeStep(5); steps[5] = true }
     if (hasPmt && !steps[6]) { completeStep(6); steps[6] = true }
     return steps
@@ -569,6 +642,7 @@ export default function StartupGuide({ defaultStep = null }) {
           {panelOpen && (
             <div className="flex-1 min-w-0 order-first lg:order-last">
               <DetailPanel
+                key={`${selected.stepNum}_${selected.itemIdx}`}
                 stepNum={selected.stepNum}
                 item={selectedItem}
                 isStepDone={!!completedSteps[selected.stepNum]}
