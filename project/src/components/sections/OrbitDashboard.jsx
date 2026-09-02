@@ -420,7 +420,7 @@ function readNewIds() {
 }
 
 // 섹션 타이틀 행
-function SectionHead({ label, count, accent = 'navy', pulse = false }) {
+function SectionHead({ label, count, accent = 'navy', pulse = false, hasMore = false, expanded = false, onToggle = null }) {
   const colors = {
     navy:    ['bg-navy', 'text-navy'],
     orange:  ['bg-sunset-orange', 'text-sunset-orange'],
@@ -437,6 +437,12 @@ function SectionHead({ label, count, accent = 'navy', pulse = false }) {
         <span className="text-xs font-semibold text-warm-text bg-warm-gray/20 rounded-full px-2 py-0.5">
           {count}건
         </span>
+      )}
+      {hasMore && onToggle && (
+        <button type="button" onClick={onToggle}
+          className="ml-auto text-xs font-semibold text-warm-text hover:text-navy">
+          {expanded ? '접기 ▲' : '더보기 ▼'}
+        </button>
       )}
     </div>
   )
@@ -687,7 +693,10 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
         <div>
           <SectionHead label="지금 신청 가능한 지원사업"
             count={!loading ? applicableItems.length : undefined}
-            accent="emerald" />
+            accent="emerald"
+            hasMore={!loading && applicableItems.length > APPLICABLE_INIT}
+            expanded={applicableExpanded}
+            onToggle={() => setApplicableExpanded(v => !v)} />
           <div className="grid grid-cols-1 gap-2.5">
             {loading
               ? [1, 2, 3].map(i => <SkeletonCard key={i} />)
@@ -698,22 +707,16 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
                 ))
             }
           </div>
-          {!loading && applicableItems.length > APPLICABLE_INIT && (
-            <button type="button"
-              onClick={() => setApplicableExpanded(v => !v)}
-              className="w-full flex items-center justify-center gap-1 py-2 mt-1
-                         border-t border-warm-gray/20 text-sm font-semibold text-emerald-600 hover:underline">
-              {applicableExpanded ? '접기' : `${applicableItems.length - APPLICABLE_INIT}건 더보기`}
-              <ChevronDown size={13} className={`transition-transform duration-150 ${applicableExpanded ? 'rotate-180' : ''}`} />
-            </button>
-          )}
         </div>
       )}
 
       {/* ── 긴급 마감 ── */}
       {urgentItems.length > 0 && (
         <div>
-          <SectionHead label="긴급 마감" count={urgentItems.length} accent="orange" pulse />
+          <SectionHead label="긴급 마감" count={urgentItems.length} accent="orange" pulse
+            hasMore={urgentItems.length > URGENT_INIT}
+            expanded={urgentExpanded}
+            onToggle={() => setUrgentExpanded(v => !v)} />
           <div className="grid grid-cols-1 gap-2.5">
             {urgentVisible.map(item => (
               <ProgramCard key={item.id} item={item} accent="orange"
@@ -721,22 +724,16 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
                 aiDesc={aiDescs[item.id]} termDefs={termDefs} />
             ))}
           </div>
-          {urgentItems.length > URGENT_INIT && (
-            <button type="button"
-              onClick={() => setUrgentExpanded(v => !v)}
-              className="w-full flex items-center justify-center gap-1 py-2 mt-1
-                         border-t border-warm-gray/20 text-sm font-semibold text-sunset-orange hover:underline">
-              {urgentExpanded ? '접기' : `${urgentItems.length - URGENT_INIT}건 더보기`}
-              <ChevronDown size={13} className={`transition-transform duration-150 ${urgentExpanded ? 'rotate-180' : ''}`} />
-            </button>
-          )}
         </div>
       )}
 
       {/* ── 새로 발견한 지원사업 ── */}
       {newItems.length > 0 && (
         <div>
-          <SectionHead label="새로 발견한 지원사업" count={newItems.length} accent="purple" />
+          <SectionHead label="새로 발견한 지원사업" count={newItems.length} accent="purple"
+            hasMore={newItems.length > NEW_INIT}
+            expanded={newExpanded}
+            onToggle={() => setNewExpanded(v => !v)} />
           <div className="grid grid-cols-1 gap-2.5">
             {newVisible.map(item => (
               <ProgramCard key={item.id} item={item} accent="navy"
@@ -744,22 +741,16 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
                 aiDesc={aiDescs[item.id]} termDefs={termDefs} />
             ))}
           </div>
-          {newItems.length > NEW_INIT && (
-            <button type="button"
-              onClick={() => setNewExpanded(v => !v)}
-              className="w-full flex items-center justify-center gap-1 py-2 mt-1
-                         border-t border-warm-gray/20 text-sm font-semibold text-purple-600 hover:underline">
-              {newExpanded ? '접기' : `${newItems.length - NEW_INIT}건 더보기`}
-              <ChevronDown size={13} className={`transition-transform duration-150 ${newExpanded ? 'rotate-180' : ''}`} />
-            </button>
-          )}
         </div>
       )}
 
       {/* ── 관심공고 ── */}
       {favItems.length > 0 && (
         <div>
-          <SectionHead label="관심공고" count={favItems.length} accent="amber" />
+          <SectionHead label="관심공고" count={favItems.length} accent="amber"
+            hasMore={favItems.length > FAV_INIT}
+            expanded={favExpanded}
+            onToggle={() => setFavExpanded(v => !v)} />
           <div className="grid grid-cols-1 gap-2.5">
             {favVisible.map((item, i) =>
               item.id
@@ -769,36 +760,21 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
                 : <SimpleFavCard key={item.notice_id ?? i} fav={item} />
             )}
           </div>
-          {favItems.length > FAV_INIT && (
-            <button type="button"
-              onClick={() => setFavExpanded(v => !v)}
-              className="w-full flex items-center justify-center gap-1 py-2 mt-1
-                         border-t border-warm-gray/20 text-sm font-semibold text-amber-600 hover:underline">
-              {favExpanded ? '접기' : `${favItems.length - FAV_INIT}건 더보기`}
-              <ChevronDown size={13} className={`transition-transform duration-150 ${favExpanded ? 'rotate-180' : ''}`} />
-            </button>
-          )}
         </div>
       )}
 
       {/* ── 신청 완료 ── */}
       {applied.length > 0 && (
         <div>
-          <SectionHead label="신청 완료" count={applied.length} accent="emerald" />
+          <SectionHead label="신청 완료" count={applied.length} accent="emerald"
+            hasMore={applied.length > APPLIED_INIT}
+            expanded={appliedExpanded}
+            onToggle={() => setAppliedExpanded(v => !v)} />
           <div className="grid grid-cols-1 gap-2.5">
             {appliedVisible.map((app, i) => (
               <AppliedCard key={app.notice_id ?? i} app={app} />
             ))}
           </div>
-          {applied.length > APPLIED_INIT && (
-            <button type="button"
-              onClick={() => setAppliedExpanded(v => !v)}
-              className="w-full flex items-center justify-center gap-1 py-2 mt-1
-                         border-t border-warm-gray/20 text-sm font-semibold text-emerald-600 hover:underline">
-              {appliedExpanded ? '접기' : `${applied.length - APPLIED_INIT}건 더보기`}
-              <ChevronDown size={13} className={`transition-transform duration-150 ${appliedExpanded ? 'rotate-180' : ''}`} />
-            </button>
-          )}
         </div>
       )}
 
@@ -811,6 +787,12 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             <span className="text-xs font-semibold text-warm-text bg-warm-gray/20 rounded-full px-2 py-0.5">
               {allItems.length}건
             </span>
+          )}
+          {!loading && allSorted.length > INITIAL_COUNT && (
+            <button type="button" onClick={() => setAllExpanded(v => !v)}
+              className="text-xs font-semibold text-warm-text hover:text-navy">
+              {allExpanded ? '접기 ▲' : '더보기 ▼'}
+            </button>
           )}
           {!loading && allItems.length > 1 && (
             <div className="ml-auto flex items-center gap-1 flex-shrink-0" role="group" aria-label="정렬">
@@ -846,15 +828,6 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
               ))
           }
         </div>
-        {!loading && allSorted.length > INITIAL_COUNT && (
-          <button type="button"
-            onClick={() => setAllExpanded(v => !v)}
-            className="w-full flex items-center justify-center gap-1 py-2 mt-1
-                       border-t border-warm-gray/20 text-sm font-semibold text-navy hover:underline">
-            {allExpanded ? '접기' : `${allSorted.length - INITIAL_COUNT}건 더보기`}
-            <ChevronDown size={13} className={`transition-transform duration-150 ${allExpanded ? 'rotate-180' : ''}`} />
-          </button>
-        )}
       </div>
 
       {!loading && allItems.length === 0 && (
