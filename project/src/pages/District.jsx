@@ -53,8 +53,8 @@ function Card({ children, className = '' }) {
 function SectionTitle({ children, sub }) {
   return (
     <div className="mb-3">
-      <h2 className="text-sm font-bold text-navy">{children}</h2>
-      {sub && <p className="text-[12px] text-warm-text mt-0.5 leading-relaxed">{sub}</p>}
+      <h2 className="text-base font-bold text-navy">{children}</h2>
+      {sub && <p className="text-sm text-warm-text mt-0.5 leading-relaxed">{sub}</p>}
     </div>
   )
 }
@@ -87,7 +87,7 @@ function ProfileCard({ profile, onEdit }) {
       <div className="flex items-start justify-between mb-3">
         <SectionTitle sub="온보딩에서 답해주신 내용이에요">내 정보</SectionTitle>
         <button onClick={onEdit}
-          className="tap flex items-center gap-1 text-[12px] text-navy font-semibold flex-shrink-0">
+          className="tap flex items-center gap-1 text-xs text-navy font-semibold flex-shrink-0">
           <Pencil size={13} /> 고치기
         </button>
       </div>
@@ -95,19 +95,19 @@ function ProfileCard({ profile, onEdit }) {
       {chips.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
           {chips.map(c => (
-            <span key={c} className="text-[13px] font-medium text-navy bg-primary-bg rounded-full px-2.5 py-1">
+            <span key={c} className="text-sm font-medium text-navy bg-primary-bg rounded-full px-2.5 py-1">
               {c}
             </span>
           ))}
         </div>
       ) : (
-        <p className="text-[13px] text-warm-text">아직 알려주신 게 없어요.</p>
+        <p className="text-sm text-warm-text">아직 알려주신 게 없어요.</p>
       )}
 
       {missing > 0 && (
         <div className="mt-3 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
           <AlertTriangle size={14} className="text-sunset-orange mt-0.5 flex-shrink-0" />
-          <p className="text-[12px] text-warm-text leading-relaxed">
+          <p className="text-sm text-warm-text leading-relaxed">
             세무 질문 {missing}개를 아직 안 하셨어요. 모른다고 빼버리면 해야 할 신고를
             통째로 놓칠 수 있어서, <b className="text-navy">일단 다 보여드리고 있어요.</b>{' '}
             <button onClick={onEdit} className="text-navy font-semibold underline underline-offset-2">
@@ -289,7 +289,7 @@ export default function MyStore() {
               </div>
             </div>
 
-            <p className="text-[13px] text-gray-700 leading-relaxed mt-3 bg-primary-bg rounded-xl px-3 py-2.5">
+            <p className="text-sm text-gray-700 leading-relaxed mt-3 bg-primary-bg rounded-xl px-3 py-2.5">
               {next.easy}
             </p>
 
@@ -298,7 +298,7 @@ export default function MyStore() {
             {next.dueDate && !holidaysKnown(Number(next.dueDate.slice(0, 4))) && (
               <div className="mt-2 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
                 <AlertTriangle size={14} className="text-sunset-orange mt-0.5 flex-shrink-0" />
-                <p className="text-[13px] text-warm-text leading-relaxed">
+                <p className="text-sm text-warm-text leading-relaxed">
                   {next.dueDate.slice(0, 4)}년 공휴일이 아직 등록되지 않아 주말만 반영된
                   날짜예요. 연말에 확인해 주세요.
                 </p>
@@ -315,7 +315,7 @@ export default function MyStore() {
 
           {upcoming.length > 0 ? (
             <>
-              <p className="text-[12px] font-bold text-navy mb-1">
+              <p className="text-sm font-bold text-navy mb-1">
                 반드시 해야 하는 것 {upcoming.length}건
                 {rolled && (
                   <span className="font-normal text-warm-text"> · {year}년 것은 다 지났어요</span>
@@ -329,7 +329,7 @@ export default function MyStore() {
               </div>
             </>
           ) : (
-            <p className="text-[13px] text-warm-text py-2">해당되는 신고가 없어요.</p>
+            <p className="text-sm text-warm-text py-2">해당되는 신고가 없어요.</p>
           )}
 
           {/* 올해 지난 것 — 접어서 남긴다. 아예 지우면 「내가 저걸 했던가」를
@@ -339,7 +339,7 @@ export default function MyStore() {
             <div className="mt-3 pt-3 border-t border-warm-gray/15">
               <button onClick={() => setShowPast(v => !v)}
                 className="tap w-full flex items-center justify-between text-left">
-                <span className="text-[12px] font-bold text-warm-text">
+                <span className="text-sm font-bold text-warm-text">
                   {year}년에 지난 것 {past.length}건
                 </span>
                 <ChevronDown size={14}
@@ -363,7 +363,7 @@ export default function MyStore() {
             <div className="mt-3 pt-3 border-t border-warm-gray/15">
               <button onClick={() => setShowIf(v => !v)}
                 className="tap w-full flex items-center justify-between text-left">
-                <span className="text-[12px] font-bold text-warm-text">
+                <span className="text-sm font-bold text-warm-text">
                   해당되면 이것도 {optional.length}건
                 </span>
                 <ChevronDown size={14}
@@ -372,13 +372,13 @@ export default function MyStore() {
 
               {showIf && (
                 <div className="mt-1">
-                  <p className="text-[13px] text-warm-text leading-relaxed mb-2">
+                  <p className="text-sm text-warm-text leading-relaxed mb-2">
                     답해주신 것만으로는 해당되는지 알 수 없는 신고예요. 조건을 읽어보고
                     본인 얘기면 챙기세요.
                   </p>
                   {optional.map(e => (
                     <div key={`o${e.id}`}>
-                      <p className="text-[13px] text-sunset-orange pt-2">{e.conditional}</p>
+                      <p className="text-sm text-sunset-orange pt-2">{e.conditional}</p>
                       <TaxRow item={e} done={Boolean(doneMap[taxDoneKey(e.id, e.dueDate)])} open={openId === `o${e.id}`}
                         onToggle={() => setOpenId(openId === `o${e.id}` ? null : `o${e.id}`)} />
                     </div>
@@ -391,7 +391,7 @@ export default function MyStore() {
           {!listKnown && (
             <div className="mt-3 flex items-start gap-2 bg-sunset-orange/5 rounded-xl px-3 py-2.5">
               <AlertTriangle size={14} className="text-sunset-orange mt-0.5 flex-shrink-0" />
-              <p className="text-[13px] text-warm-text leading-relaxed">
+              <p className="text-sm text-warm-text leading-relaxed">
                 {listYear}년 공휴일이 아직 등록되지 않아 주말만 반영된 날짜예요.
                 설·추석은 음력이라 자동 계산이 안 됩니다.
               </p>
@@ -411,7 +411,7 @@ export default function MyStore() {
           </SectionTitle>
 
           {failed ? (
-            <p className="text-[13px] text-warm-text py-2">
+            <p className="text-sm text-warm-text py-2">
               공고를 불러오지 못했어요. 잠시 뒤 다시 열어주세요.
             </p>
           ) : !counts ? (
@@ -428,7 +428,7 @@ export default function MyStore() {
                 ].map(d => (
                   <div key={d.label} className="bg-primary-bg rounded-xl py-3 text-center">
                     <p className={`text-xl font-extrabold leading-none ${d.color}`}>{d.value}</p>
-                    <p className="text-[12px] text-warm-text mt-1">{d.label}</p>
+                    <p className="text-xs text-warm-text mt-1">{d.label}</p>
                   </div>
                 ))}
               </div>
@@ -443,12 +443,12 @@ export default function MyStore() {
                              rounded-xl px-3 py-2.5 hover:bg-warm-gray/20 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] text-warm-text">가장 먼저 마감돼요</p>
-                    <p className="text-xs font-semibold text-navy truncate mt-0.5">
+                    <p className="text-sm text-warm-text">가장 먼저 마감돼요</p>
+                    <p className="text-sm font-semibold text-navy truncate mt-0.5">
                       {counts.nearest.notice_title}
                     </p>
                   </div>
-                  <span className="text-[12px] font-bold text-sunset-orange flex-shrink-0">
+                  <span className="text-xs font-bold text-sunset-orange flex-shrink-0">
                     {dDayLabel(dDay(counts.nearest.apply_period?.end))}
                   </span>
                   <ChevronRight size={14} className="text-warm-gray flex-shrink-0" />
@@ -456,7 +456,7 @@ export default function MyStore() {
               )}
 
               {counts.soon > 0 && (
-                <p className="text-[13px] text-sunset-orange font-semibold mt-2">
+                <p className="text-sm text-sunset-orange font-semibold mt-2">
                   2주 안에 마감되는 공고가 {counts.soon}건 있어요
                 </p>
               )}
@@ -464,7 +464,7 @@ export default function MyStore() {
               <button
                 onClick={() => navigate('/home')}
                 className="mt-3 w-full flex items-center justify-center gap-1
-                           text-xs text-navy font-semibold py-2.5 rounded-xl
+                           text-sm text-navy font-semibold py-2.5 rounded-xl
                            bg-primary-bg hover:bg-warm-gray/20 transition-colors"
               >
                 공고 {counts.total}건 보러가기 <ChevronRight size={14} />
@@ -494,17 +494,17 @@ export default function MyStore() {
                 >
                   <Check size={14} className="text-emerald-600 mt-0.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-navy line-clamp-2 leading-snug">
+                    <p className="text-sm font-semibold text-navy line-clamp-2 leading-snug">
                       {p.notice_title}
                     </p>
-                    <p className="text-[12px] text-warm-text mt-0.5">{p.applied_at} 신청</p>
+                    <p className="text-xs text-warm-text mt-0.5">{p.applied_at} 신청</p>
                   </div>
                 </button>
               ))}
             </div>
 
             {applied.length > 5 && (
-              <p className="text-[12px] text-warm-text mt-2">
+              <p className="text-xs text-warm-text mt-2">
                 외 {applied.length - 5}건은 홈에서 볼 수 있어요
               </p>
             )}
@@ -538,8 +538,8 @@ export default function MyStore() {
               <div key={f.name} className="flex items-start gap-2.5">
                 <Lock size={13} className="text-warm-gray mt-0.5 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-navy">{f.name}</p>
-                  <p className="text-[12px] text-warm-text leading-relaxed mt-0.5">{f.need}</p>
+                  <p className="text-sm font-semibold text-navy">{f.name}</p>
+                  <p className="text-xs text-warm-text leading-relaxed mt-0.5">{f.need}</p>
                 </div>
               </div>
             ))}
@@ -550,10 +550,10 @@ export default function MyStore() {
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-2">
             <FileText size={14} className="text-warm-text" />
-            <h2 className="text-[13px] font-bold text-navy">이 화면의 숫자는 어디서 왔나</h2>
+            <h2 className="text-sm font-bold text-navy">이 화면의 숫자는 어디서 왔나</h2>
           </div>
 
-          <ul className="space-y-2 text-[12px] text-warm-text leading-relaxed">
+          <ul className="space-y-2 text-xs text-warm-text leading-relaxed">
             <li className="flex gap-1.5">
               <MapPin size={13} className="mt-0.5 flex-shrink-0" />
               <span>내 정보 — 온보딩에서 직접 답해주신 내용</span>
@@ -582,7 +582,7 @@ export default function MyStore() {
           <a
             href="https://www.nts.go.kr/nts/ad/taxSchdul/selectList.do"
             target="_blank" rel="noreferrer"
-            className="tap mt-3 inline-flex items-center gap-1 text-[13px] text-navy font-semibold
+            className="tap mt-3 inline-flex items-center gap-1 text-sm text-navy font-semibold
                        underline underline-offset-2"
           >
             국세청 세무일정 원문 확인 <ExternalLink size={12} />
@@ -603,7 +603,7 @@ export default function MyStore() {
               <MapPin size={16} className="text-sunset-orange flex-shrink-0" />
               <div className="text-left">
                 <p className="text-sm font-bold text-navy">내 매장 주변 상권 분석</p>
-                <p className="text-[12px] text-warm-text mt-0.5">
+                <p className="text-xs text-warm-text mt-0.5">
                   주변 음식점·카페·학원·역·아파트 현황을 확인해보세요
                 </p>
               </div>
