@@ -680,7 +680,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
   }
 
   return (
-    <section className="px-5 pb-28 space-y-7">
+    <section className="px-5 pb-28 space-y-4">
 
       {/* ── 지금 신청 가능한 지원사업 ── */}
       {(applicableItems.length > 0 || loading) && (
