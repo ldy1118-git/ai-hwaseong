@@ -165,10 +165,19 @@ export function inferCurrentStep(profile, journey) {
 export function getProgress(profile, journey) {
   const step = inferCurrentStep(profile, journey)
   const done = journey?.completedSteps ?? {}
+  const prep = journey?.prepChecklist ?? {}
 
-  // 완료된 단계 수 + 현재 단계를 진행 중(0.5)으로 계산
-  const completedCount = Object.values(done).filter(Boolean).length
-  const inProgress = step <= 7 && !done[step] ? 0.5 : 0
+  // 창업을 마친 상태는 100%. 운영중이거나 영업신고까지 끝낸 경우다.
+  if (profile?.business_status === '운영중' || prep.hasPermit || done[7]) return 100
 
-  return Math.min(100, Math.round(((completedCount + inProgress) / 7) * 100))
+  // inferCurrentStep 이 돌려주는 것은 «다음에 할 단계»다. 그 앞은 지나온
+  // 것이므로 (step - 1) 개가 끝난 셈이고, 지금 단계는 완료 표시가 있으면
+  // 1, 없으면 진행 중이라 0.5 를 준다.
+  //
+  // 전에는 completedSteps 만 셌다. 그런데 그걸 채우는 것은 StartupGuide
+  // 하나뿐이라, 온보딩에서 체크리스트만 고르고 안내 화면에 안 들어간
+  // 사람은 STEP 6 에 서 있으면서 7% 라고 떴다. 단계를 정하는 함수와
+  // 진행률을 재는 함수가 서로 다른 것을 보고 있었다.
+  const cleared = (step - 1) + (done[step] ? 1 : 0.5)
+  return Math.min(100, Math.round((cleared / 7) * 100))
 }

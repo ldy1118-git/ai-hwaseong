@@ -412,31 +412,37 @@ function DoneScreen({ count, onConfirm }) {
       {/* 준비도 카드 */}
       <div className="w-full max-w-sm bg-white rounded-3xl border border-warm-gray/20 shadow-lg p-5">
 
-        {/* 창업 준비도 */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <p className="text-xs font-bold text-navy/60 tracking-wider">창업 준비도</p>
-            <p className="text-base font-bold text-sunset-orange">{progress}%</p>
+        {/* 창업 준비도 — 이미 가게를 하는 사장님에게는 안 보인다.
+            운영중이면 inferCurrentStep 이 곧장 7 을 주는데 completedSteps 는
+            비어 있어서 「STEP 7/7」 옆에 7% 가 같이 떴다. 애초에 창업을
+            마친 분에게 창업 준비도를 물을 일이 없다. 홈의 JourneyWidget 도
+            같은 이유로 안 그린다. */}
+        {status !== '운영중' && (<>
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-xs font-bold text-navy/60 tracking-wider">창업 준비도</p>
+              <p className="text-base font-bold text-sunset-orange">{progress}%</p>
+            </div>
+            <div className="h-2 bg-warm-gray/15 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-navy to-sunset-orange rounded-full transition-all duration-700"
+                style={{ width: `${progress}%` }} />
+            </div>
+            <p className="text-xs text-warm-text mt-1.5">
+              STEP {step} / 7 — {
+                step === 1 ? '업종·입지 탐색 단계' :
+                step === 2 ? '사업 계획 구체화 단계' :
+                step === 3 ? '사업장 준비 단계' :
+                step === 4 ? '필수 교육·자격 단계' :
+                step === 5 ? '사업자등록 단계' :
+                step === 6 ? '인허가·영업신고 단계' :
+                '사업 운영 시작'
+              }
+            </p>
           </div>
-          <div className="h-2 bg-warm-gray/15 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-navy to-sunset-orange rounded-full transition-all duration-700"
-              style={{ width: `${progress}%` }} />
-          </div>
-          <p className="text-xs text-warm-text mt-1.5">
-            STEP {step} / 7 — {
-              step === 1 ? '업종·입지 탐색 단계' :
-              step === 2 ? '사업 계획 구체화 단계' :
-              step === 3 ? '사업장 준비 단계' :
-              step === 4 ? '필수 교육·자격 단계' :
-              step === 5 ? '사업자등록 단계' :
-              step === 6 ? '인허가·영업신고 단계' :
-              '사업 운영 시작'
-            }
-          </p>
-        </div>
+        </>)}
 
-        <div className="border-t border-warm-gray/10 pt-4 space-y-3">
+        <div className={`${status !== '운영중' ? 'border-t border-warm-gray/10 pt-4' : ''} space-y-3`}>
 
           {/* 신청 가능 공고 */}
           <div className="flex items-center justify-between">

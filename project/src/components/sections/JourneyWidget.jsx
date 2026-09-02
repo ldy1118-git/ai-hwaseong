@@ -32,8 +32,19 @@ export default function JourneyWidget({ profile }) {
   const stepInfo   = STEPS.find(s => s.num === step)
   const completed  = journey.completedSteps ?? {}
 
-  // 예비창업자도 운영중도 아닌 경우(프로필 없음)는 숨김
+  // 프로필이 없으면 어느 단계인지 알 수가 없다
   if (!profile) return null
+
+  // 이미 가게를 하는 사장님에게는 안 그린다.
+  //
+  // 「나의 창업 항해」는 창업을 준비하는 사람의 것이다. 사장님에게는
+  // 프레이밍부터 안 맞고 숫자도 어긋난다 — inferCurrentStep 은 운영중을
+  // 곧장 7 로 보는데 completedSteps 는 채운 적이 없어서, STEP 7/7 옆에
+  // 7% 가 같이 떴다. 거기에 「아직 창업 후보가 없어요 · 탐색하기」까지
+  // 붙어서 가게를 이미 하는 분에게 창업 자리를 알아보라고 했다.
+  //
+  // 홈에는 사장님용 BusinessOwnerSection 이 따로 있다.
+  if (profile.business_status === '운영중') return null
 
   return (
     <div className="mx-5 mb-3">
