@@ -375,7 +375,7 @@ function DoneScreen({ count, onConfirm }) {
         <img src={searchImg} alt="" aria-hidden className="w-40 h-40 object-contain"
              style={{ animation: 'doneFloat 2s ease-in-out infinite' }} />
         <div className="text-center">
-          <p className="text-lg font-bold text-navy">Ma-DA가 준비 중이에요</p>
+          <p className="text-lg font-bold text-navy">마이다가 준비 중이에요</p>
           <p className="text-sm text-warm-text mt-1">맞춤 지원사업을 탐색하고 있어요</p>
         </div>
         <div className="flex gap-1.5">
@@ -398,7 +398,7 @@ function DoneScreen({ count, onConfirm }) {
         <img src={findImg} alt="마이다" className="w-16 h-16 object-contain flex-shrink-0"
              style={{ filter: 'drop-shadow(0 4px 8px rgba(42,60,119,0.2))' }} />
         <div className="relative bg-white border border-warm-gray/30 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm flex-1">
-          <p className="text-sm font-bold text-navy">Ma-DA가 준비됐어요! 🚀</p>
+          <p className="text-sm font-bold text-navy">마이다가 준비됐어요! 🚀</p>
           <p className="text-xs text-warm-text mt-0.5">
             {category ? `${category} 창업 여정을 함께 시작해요` : '창업 여정을 함께 시작해요'}
           </p>
@@ -1290,7 +1290,7 @@ export default function Onboarding() {
   const [assetEstimate, setAssetEstimate]       = useState(null)
   const [assetMemberCount, setAssetMemberCount] = useState(4)
   // Path C — OCR
-  const [bizMode, setBizMode]     = useState('upload')   // 'upload'|'loading'|'review'|'manual'
+  const [bizMode, setBizMode]     = useState('upload')   // 'status'|'upload'|'loading'|'review'|'manual'
   // null = 아직 모름. 모르는 동안에는 사진 쪽을 그대로 둔다.
   const [ocrReady, setOcrReady]   = useState(null)
   const [ocrResult, setOcrResult] = useState(null)
@@ -1487,21 +1487,15 @@ export default function Onboarding() {
         <Ask title="지금 어디까지 준비하셨나요?"
              why="상황에 따라 받을 수 있는 지원사업이 완전히 달라져요.">
           <div className="flex flex-col gap-3">
-            <Choice emoji="🌱" label="아직 뭘 할지 모르겠어요"
-              desc="관심 분야부터 가볍게 탐색해봐요"
+            <Choice emoji="🌱" label="아직 탐색 중이에요"
+              desc="뭘 할지 모르거나 아이디어가 있는 단계예요"
               onClick={() => { setPath('A'); setStage('field') }} />
-            <Choice emoji="💡" label="하고 싶은 게 있어요"
-              desc="구체적인 창업 아이디어가 있어요"
-              onClick={() => { setPath('B'); setStage('wish') }} />
             <Choice emoji="📋" label="창업을 준비하고 있어요"
               desc="업종·장소·교육 등 준비 중이에요"
               onClick={() => { setPath('C'); setStage('prep') }} />
-            <Choice emoji="📄" label="사업자등록까지 했어요"
-              desc="사업자등록증이 발급됐어요"
-              onClick={() => { setPath('D'); setStage('biz') }} />
-            <Choice emoji="🏪" label="이미 운영 중이에요"
-              desc="사업자등록증이 있고 운영 중이에요"
-              onClick={() => { setPath('E'); setStage('biz') }} />
+            <Choice emoji="🏪" label="사업자가 있거나 운영 중이에요"
+              desc="사업자등록증이 있거나 이미 운영 중이에요"
+              onClick={() => { setBizMode('status'); setStage('biz') }} />
           </div>
         </Ask>
       </Shell>
@@ -1510,16 +1504,6 @@ export default function Onboarding() {
 
   /* ── C 창업 준비 체크리스트 ── */
   if (stage === 'prep') {
-    function startFromPrep() {
-      // 체크된 항목 중 가장 앞선 단계를 기준으로 업종 묻기
-      const needCategory = !prepChecklist.hasCategory
-      const category = needCategory ? '' : (data.category || '')
-      startCommon('C', {
-        category,
-        business_status: '예비창업자',
-      })
-    }
-
     return (
       <Shell current={current} total={total} onBack={() => setStage('q1')}
              marsMessage={marsMsg} stageKey="prep">
@@ -1554,11 +1538,49 @@ export default function Onboarding() {
             아직 아무것도 안 하셨어도 괜찮아요. 처음부터 같이 해요!
           </p>
 
-          <Button variant="navy" fullWidth onClick={startFromPrep}>
+          <Button variant="navy" fullWidth onClick={() => setStage('prep-field')}>
             {Object.values(prepChecklist).some(Boolean)
               ? '다음 단계로 이어서 →'
               : '처음부터 시작할게요 →'}
           </Button>
+        </Ask>
+      </Shell>
+    )
+  }
+
+  /* ── C-0 업종 선택 ── */
+  if (stage === 'prep-field') {
+    return (
+      <Shell current={current} total={total} onBack={() => setStage('prep')}
+             marsMessage={marsMsg} stageKey="prep-field">
+        <Ask title="어떤 업종으로 창업할 예정이에요?"
+             why="업종에 따라 받을 수 있는 지원사업이 달라져요.">
+          <div className="grid grid-cols-2 gap-3">
+            {FIELDS.map(f => (
+              <Choice key={f.key} emoji={f.emoji} label={f.label}
+                onClick={() => {
+                  if (f.sub) { setStage('prep-sub'); return }
+                  startCommon('C', { category: f.category, business_status: '예비창업자' })
+                }} />
+            ))}
+          </div>
+        </Ask>
+      </Shell>
+    )
+  }
+
+  /* ── C-0b 세부 (요리) ── */
+  if (stage === 'prep-sub') {
+    return (
+      <Shell current={current} total={total} onBack={() => setStage('prep-field')}
+             marsMessage={marsMsg} stageKey="prep-sub">
+        <Ask title="요리 쪽이군요! 조금 더 알려주세요">
+          <div className="flex flex-col gap-3">
+            <Choice emoji="☕" label="카페·음료·디저트"
+              onClick={() => startCommon('C', { category: '카페',   business_status: '예비창업자' })} />
+            <Choice emoji="🍜" label="식당·밥집·분식"
+              onClick={() => startCommon('C', { category: '음식점', business_status: '예비창업자' })} />
+          </div>
         </Ask>
       </Shell>
     )
@@ -1655,9 +1677,29 @@ export default function Onboarding() {
     // D = 신규사업자(등록 완료, 아직 운영 전), E = 운영중
     const bizStatus = path === 'E' ? '운영중' : '신규사업자'
 
-    const bizBack = bizMode === 'upload' || bizMode === 'manual'
-      ? () => { setBizMode('upload'); setStage('q1') }
+    const bizBack = bizMode === 'status' || bizMode === 'upload' || bizMode === 'manual'
+      ? () => { setBizMode('status'); setStage('q1') }
       : () => setBizMode('upload')
+
+    /* 운영 여부 선택 (D/E 구분) */
+    if (bizMode === 'status') {
+      return (
+        <Shell current={current} total={total} onBack={() => setStage('q1')}
+               marsMessage={marsMsg} stageKey="biz-status">
+          <Ask title="지금 운영 중이신가요?"
+               why="운영 여부에 따라 신청할 수 있는 지원사업이 달라져요.">
+            <div className="flex flex-col gap-3">
+              <Choice emoji="📄" label="사업자등록만 했어요"
+                desc="등록증은 있는데 아직 운영 전이에요"
+                onClick={() => { setPath('D'); setBizMode('upload') }} />
+              <Choice emoji="🏪" label="이미 운영 중이에요"
+                desc="사업자등록증이 있고 운영 중이에요"
+                onClick={() => { setPath('E'); setBizMode('upload') }} />
+            </div>
+          </Ask>
+        </Shell>
+      )
+    }
 
     /* 업로드 중 로딩 */
     if (bizMode === 'loading') {

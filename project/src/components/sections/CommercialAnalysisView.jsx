@@ -42,18 +42,26 @@ function LeafletMap({ position, onMove, radii, markers, sizeKey, recommendPins =
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
-    const map = L.map(containerRef.current, { center: [position.lat, position.lng], zoom: 14, zoomControl: false })
+    const map = L.map(containerRef.current, {
+      center: [position.lat, position.lng], zoom: 14, zoomControl: false,
+      scrollWheelZoom: false,
+    })
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
     const marker = L.marker([position.lat, position.lng], { draggable: true, icon: leafletIcon }).addTo(map)
     marker.on('dragend', () => {
       const { lat, lng } = marker.getLatLng()
       onMoveRef.current({ lat, lng })
     })
+    // 클릭하면 휠 줌 활성화, 마우스가 떠나면 다시 비활성화
+    map.on('click', () => map.scrollWheelZoom.enable())
+    const onLeave = () => map.scrollWheelZoom.disable()
+    containerRef.current.addEventListener('mouseleave', onLeave)
     overlayRef.current   = L.layerGroup().addTo(map)
     recommendRef.current = L.layerGroup().addTo(map)
     mapRef.current = map; markerRef.current = marker
     setMapReady(true)
     return () => {
+      containerRef.current?.removeEventListener('mouseleave', onLeave)
       map.remove()
       mapRef.current = null; markerRef.current = null
       overlayRef.current = null; recommendRef.current = null
@@ -337,11 +345,24 @@ export default function CommercialAnalysisView({ profile }) {
   )
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [candidateSaved, setCandidateSaved]     = useState(false)
-  const [inputMode, setInputMode]               = useState('map') // 'map' | 'address' | 'category'
+  const [inputMode, setInputMode]               = useState('address') // 'address' | 'category'
   const [recommendPins, setRecommendPins]       = useState([])    // [{lat, lng, count, rank}]
   const [recommendLoading, setRecommendLoading] = useState(false)
   const [recommendCategory, setRecommendCategory] = useState(null) // 현재 추천 업종
-  const [spaceChoice, setSpaceChoice]           = useState(null)  // null | 'has' | 'none'
+  const [spaceChoice, setSpaceChoiceRaw]        = useState(() => {
+    const saved = sessionStorage.getItem('mars-fit-space-choice')
+    if (saved === 'has' || saved === 'none') return saved
+    try {
+      const j = JSON.parse(localStorage.getItem('mars-fit-journey') || 'null')
+      if (j?.prepChecklist?.hasContract) return 'has'
+    } catch {}
+    return null
+  })
+  function setSpaceChoice(val) {
+    setSpaceChoiceRaw(val)
+    if (val) sessionStorage.setItem('mars-fit-space-choice', val)
+    else sessionStorage.removeItem('mars-fit-space-choice')
+  }
   const debounceRef  = useRef(null)
   const addressInput = useRef(null)
   const autoAnalyzeTriggered = useRef(false)
@@ -363,7 +384,7 @@ export default function CommercialAnalysisView({ profile }) {
   useEffect(() => {
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      fetch('/api/commercial', {
+      fetch(apiUrl('/api/commercial'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lat: position.lat, lng: position.lng, radii: effectiveRadii }),
@@ -422,7 +443,7 @@ export default function CommercialAnalysisView({ profile }) {
     if (inputMode !== 'category' || !recommendCategory) return
     setRecommendLoading(true)
     setRecommendPins([])
-    fetch('/api/recommend', {
+    fetch(apiUrl('/api/recommend'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ categories: [recommendCategory], top_n: 3 }),
@@ -589,15 +610,42 @@ export default function CommercialAnalysisView({ profile }) {
   return (
     <div className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
 
-      {/* 다시 고르기 */}
-      <div className="flex items-center justify-between">
+      {/* ── 내 정보 요약 카드 ─────────────────────────────────────── */}
+      {profile && (
+        <div className="bg-white border border-warm-gray/20 rounded-2xl px-4 py-3 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-navy">내가 입력한 정보</p>
+            <button
+              onClick={() => navigate('/profile-edit')}
+              className="tap text-[11px] text-warm-text hover:text-navy underline underline-offset-2">
+              수정하기
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              profile.category        && { emoji: '🏷', text: profile.category },
+              profile.age             && { emoji: '👤', text: `${profile.age}세` },
+              profile.region          && { emoji: '📍', text: profile.region },
+              profile.career_experience && { emoji: '🔄', text: profile.career_experience === '없음' ? '첫 창업' : '창업 경험 있음' },
+              profile.asset_group     && { emoji: '💰', text: profile.asset_group },
+              profile.marital_status  && { emoji: '💍', text: profile.marital_status },
+              profile.living_with_parents !== undefined && profile.living_with_parents !== null
+                && { emoji: '🏠', text: profile.living_with_parents ? '부모님과 거주' : '독립 거주' },
+            ].filter(Boolean).map((item, i) => (
+              <span key={i}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary-bg border border-warm-gray/25 text-[11px] text-navy font-medium">
+                {item.emoji} {item.text}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 현재 모드 레이블 */}
+      <div className="flex items-center">
         <p className="text-xs font-semibold text-navy/60">
           {spaceChoice === 'has' ? '📍 내 공간 주변 상권 분석' : '🗺 최적 상권 추천 중'}
         </p>
-        <button onClick={() => setSpaceChoice(null)}
-          className="text-xs text-warm-text/50 hover:text-navy underline underline-offset-2">
-          다시 고르기
-        </button>
       </div>
 
       {/* ── 지도 카드 ─────────────────────────────────────────────── */}
@@ -618,20 +666,15 @@ export default function CommercialAnalysisView({ profile }) {
 
         {/* 입력 방식 탭 */}
         <div className="flex bg-gray-50 border border-warm-gray/20 rounded-xl p-0.5">
-          <button type="button" onClick={() => setInputMode('map')}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all
-              ${inputMode === 'map' ? 'bg-white text-navy shadow-sm' : 'text-warm-text hover:text-navy'}`}>
-            <MapPin size={11} /> 지도
-          </button>
           <button type="button" onClick={() => setInputMode('address')}
             className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all
               ${inputMode === 'address' ? 'bg-white text-navy shadow-sm' : 'text-warm-text hover:text-navy'}`}>
-            <Search size={11} /> 주소
+            <MapPin size={11} /> 위치 검색
           </button>
           <button type="button" onClick={() => setInputMode('category')}
             className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all
               ${inputMode === 'category' ? 'bg-white text-sunset-orange shadow-sm' : 'text-warm-text hover:text-navy'}`}>
-            <Sparkles size={11} /> 업종 추천
+            <Sparkles size={11} /> 업종별 지역 추천
           </button>
         </div>
 
@@ -664,10 +707,16 @@ export default function CommercialAnalysisView({ profile }) {
                 ✓ 번호 핀을 누르면 그 위치로 이동해요 →
               </p>
             )}
+            {!recommendLoading && recommendCategory && recommendPins.length === 0 && (
+              <p className="text-xs text-warm-text bg-warm-gray/10 rounded-xl px-3 py-2">
+                제조업·공방은 상가 밀집도 데이터에 포함되지 않아 지역 추천이 어려워요.
+                위치 검색 탭에서 원하는 주소를 직접 입력하고 주변 상권을 확인해보세요.
+              </p>
+            )}
           </div>
         )}
 
-        {/* 주소 모드: 검색폼 위로 */}
+        {/* 위치 검색폼 — address 모드에서 항상 표시 */}
         {inputMode === 'address' && (
           <form onSubmit={handleSearch} className="flex gap-1.5">
             <input
@@ -705,8 +754,7 @@ export default function CommercialAnalysisView({ profile }) {
         </div>
 
         {/* 지도 + (업종 추천 모드: 오른쪽 추천 목록) */}
-        <div className="flex gap-2.5"
-          style={{ height: inputMode === 'address' ? 220 : 320 }}>
+        <div className="flex gap-2.5" style={{ height: 280 }}>
           <div className="relative flex-1 rounded-xl overflow-hidden border border-warm-gray/15">
             <LeafletMap
               position={position} onMove={handleMarkerMove} radii={effectiveRadii}
@@ -714,23 +762,23 @@ export default function CommercialAnalysisView({ profile }) {
               sizeKey={`${showDetailSliders}-${inputMode}-${recommendPins.length}`}
               recommendPins={inputMode === 'category' ? recommendPins : []}
             />
-            {inputMode === 'map' && (
-              <button onClick={() => setExpanded(true)}
-                aria-label="지도 크게 보기"
-                className="tap absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-warm-gray/30
-                           rounded-lg px-2 py-1.5 shadow hover:bg-white transition-colors
-                           flex items-center gap-1 text-[11px] font-bold text-navy"
-                style={{ zIndex: 1000 }}>
-                <Maximize2 size={13} /> 크게 보기
-              </button>
-            )}
             {inputMode === 'address' && (
-              <div className="absolute bottom-2 inset-x-0 flex justify-center pointer-events-none"
-                style={{ zIndex: 1000 }}>
-                <span className="bg-navy/80 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full">
-                  핀을 드래그해서 위치를 미세 조정할 수 있어요
-                </span>
-              </div>
+              <>
+                <button onClick={() => setExpanded(true)}
+                  aria-label="지도 크게 보기"
+                  className="tap absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-warm-gray/30
+                             rounded-lg px-2 py-1.5 shadow hover:bg-white transition-colors
+                             flex items-center gap-1 text-[11px] font-bold text-navy"
+                  style={{ zIndex: 1000 }}>
+                  <Maximize2 size={13} /> 크게 보기
+                </button>
+                <div className="absolute bottom-2 inset-x-0 flex justify-center pointer-events-none"
+                  style={{ zIndex: 1000 }}>
+                  <span className="bg-navy/80 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full">
+                    핀을 드래그해서 위치를 미세 조정할 수 있어요
+                  </span>
+                </div>
+              </>
             )}
           </div>
 
@@ -791,23 +839,6 @@ export default function CommercialAnalysisView({ profile }) {
           </div>
         )}
 
-        {/* 지도 모드: 검색폼 아래로 */}
-        {inputMode === 'map' && (
-          <form onSubmit={handleSearch} className="flex gap-1.5">
-            <input
-              type="text" value={address} onChange={e => setAddress(e.target.value)}
-              placeholder="예: 동탄역, 병점동, 봉담읍..."
-              className="flex-1 min-w-0 text-sm bg-gray-50 border border-warm-gray/30 rounded-xl
-                         px-3 py-2 text-navy placeholder:text-warm-gray/50
-                         focus:outline-none focus:border-navy focus:bg-white transition-colors"
-            />
-            <button type="submit" disabled={searching}
-              className="flex-shrink-0 bg-navy text-white rounded-xl px-3 py-2 text-xs font-semibold
-                         disabled:opacity-50 flex items-center gap-1">
-              <Search size={13} />검색
-            </button>
-          </form>
-        )}
 
         {/* 세부 슬라이더 */}
         <div>
@@ -957,25 +988,27 @@ export default function CommercialAnalysisView({ profile }) {
           {/* 업종 선택 */}
           <p className="text-xs font-semibold text-navy/60 mb-2">
             {llmSummary?.top_categories?.length > 0
-              ? '마이다 추천 업종 (탭해서 선택)'
+              ? '업종을 골라보세요 (⭐ 마이다 추천)'
               : '업종을 골라보세요'}
           </p>
           <div className="flex flex-wrap gap-2 mb-4">
-            {(llmSummary?.top_categories?.length > 0
-              ? llmSummary.top_categories
-              : ['카페', '음식점', '소매업', '기타']
-            ).map(cat => (
-              <button key={cat} type="button"
-                onClick={() => setSelectedCategory(cat)}
-                className={[
-                  'px-3 py-1.5 rounded-full text-sm font-bold border transition-colors',
-                  selectedCategory === cat
-                    ? 'bg-navy text-white border-navy'
-                    : 'text-navy border-navy/30 hover:bg-navy/5 bg-white',
-                ].join(' ')}>
-                {CATEGORY_EMOJI[cat] ?? ''} {cat}
-              </button>
-            ))}
+            {['카페', '음식점', '소매업', '제조업', '기타'].map(cat => {
+              const recommended = llmSummary?.top_categories?.includes(cat)
+              return (
+                <button key={cat} type="button"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={[
+                    'px-3 py-1.5 rounded-full text-sm font-bold border transition-colors',
+                    selectedCategory === cat
+                      ? 'bg-navy text-white border-navy'
+                      : recommended
+                        ? 'text-sunset-orange border-sunset-orange/50 hover:bg-sunset-orange/5 bg-white'
+                        : 'text-navy border-navy/30 hover:bg-navy/5 bg-white',
+                  ].join(' ')}>
+                  {recommended ? '⭐ ' : ''}{CATEGORY_EMOJI[cat] ?? ''} {cat}
+                </button>
+              )
+            })}
           </div>
 
           <button type="button"
