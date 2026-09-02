@@ -440,7 +440,7 @@ function SectionHead({ label, count, accent = 'navy', pulse = false, hasMore = f
       )}
       {hasMore && onToggle && (
         <button type="button" onClick={onToggle}
-          className="ml-auto text-xs font-semibold text-warm-text hover:text-navy">
+          className="text-xs font-semibold text-warm-text hover:text-navy">
           {expanded ? '접기 ▲' : '더보기 ▼'}
         </button>
       )}
