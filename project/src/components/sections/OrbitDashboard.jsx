@@ -280,7 +280,7 @@ function SkeletonCard() {
   )
 }
 
-const INITIAL_COUNT = 4
+const INITIAL_COUNT = 3
 
 /* 목록을 무엇으로 줄 세울지.
  *
@@ -615,8 +615,8 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
 
   useEffect(() => { setAllExpanded(false) }, [sortKey])
 
-  const URGENT_INIT     = 2
-  const APPLICABLE_INIT = 3
+  const URGENT_INIT     = 1
+  const APPLICABLE_INIT = 1
   const NEW_INIT        = 3
   const FAV_INIT        = 3
   const APPLIED_INIT    = 3
