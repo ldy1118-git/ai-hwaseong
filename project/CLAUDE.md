@@ -54,8 +54,20 @@ React 18 + Vite 6 + Tailwind. Vercel 이 이 폴더를 빌드해서 배포한다
 | `components/ui/DeadlineCalendar.jsx` · `pages/Schedule.jsx` | 대윤 — 달력 전부 |
 | `pages/ApplicationGuide.jsx` | **서희·성현 둘 다.** 의존관계는 없고 그냥 같은 파일이다 |
 | `pages/Home.jsx` · `components/sections/OrbitDashboard.jsx` | 성현 — 메인 UI 개선 |
+| `pages/StartupGuide.jsx` | **성현·서희 둘 다.** 성현이 08-30 에 만들고 서희가 09-02 에 절반을 다시 썼다 |
+| `utils/journey.js` · `sections/JourneyWidget.jsx` · `ui/JourneyProgress.jsx` | 성현 — 창업 항해 |
 | `utils/favorites.js` · `utils/notifications.js` · `utils/openNotice.js` | 대윤 — 관심공고·알림 |
 | `ui/FavoriteButton.jsx` · `ui/NotificationBell.jsx` · `sections/FavoriteNotices.jsx` | 대윤 |
+
+`StartupGuide.jsx` 와 창업 항해는 08-30 에 새로 생겨서 한동안 이 표에
+없었다. 사흘 만에 두 사람이 같은 파일을 크게 고쳤고(성현 588줄 신설 →
+서희 323줄 개편), 그 사이 아무도 몰랐다. **파일을 새로 만들면 여기에
+한 줄 적을 것.** 표에 없는 파일은 담당이 없는 게 아니라 안 보이는 것이다.
+
+창업 항해는 대윤도 한 번 건드렸다(09-02). 운영중 사장님 홈에 「STEP 7/7 ·
+7%」가 뜨던 것을 고치면서 `journey.js` 의 `getProgress` 와 `JourneyWidget`,
+`Onboarding.jsx` 의 완료 화면을 손봤다. 진행률이 `inferCurrentStep` 과 다른
+것을 보고 있었다 — 자세한 것은 커밋 메시지에 있다.
 
 `District.jsx` 는 원래 1,005 줄에 세무와 상권이 같이 있었다. 두 사람이 같은
 파일을 동시에 고치게 돼서 갈랐다(`ae28205`). 다시 합치지 말 것.

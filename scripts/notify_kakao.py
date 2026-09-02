@@ -18,6 +18,7 @@
     SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
     KAKAO_CLIENT_ID / KAKAO_CLIENT_SECRET(선택)
     KAKAO_NOTIFY_LINK    메시지에서 눌렀을 때 열 주소 (배포된 사이트)
+    KAKAO_ADMIN_USER_ID  공고 갱신이 멈추면 이 사람에게만 알린다 (선택)
 
 손으로 돌려볼 때:
     scripts/notify_kakao.py --dry-run          보내지 않고 누구에게 뭐가 갈지만
@@ -32,11 +33,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
@@ -71,6 +73,25 @@ KST = ZoneInfo("Asia/Seoul")
 SEND_HOUR = 8
 SEND_MINUTE = 0
 SEND_DAYS = [0, 1, 2, 3, 4, 5, 6]
+
+# 공고 자동 갱신이 멈춘 것을 알아채는 데 닷새가 걸렸다(2026-08-29 ~ 09-02).
+# guard 가 막고 있었는데 last-run.txt 에만 「실패」로 적혀 있었고, 그 파일은
+# 사람이 열어보지 않으면 아무 일도 안 일어난다. 그동안 사장님들은 닷새 묵은
+# 공고 목록을 봤다.
+#
+# 그래서 발송이 5분마다 도는 김에 같이 본다. **관리자에게만 간다** —
+# 사장님에게 「갱신이 멈췄어요」는 무슨 말인지도 모를 뿐더러 겁만 준다.
+# KAKAO_ADMIN_USER_ID 가 비어 있으면 아무 일도 안 한다.
+LAST_RUN = Path(os.environ.get("MARS_LAST_RUN")
+                or ROOT.parent / "mars-fit-cron-logs" / "last-run.txt")
+
+# 수집 cron 이 도는 시각. **crontab 의 `11 6 * * *` 과 짝이다.**
+# 「몇 시간이 지났으면」으로 재면 하루를 걸러 알리게 된다 — 어제 06:13 에
+# 성공하고 오늘 안 돌았을 때, 오늘 아침 8시는 26시간밖에 안 지났다.
+# 오늘치가 있어야 할 시각을 직접 계산해서 그날 아침에 잡는다.
+COLLECT_HOUR = 6
+# 06:11 에 시작해 길면 15분쯤 걸린다. 넉넉히 한 시간을 준다.
+COLLECT_GRACE_MIN = 60
 
 # 발송 cron 이 도는 간격(분). **crontab 의 */5 와 같아야 한다.**
 #
@@ -337,6 +358,66 @@ def message_for(rows: list[dict], today=None) -> str:
     return "\n".join(lines)
 
 
+def read_last_run(path: Path | None = None) -> tuple[datetime, str, str] | None:
+    """공고 갱신 cron 이 남긴 한 줄을 읽는다. 못 읽으면 None.
+
+    cron_update_notices.sh 의 finish() 가 매 실행 끝에 덮어쓴다.
+
+        2026-08-28 06:13 성공 — 공고 2건 갱신 후 푸시
+        2026-09-02 06:13 실패 — update_notices.sh 가 죽었다 — 위 로그를 볼 것
+    """
+    try:
+        line = (path or LAST_RUN).read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    m = re.match(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s+(\S+)\s*(?:—\s*(.*))?$", line)
+    if not m:
+        return None
+    when = datetime.strptime(m.group(1), "%Y-%m-%d %H:%M").replace(tzinfo=KST)
+    return when, m.group(2), (m.group(3) or "").strip()
+
+
+def collection_stalled(now: datetime) -> str | None:
+    """공고 자동 갱신이 멈췄으면 알릴 문구를, 멀쩡하면 None 을 돌려준다.
+
+    멈추는 모양이 둘이다. **실패로 적히거나**(guard 가 막았거나 수집이
+    죽었거나), **아예 안 돌거나**(서버가 꺼져 있으면 어제 「성공」이 그대로
+    남는다). 뒤쪽은 상태 글자만 봐서는 절대 안 잡힌다 — 날짜를 봐야 한다.
+    """
+    got = read_last_run()
+    if got is None:
+        # 파일이 없거나 모양이 다르다. 근거 없이 고장을 알리면 다음부터
+        # 이 줄을 안 읽게 된다. 모를 때는 아무 말도 안 한다.
+        return None
+
+    when, status, detail = got
+    days = (now.date() - when.date()).days
+
+    if status == "실패":
+        since = "오늘 아침" if days == 0 else f"{days}일째"
+        line = f"⚠️ 공고 자동 갱신이 {since} 실패하고 있어요"
+        return f"{line}\n{when:%m-%d %H:%M} · {detail}" if detail else line
+
+    # 「성공」이라고 적혀 있어도 그게 오늘 것이 아니면 오늘은 안 돈 것이다.
+    # 서버가 꺼져 있으면 어제 줄이 그대로 남는다 — 09-01 이 그랬다.
+    due = now.replace(hour=COLLECT_HOUR, minute=0, second=0, microsecond=0) \
+          + timedelta(minutes=COLLECT_GRACE_MIN)
+    # 아직 오늘 수집 시각 전이면 어제 것이 최신인 게 맞다.
+    expected = now.date() if now >= due else now.date() - timedelta(days=1)
+    if when.date() >= expected:
+        return None
+
+    missed = (expected - when.date()).days
+    # expected 가 어제일 수 있다(아직 오늘 수집 시각 전). 그때 「오늘 안
+    # 돌았어요」라고 하면 아직 돌 때가 아닌 것을 고장이라고 말하는 셈이다.
+    if missed > 1:
+        since = f"{missed}일째"
+    else:
+        since = "오늘" if expected == now.date() else "어제"
+    return (f"⚠️ 공고 자동 갱신이 {since} 안 돌았어요\n"
+            f"마지막 실행 {when:%m-%d %H:%M} · 서버가 꺼져 있었는지 볼 것")
+
+
 def _send_to(target: dict, user_id: int, text: str, link: str) -> bool:
     """토큰을 새로 받아 보낸다. 보냈으면 True.
 
@@ -447,6 +528,17 @@ def main() -> int:
     else:
         print(f"지금 {now:%Y-%m-%d %H:%M} (KST) · 이 시각으로 정해둔 사람에게만 보낸다")
 
+    # 공고 갱신이 멈췄는지는 사람마다 다르지 않다. 한 번만 본다.
+    admin_id = os.environ.get("KAKAO_ADMIN_USER_ID", "").strip()
+    admin_id = int(admin_id) if admin_id.isdigit() else None
+    stall = collection_stalled(now)
+    if stall:
+        # cron 로그에도 남긴다. 관리자가 알림을 안 켰거나 KAKAO_ADMIN_USER_ID
+        # 가 비어 있어도, 로그를 보는 사람에게는 보여야 한다.
+        print("  " + stall.replace("\n", " · "))
+        if admin_id is None:
+            print("  (KAKAO_ADMIN_USER_ID 가 없어 카톡으로는 안 보낸다)")
+
     for target in targets:
         user_id = target["user_id"]
 
@@ -533,12 +625,24 @@ def main() -> int:
         if not settings.get("newNotices", True):
             fresh = []
 
-        if not fresh and not tax_rows:
+        # 갱신이 멈춘 것은 관리자에게만 알린다. 하루 한 번으로 묶는다 —
+        # 발송 cron 이 5분마다 도는데 창(5분) 안에 두 번 깨어날 수 있다.
+        ops_key = None
+        if stall and admin_id is not None and user_id == admin_id:
+            key = f"collection-stalled::{today.isoformat()}"
+            if key not in _store.sent_notice_ids(user_id, "ops"):
+                ops_key = key
+
+        if not fresh and not tax_rows and not ops_key:
             print(f"  없음 user={user_id}")
             continue
 
         # 한 통에 묶는다. 따로 보내면 아침에 두 번 울린다.
         parts = []
+        if ops_key:
+            # 맨 위에 둔다. 갱신이 멈췄으면 아래 목록이 낡았다는 뜻이라,
+            # 목록보다 먼저 읽어야 한다.
+            parts.append(stall)
         if tax_rows:
             parts.append(message_for_tax(tax_rows))
         if fresh:
@@ -546,7 +650,8 @@ def main() -> int:
         text = "\n\n───────────\n\n".join(parts)
 
         if args.dry_run:
-            print(f"  [보냄안함] user={user_id} — 공고 {len(fresh)}건 · 세무 {len(tax_rows)}건")
+            print(f"  [보냄안함] user={user_id} — 공고 {len(fresh)}건 · 세무 {len(tax_rows)}건"
+                  + (" · 갱신 멈춤 경고" if ops_key else ""))
             print("    " + text.replace("\n", "\n    "))
             continue
 
@@ -558,8 +663,11 @@ def main() -> int:
             _store.mark_sent(user_id, r["notice_id"], "new")
         for r in tax_rows:
             _store.mark_sent(user_id, f"{r['id']}::{r['lead']}", "tax")
+        if ops_key:
+            _store.mark_sent(user_id, ops_key, "ops")
         sent_total += 1
-        print(f"  보냄 user={user_id} — 공고 {len(fresh)}건 · 세무 {len(tax_rows)}건")
+        print(f"  보냄 user={user_id} — 공고 {len(fresh)}건 · 세무 {len(tax_rows)}건"
+              + (" · 갱신 멈춤 경고" if ops_key else ""))
 
     print(f"끝 — {sent_total}명에게 보냄")
     return 0
