@@ -124,7 +124,7 @@ const STATUS_STYLE = {
 function ScoreTag({ score }) {
   if (score === undefined || score === null) return null
   return (
-    <span className="text-[13px] font-bold text-warm-text tabular-nums">
+    <span className="text-sm font-bold text-warm-text tabular-nums">
       매칭 {score}
       <span className="text-xs font-semibold text-warm-gray">점</span>
     </span>
@@ -161,7 +161,7 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
       {/* 상단: 상태 배지 + 매칭 점수 + D-Day */}
       <div className="flex items-center justify-between gap-3 mb-1">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className={`text-[13px] font-medium rounded-full px-2.5 py-0.5 flex-shrink-0 ${STATUS_STYLE[item.status] ?? 'text-warm-text bg-warm-gray/20'}`}>
+          <span className={`text-sm font-medium rounded-full px-2.5 py-0.5 flex-shrink-0 ${STATUS_STYLE[item.status] ?? 'text-warm-text bg-warm-gray/20'}`}>
             {item.status}
           </span>
           <ScoreTag score={item.score} />
@@ -172,11 +172,11 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
             문구가 있으면 그걸 그대로 보여준다 — 사장님에게 필요한 정보다. */}
         <div className="flex items-center gap-1 min-w-0">
         {item.dDay !== null ? (
-          <span className={`text-[15px] font-bold ${isUrgent ? 'text-sunset-orange' : 'text-navy'}`}>
+          <span className={`text-base font-bold ${isUrgent ? 'text-sunset-orange' : 'text-navy'}`}>
             D-{item.dDay}
           </span>
         ) : item.raw?.apply_period?.note ? (
-          <span className="text-[13px] font-bold text-warm-text text-right min-w-0">
+          <span className="text-sm font-bold text-warm-text text-right min-w-0">
             {item.raw.apply_period.note}
           </span>
         ) : null}
@@ -186,9 +186,9 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
       </div>
 
       {/* 정책명 */}
-      <p className="text-[15px] font-bold text-navy leading-snug line-clamp-2">
+      <p className="text-base font-bold text-navy leading-snug line-clamp-2">
         {seen && (
-          <span className="mr-1.5 align-middle text-[12px] font-bold text-warm-text
+          <span className="mr-1.5 align-middle text-xs font-bold text-warm-text
                            bg-warm-gray/25 rounded px-1.5 py-0.5">
             본 공고
           </span>
@@ -198,7 +198,7 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
 
       {/* 공고 요약 — AI 요약 우선, 없으면 첫 문장 fallback. 어려운 단어는 툴팁 */}
       {(aiDesc || briefDesc(item.summary)) && (
-        <p className="mt-1 text-[13px] text-warm-text leading-relaxed">
+        <p className="mt-1 text-sm text-warm-text leading-relaxed">
           <AnnotatedText text={aiDesc || briefDesc(item.summary)} termDefs={termDefs} />
         </p>
       )}
@@ -208,7 +208,7 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
       {item.organizer && (
         <div className="mt-2.5 pt-2 border-t border-warm-gray/25 flex items-baseline gap-3">
           <span className="text-xs font-bold text-warm-text flex-shrink-0">주관기관</span>
-          <span className="text-[13px] text-navy truncate">{item.organizer}</span>
+          <span className="text-sm text-navy truncate">{item.organizer}</span>
         </div>
       )}
 
@@ -217,14 +217,14 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
         {conditions.length > 0 ? (
           <button
             onClick={() => setShowReason(v => !v)}
-            className={`tap text-[13px] font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
+            className={`tap text-sm font-medium transition-colors ${showReason ? 'text-navy' : 'text-warm-text hover:text-navy'}`}
           >
             매칭이유 {showReason ? '▲' : '▼'}
           </button>
         ) : <span />}
         <button
           onClick={onDetail}
-          className={`tap text-[13px] font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
+          className={`tap text-sm font-medium hover:underline ${isUrgent ? 'text-warm-text' : 'text-navy'}`}
         >
           자세히 →
         </button>
@@ -251,12 +251,9 @@ function ProgramCard({ item, accent, onDetail, aiDesc, termDefs }) {
                   {s.icon}
                 </span>
                 <div className="flex-1 min-w-0">
-                  {/* 매칭이 돌려주는 condition 은 business_status 같은 영문 키다.
-                      label 이 있으면 그걸 쓴다 — 없으면 화면에 영문이 그대로 나온다.
-                      글씨 크기는 서희가 키운 text-[13px] 을 그대로 쓴다. */}
-                  <span className={`text-[13px] font-bold ${s.text}`}>{c.label || c.condition}</span>
+                  <span className={`text-sm font-bold ${s.text}`}>{c.label || c.condition}</span>
                   {c.detail && (
-                    <p className="text-[13px] text-warm-text leading-snug mt-0.5">{c.detail}</p>
+                    <p className="text-sm text-warm-text leading-snug mt-0.5">{c.detail}</p>
                   )}
                 </div>
               </div>
@@ -452,17 +449,17 @@ function SimpleFavCard({ fav }) {
   return (
     <Card padding="compact" tone="plain" className={expired ? 'opacity-50' : ''}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[15px] font-bold text-navy leading-snug flex-1 line-clamp-2">
+        <p className="text-base font-bold text-navy leading-snug flex-1 line-clamp-2">
           {fav.notice_title}
         </p>
         {dDay !== null && (
-          <span className={`text-[13px] font-bold shrink-0 ${expired ? 'text-warm-text' : 'text-navy'}`}>
+          <span className={`text-sm font-bold shrink-0 ${expired ? 'text-warm-text' : 'text-navy'}`}>
             {expired ? '마감' : `D-${dDay}`}
           </span>
         )}
       </div>
-      {fav.organizer && <p className="mt-1 text-[11px] text-warm-text">{fav.organizer}</p>}
-      {expired && <p className="mt-1 text-xs text-sunset-orange">마감된 공고예요</p>}
+      {fav.organizer && <p className="mt-1 text-xs text-warm-text">{fav.organizer}</p>}
+      {expired && <p className="mt-1 text-sm text-sunset-orange">마감된 공고예요</p>}
     </Card>
   )
 }
@@ -478,10 +475,10 @@ function AppliedCard({ app }) {
         <span className="text-emerald-600 text-[10px] font-bold">✓</span>
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-bold text-navy line-clamp-2">{app.notice_title}</p>
-        {app.organizer && <p className="text-[11px] text-warm-text mt-0.5">{app.organizer}</p>}
+        <p className="text-sm font-bold text-navy line-clamp-2">{app.notice_title}</p>
+        {app.organizer && <p className="text-xs text-warm-text mt-0.5">{app.organizer}</p>}
       </div>
-      {date && <span className="text-[11px] text-warm-text shrink-0 mt-0.5">{date}</span>}
+      {date && <span className="text-xs text-warm-text shrink-0 mt-0.5">{date}</span>}
     </div>
   )
 }
@@ -705,7 +702,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             <button type="button"
               onClick={() => setApplicableExpanded(v => !v)}
               className="w-full flex items-center justify-center gap-1 py-2 mt-1
-                         border-t border-warm-gray/20 text-[13px] font-semibold text-emerald-600 hover:underline">
+                         border-t border-warm-gray/20 text-sm font-semibold text-emerald-600 hover:underline">
               {applicableExpanded ? '접기' : `${applicableItems.length - APPLICABLE_INIT}건 더보기`}
               <ChevronDown size={13} className={`transition-transform duration-150 ${applicableExpanded ? 'rotate-180' : ''}`} />
             </button>
@@ -728,7 +725,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             <button type="button"
               onClick={() => setUrgentExpanded(v => !v)}
               className="w-full flex items-center justify-center gap-1 py-2 mt-1
-                         border-t border-warm-gray/20 text-[13px] font-semibold text-sunset-orange hover:underline">
+                         border-t border-warm-gray/20 text-sm font-semibold text-sunset-orange hover:underline">
               {urgentExpanded ? '접기' : `${urgentItems.length - URGENT_INIT}건 더보기`}
               <ChevronDown size={13} className={`transition-transform duration-150 ${urgentExpanded ? 'rotate-180' : ''}`} />
             </button>
@@ -751,7 +748,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             <button type="button"
               onClick={() => setNewExpanded(v => !v)}
               className="w-full flex items-center justify-center gap-1 py-2 mt-1
-                         border-t border-warm-gray/20 text-[13px] font-semibold text-purple-600 hover:underline">
+                         border-t border-warm-gray/20 text-sm font-semibold text-purple-600 hover:underline">
               {newExpanded ? '접기' : `${newItems.length - NEW_INIT}건 더보기`}
               <ChevronDown size={13} className={`transition-transform duration-150 ${newExpanded ? 'rotate-180' : ''}`} />
             </button>
@@ -776,7 +773,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             <button type="button"
               onClick={() => setFavExpanded(v => !v)}
               className="w-full flex items-center justify-center gap-1 py-2 mt-1
-                         border-t border-warm-gray/20 text-[13px] font-semibold text-amber-600 hover:underline">
+                         border-t border-warm-gray/20 text-sm font-semibold text-amber-600 hover:underline">
               {favExpanded ? '접기' : `${favItems.length - FAV_INIT}건 더보기`}
               <ChevronDown size={13} className={`transition-transform duration-150 ${favExpanded ? 'rotate-180' : ''}`} />
             </button>
@@ -797,7 +794,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
             <button type="button"
               onClick={() => setAppliedExpanded(v => !v)}
               className="w-full flex items-center justify-center gap-1 py-2 mt-1
-                         border-t border-warm-gray/20 text-[13px] font-semibold text-emerald-600 hover:underline">
+                         border-t border-warm-gray/20 text-sm font-semibold text-emerald-600 hover:underline">
               {appliedExpanded ? '접기' : `${applied.length - APPLIED_INIT}건 더보기`}
               <ChevronDown size={13} className={`transition-transform duration-150 ${appliedExpanded ? 'rotate-180' : ''}`} />
             </button>
@@ -827,7 +824,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
                     }}
                     aria-pressed={on}
                     className={[
-                      'px-2.5 py-1 rounded-full text-[13px] font-bold transition-colors',
+                      'px-2.5 py-1 rounded-full text-sm font-bold transition-colors',
                       on ? 'bg-navy text-white' : 'text-warm-text hover:bg-warm-gray/20',
                     ].join(' ')}
                   >
@@ -853,7 +850,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
           <button type="button"
             onClick={() => setAllExpanded(v => !v)}
             className="w-full flex items-center justify-center gap-1 py-2 mt-1
-                       border-t border-warm-gray/20 text-[13px] font-semibold text-navy hover:underline">
+                       border-t border-warm-gray/20 text-sm font-semibold text-navy hover:underline">
             {allExpanded ? '접기' : `${allSorted.length - INITIAL_COUNT}건 더보기`}
             <ChevronDown size={13} className={`transition-transform duration-150 ${allExpanded ? 'rotate-180' : ''}`} />
           </button>
