@@ -623,7 +623,7 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
 
   const URGENT_INIT     = 1
   const APPLICABLE_INIT = 1
-  const NEW_INIT        = 3
+  const NEW_INIT        = 1
   const FAV_INIT        = 3
   const APPLIED_INIT    = 3
 
