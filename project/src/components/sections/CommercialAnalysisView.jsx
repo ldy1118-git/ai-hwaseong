@@ -116,7 +116,11 @@ function LeafletMap({ position, onMove, radii, markers, sizeKey, recommendPins =
         }),
         zIndexOffset: 1000,
       }).addTo(recommendRef.current)
-      m.bindPopup(`<b>${pin.rank}위 추천 상권</b><br>반경 내 동종업종 ${pin.count}개`)
+      m.bindPopup(
+        `<b>${pin.rank}위 추천 상권</b><br>` +
+        `동종업종 ${pin.count}개 · 경쟁 ${pin.competition ?? '-'}<br>` +
+        `전체 상가 ${pin.total ?? '-'}개`
+      )
       m.on('click', () => onMoveRef.current({ lat: pin.lat, lng: pin.lng }))
     })
 
@@ -349,6 +353,10 @@ export default function CommercialAnalysisView({ profile }) {
   const [recommendPins, setRecommendPins]       = useState([])    // [{lat, lng, count, rank}]
   const [recommendLoading, setRecommendLoading] = useState(false)
   const [recommendCategory, setRecommendCategory] = useState(null) // 현재 추천 업종
+  const [ftWeight, setFtWeight]         = useState(4)  // 유동인구 가중치
+  const [demandWeight, setDemandWeight] = useState(2)  // 상권 활성화 가중치
+  const [compWeight, setCompWeight]     = useState(4)  // 경쟁 회피 가중치
+  const [appliedWeights, setAppliedWeights] = useState({ foottraffic: 4, demand: 2, competition: 4 })
   const [spaceChoice, setSpaceChoiceRaw]        = useState(() => {
     const saved = sessionStorage.getItem('mars-fit-space-choice')
     if (saved === 'has' || saved === 'none') return saved
@@ -438,7 +446,7 @@ export default function CommercialAnalysisView({ profile }) {
     setLlmLoading(true)
   }, [recommendPins.length, inputMode, recommendCategory]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 업종 모드: 업종 선택 시 /api/recommend 호출 → 지도에 핀 표시
+  // 업종 모드: 업종 선택·가중치 적용 시 /api/recommend 호출 → 지도에 핀 표시
   useEffect(() => {
     if (inputMode !== 'category' || !recommendCategory) return
     setRecommendLoading(true)
@@ -446,7 +454,7 @@ export default function CommercialAnalysisView({ profile }) {
     fetch(apiUrl('/api/recommend'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ categories: [recommendCategory], top_n: 3 }),
+      body: JSON.stringify({ categories: [recommendCategory], top_n: 3, weights: appliedWeights }),
     })
       .then(r => r.json())
       .then(data => {
@@ -459,7 +467,7 @@ export default function CommercialAnalysisView({ profile }) {
       })
       .catch(() => setRecommendPins([]))
       .finally(() => setRecommendLoading(false))
-  }, [inputMode, recommendCategory])
+  }, [inputMode, recommendCategory, appliedWeights])
 
   const { amenities, displayMarkers, stationPassengersTotal, aptDong, cardSales, isAvgSales } = useMemo(() => {
     const counts  = apiData?.counts  || {}
@@ -696,6 +704,35 @@ export default function CommercialAnalysisView({ profile }) {
                 </button>
               ))}
             </div>
+
+            {/* 추천 기준 슬라이더 */}
+            <div className="bg-gray-50 rounded-xl p-3 space-y-2.5 border border-warm-gray/20">
+              <p className="text-xs font-bold text-navy">추천 기준 조절</p>
+              {[
+                { label: '유동인구',    sub: '학교·역이 많은 곳', value: ftWeight,     set: setFtWeight },
+                { label: '상권 활성화', sub: '가게가 모여있는 곳', value: demandWeight, set: setDemandWeight },
+                { label: '경쟁 회피',  sub: '동종업종이 적은 곳', value: compWeight,   set: setCompWeight },
+              ].map(({ label, sub, value, set }) => (
+                <div key={label} className="flex items-center gap-2">
+                  <div className="w-[4.5rem] flex-shrink-0">
+                    <p className="text-[11px] font-semibold text-navy leading-tight">{label}</p>
+                    <p className="text-[10px] text-warm-text leading-tight">{sub}</p>
+                  </div>
+                  <input type="range" min={0} max={10} step={1} value={value}
+                    onChange={e => set(Number(e.target.value))}
+                    className="flex-1 accent-sunset-orange h-1.5 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-sunset-orange w-4 text-right">{value}</span>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setAppliedWeights({ foottraffic: ftWeight, demand: demandWeight, competition: compWeight })}
+                className="w-full mt-0.5 py-1.5 bg-navy text-white text-xs font-bold rounded-lg hover:bg-navy/90 transition-colors">
+                이 기준으로 다시 추천
+              </button>
+            </div>
+
             {recommendLoading && (
               <div className="flex items-center gap-2 text-xs text-warm-text py-1">
                 <span className="w-3 h-3 rounded-full border-2 border-navy/30 border-t-navy animate-spin" />

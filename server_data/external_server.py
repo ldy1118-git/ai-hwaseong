@@ -471,41 +471,120 @@ _CATEGORY_TO_CATS: dict[str, list[str]] = {
 _GRID = 0.005
 
 
-def _recommend_locations(categories: list[str], top_n: int = 3) -> list[dict]:
-    """업종 목록을 받아 화성시 내 상권 밀집 위치를 추천.
+def _recommend_locations(
+    categories: list[str],
+    top_n: int = 3,
+    weights: dict | None = None,
+) -> list[dict]:
+    """업종 목록을 받아 화성시 내 최적 상권 위치를 추천.
 
     알고리즘:
     1. 업종명 → 상가 cat 코드로 변환
-    2. _STORES 전체를 0.005° 그리드(≈500m) 로 나눠 셀별 카운트
-    3. 카운트 상위 top_n 개 셀의 중심 좌표를 반환
+    2. _STORES / _SCHOOLS / _STATIONS 를 0.005° 그리드(≈500m) 로 분류
+    3. 셀별 합산 점수로 정렬 후 상위 top_n 개 반환
+
+    점수 공식 (각 항목은 0~1 정규화 후 가중합):
+        score = w_ft * ft_norm + w_dem * demand_norm - w_comp * comp_norm
+        · ft_norm    : 유동인구 대리값 (학교 ×220 + 역 승하차 ×0.15)
+        · demand_norm: 전체 상가 수 (상권 활성화)
+        · comp_norm  : 동종업종 수   (경쟁 강도, 높을수록 감점)
+
+    weights 예시: {"foottraffic": 4, "demand": 2, "competition": 4}
+    각 값은 상대 비율이며 합이 1 이 되도록 정규화된다.
 
     반환 형식:
-        [{"category": "카페", "locations": [{"lat": ..., "lng": ..., "count": ...}, ...]}, ...]
+        [{"category": "카페", "locations": [
+            {"lat": ..., "lng": ..., "count": ..., "total": ..., "competition": "낮음"|"보통"|"높음"},
+            ...
+        ]}, ...]
     """
+    if weights is None:
+        weights = {}
+    w_ft   = max(0.0, float(weights.get("foottraffic", 4)))
+    w_dem  = max(0.0, float(weights.get("demand",      2)))
+    w_comp = max(0.0, float(weights.get("competition", 4)))
+    w_sum  = w_ft + w_dem + w_comp or 1.0
+    w_ft  /= w_sum
+    w_dem /= w_sum
+    w_comp /= w_sum
+
+    _COMP_THRESHOLDS: dict[str, tuple[int, int]] = {
+        "카페":   (8,  20),
+        "음식점": (15, 40),
+        "소매업": (10, 30),
+        "기타":   (20, 50),
+    }
+
+    def competition_label(cat_name: str, same_count: int) -> str:
+        low, high = _COMP_THRESHOLDS.get(cat_name, (10, 30))
+        if same_count >= high:
+            return "높음"
+        if same_count >= low:
+            return "보통"
+        return "낮음"
+
+    def cell_key(lat: float, lng: float) -> tuple[float, float]:
+        return (round(round(lat / _GRID) * _GRID, 4),
+                round(round(lng / _GRID) * _GRID, 4))
+
+    # 학교·역은 업종과 무관하게 한 번만 집계
+    school_grid:  dict[tuple[float, float], float] = {}
+    for sch in _SCHOOLS:
+        k = cell_key(sch["lat"], sch["lng"])
+        school_grid[k] = school_grid.get(k, 0) + 220
+
+    station_grid: dict[tuple[float, float], float] = {}
+    for sta in _STATIONS:
+        k    = cell_key(sta["lat"], sta["lng"])
+        psgr = sta.get("passengers", 0) or 0
+        station_grid[k] = station_grid.get(k, 0) + (psgr * 0.15 if psgr > 0 else 650)
+
     results = []
     for cat_name in categories:
         target_cats = _CATEGORY_TO_CATS.get(cat_name, [])
         if not target_cats:
             continue
 
-        grid: dict[tuple[float, float], int] = {}
+        same_grid:  dict[tuple[float, float], int] = {}
+        total_grid: dict[tuple[float, float], int] = {}
+
         for s in _STORES:
-            if s["cat"] not in target_cats:
-                continue
-            # 셀 중심 좌표 (소수점 3자리 반올림으로 겹침 방지)
-            cell_lat = round(round(s["lat"] / _GRID) * _GRID, 4)
-            cell_lng = round(round(s["lng"] / _GRID) * _GRID, 4)
-            key = (cell_lat, cell_lng)
-            grid[key] = grid.get(key, 0) + 1
+            k = cell_key(s["lat"], s["lng"])
+            total_grid[k] = total_grid.get(k, 0) + 1
+            if s["cat"] in target_cats:
+                same_grid[k] = same_grid.get(k, 0) + 1
 
-        top = sorted(grid.items(), key=lambda x: -x[1])[:top_n]
+        # 동종업종 1개 이상인 셀만 후보 (수요가 검증된 지역)
+        candidates = [k for k, v in same_grid.items() if v >= 1]
+        if not candidates:
+            continue
+
+        def _ft(k: tuple[float, float]) -> float:
+            return school_grid.get(k, 0) + station_grid.get(k, 0)
+
+        max_ft    = max((_ft(k)                for k in candidates), default=1) or 1
+        max_total = max((total_grid.get(k, 0)  for k in candidates), default=1) or 1
+        max_same  = max((same_grid.get(k, 0)   for k in candidates), default=1) or 1
+
+        def score(k: tuple[float, float]) -> float:
+            return (
+                w_ft   * (_ft(k)               / max_ft)
+                + w_dem  * (total_grid.get(k, 0) / max_total)
+                - w_comp * (same_grid.get(k, 0)  / max_same)
+            )
+
+        top = sorted(candidates, key=score, reverse=True)[:top_n]
         locations = [
-            {"lat": lat, "lng": lng, "count": count}
-            for (lat, lng), count in top
+            {
+                "lat":         lat,
+                "lng":         lng,
+                "count":       same_grid.get((lat, lng), 0),
+                "total":       total_grid.get((lat, lng), 0),
+                "competition": competition_label(cat_name, same_grid.get((lat, lng), 0)),
+            }
+            for lat, lng in top
         ]
-
-        if locations:
-            results.append({"category": cat_name, "locations": locations})
+        results.append({"category": cat_name, "locations": locations})
 
     return results
 
@@ -826,8 +905,9 @@ class Handler(BaseHTTPRequestHandler):
         # 알려진 업종만 통과 (미지의 값이 섞여도 조용히 무시)
         categories = [c for c in categories if isinstance(c, str)][:5]
 
-        top_n = min(int(payload.get("top_n") or 3), 5)
-        recommendations = _recommend_locations(categories, top_n)
+        top_n   = min(int(payload.get("top_n") or 3), 5)
+        weights = payload.get("weights") or {}
+        recommendations = _recommend_locations(categories, top_n, weights)
         return _send(self, {"recommendations": recommendations})
 
 
