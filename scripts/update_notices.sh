@@ -59,11 +59,11 @@ echo "── 5/6  매칭 엔진에 넣어서 검사"
 "$PY" policy_data/validate.py
 
 echo
-echo "── 6/6  데이터가 줄지 않았는지 확인"
+echo "── 6/6  살아남은 공고가 내용을 잃지 않았는지 확인"
 "$PY" policy_data/guard.py
 
 echo
 echo "완료. 바뀐 내용을 확인하고 커밋하세요."
 echo "    git diff --stat policy_data/notices"
-echo "    python3 policy_data/guard.py --save   # 공고가 늘었으면 기준도 갱신"
+echo "    python3 policy_data/guard.py --save   # 공고가 바뀌었으면 기준도 갱신"
 echo "    git add policy_data/notices policy_data/baseline.json policy_data/hscity_support.json && git commit -m '공고 갱신'"

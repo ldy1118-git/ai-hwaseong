@@ -69,8 +69,8 @@ fi
 log "파일 ${changed}개 변경"
 git diff --stat -- policy_data/notices | tail -5
 
-# 공고가 늘면 서류·조건 총량도 는다. 기준선을 같이 올려두지 않으면
-# 다음 실행 때 guard.py 가 낡은 기준으로 재서 헛경고를 낸다.
+# 기준선에는 공고별 서류·조건 수가 들어 있다(guard.py). 오늘 받은 것으로
+# 갈아두지 않으면 내일은 마감된 공고까지 든 낡은 기준으로 재게 된다.
 python3 policy_data/guard.py --save
 
 git add policy_data/notices policy_data/baseline.json policy_data/hscity_support.json
