@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
+import { DEMO_PROFILES } from '../utils/demoMode'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import logoImg from '../../design/logo.png'
@@ -299,6 +300,7 @@ function Shell({ current, total, onBack, marsMessage, stageKey, children }) {
         </Slide>
         {/* 단계마다 Shell 을 따로 그리기 때문에 여기가 모든 단계에
             공통으로 걸리는 유일한 자리다. */}
+        <DemoSkip />
       </div>
     </div>
   )
@@ -1206,6 +1208,59 @@ const EMPTY = {
   marital_status: '', living_with_parents: undefined,
   entity_type: '', vat_type: '', has_employee: undefined,
   withholding_half: undefined,
+}
+
+/* 시연용 건너뛰기.
+ *
+ * 카메라 앞에서 온보딩 문답을 채우면 20~30초가 그냥 지나간다. 미리 채운
+ * 프로필로 바로 넘어가는 버튼을 둔다. 어느 단계에서 눌러도 되게 Shell 안에
+ * 있다.
+ *
+ * **실제 온보딩이 저장하는 것을 빠짐없이 같이 저장한다.** 온보딩의 finish()
+ * 는 프로필을, startCommon() 은 journey(경로·체크리스트)를 저장한다. 둘 중
+ * 하나만 넣으면 프로필은 카페 예비창업자인데 창업 항해는 STEP 1 을 가리키는
+ * 식으로 화면이 저 혼자 어긋난다.
+ *
+ * 대회가 끝나면 utils/demoMode.js 와 함께 지운다. 그때까지는 늘 보인다. */
+function DemoSkip() {
+  const navigate = useNavigate()
+
+  async function fill(demo) {
+    localStorage.setItem('mars-fit-profile', JSON.stringify(demo.profile))
+    /* 먼저 비우고 넣는다. saveJourney 는 얕게 합치기만 해서, 앞서 다른
+       시연 프로필을 눌렀거나 상권분석에서 창업 후보를 담아뒀으면 그게
+       남는다. 리허설에서 두 프로필을 번갈아 누르면 예비창업자 화면에
+       운영중 때의 후보가 그대로 붙어 있었다. */
+    clearJourney()
+    saveJourney(demo.journey)
+
+    // 로그인했으면 서버에도 올린다. 시연용이라고 기기에만 두면, 카톡
+    // 알림이 새벽에 서버 프로필로 매칭하기 때문에 「프로필 없음」으로
+    // 건너뛴다. 시연 중에 카톡이 안 오는 게 제일 곤란하다.
+    if (getToken()) {
+      try { await saveOnboarding(demo.profile) } catch { /* 기기 저장으로 충분하다 */ }
+    }
+
+    // 예비창업자는 실제 온보딩이라면 /district 로 가지만 여기서는 홈으로
+    // 보낸다. 시연_순서.md 의 리허설이 「홈이 뜨면」으로 이어져 있다.
+    navigate('/home')
+  }
+
+  return (
+    <div className="mt-10 pt-5 border-t border-warm-gray/30">
+      <p className="text-xs font-bold tracking-widest text-warm-gray mb-2.5">시연용 · 바로 채우기</p>
+      <div className="grid grid-cols-2 gap-2.5">
+        {DEMO_PROFILES.map(d => (
+          <button key={d.key} type="button" onClick={() => fill(d)}
+            className="text-left bg-white border border-warm-gray/40 rounded-xl px-3.5 py-2.5
+                       hover:border-navy/50 transition">
+            <span className="block text-sm font-bold text-navy leading-snug">{d.label}</span>
+            <span className="block text-xs text-warm-text mt-0.5">{d.hint}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 
