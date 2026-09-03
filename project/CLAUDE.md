@@ -54,7 +54,7 @@ React 18 + Vite 6 + Tailwind. Vercel 이 이 폴더를 빌드해서 배포한다
 | `pages/MissionControl.jsx` · `ui/ChatBubble.jsx` · `utils/llm/chatRetrieval.js` | **서희·대윤 둘 다.** 서희가 챗봇 전체, 대윤이 09-02 에 공고·세무를 RAG 에 붙였다 |
 | `components/ui/DeadlineCalendar.jsx` · `pages/Schedule.jsx` | 대윤 — 달력 전부 |
 | `pages/ApplicationGuide.jsx` | **서희·성현 둘 다.** 의존관계는 없고 그냥 같은 파일이다 |
-| `pages/Home.jsx` · `components/sections/OrbitDashboard.jsx` | 성현 — 메인 UI 개선 |
+| `pages/Home.jsx` · `components/sections/OrbitDashboard.jsx` | **성현·대윤 둘 다.** 성현이 메인 UI 전부, 대윤이 09-03 에 긴급 마감 기준을 고쳤다 |
 | `pages/StartupGuide.jsx` | **성현·서희 둘 다.** 성현이 08-30 에 만들고 서희가 09-02 에 절반을 다시 썼다 |
 | `utils/journey.js` · `sections/JourneyWidget.jsx` · `ui/JourneyProgress.jsx` | 성현 — 창업 항해 |
 | `utils/favorites.js` · `utils/notifications.js` · `utils/openNotice.js` | 대윤 — 관심공고·알림 |
@@ -214,6 +214,31 @@ React 18 + Vite 6 + Tailwind. Vercel 이 이 폴더를 빌드해서 배포한다
 `setRecommendPins([])` 를 불러도 그 커밋의 자동 분석은 옛 핀을 그대로 보므로,
 카페 자리를 분석해놓고 음식점 결과라고 내놓는다. 핀이 어느 업종 것인지를
 `pinsCategory` ref 에 적어 갈라낸다 — ref 는 render 를 안 기다린다.
+
+## 긴급 마감은 「확인필요」도 담는다
+
+홈의 「긴급 마감」은 D-7 안에 마감하는 것을 모은다. 전에는 **판정이
+「신청가능」인 것만** 담았다. 그래서 이런 일이 있었다.
+
+    오늘 D-7 안에 마감  11건
+    그중 신청가능        1건  ← 이것만 떴다
+    D-0 · D-1           7건  ← 전부 확인필요라 한 건도 안 떴다
+
+예비창업자는 신청가능이 0건이라 **묶음 자체가 안 그려졌다.** 내일 마감하는
+공고가 여섯 건 있는데 화면에는 아무 말도 없었다.
+
+**「확인필요」는 우리도 되는지 모른다는 뜻이지 안 된다는 뜻이 아니다.**
+마감은 되돌릴 수 없어서, 될지도 모르는 것을 감추는 쪽이 더 나쁘다. 카드에
+판정 배지가 이미 붙으니 사장님이 되는 줄 알 일도 없다. 「대상아님」은 뺀다 —
+이건 모르는 게 아니라 아는 것이다.
+
+**종·카톡 알림과는 기준이 다르다.** 그쪽은 「신청가능 + 70점」이고 바뀌지
+않았다. 자는 사람을 깨우는 것과, 이미 보고 있는 화면에 한 줄 더 얹는 것은
+다른 일이다.
+
+줄 세우기는 **신청가능을 먼저, 그 안에서 마감 순**이다. 마감 순으로만 하면
+처음 한 장(`URGENT_INIT`)이 D-0 확인필요가 되는데, 오늘 마감인데 자격도
+알아봐야 하는 것을 맨 앞에 두면 사장님이 할 수 있는 일이 없다.
 
 ## 관심공고를 화면에 붙일 때
 

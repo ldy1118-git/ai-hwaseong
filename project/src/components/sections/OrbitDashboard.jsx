@@ -584,11 +584,32 @@ export default function OrbitDashboard({ userProfile, prefetchedMatches, prefetc
   }, [allItems, aiDescs])
 
   // 섹션별 파생 데이터
+  /* 긴급 마감.
+   *
+   * 「신청가능」만 담다가 **마감이 코앞인 공고가 통째로 빠졌다.** 오늘
+   * 기준으로 D-7 안에 마감하는 것이 11건인데 그중 신청가능은 1건뿐이다.
+   * 운영중 사장님 화면에는 D-0 하나와 D-1 여섯 건이 하나도 안 뜨고,
+   * 예비창업자는 신청가능이 0건이라 **묶음 자체가 안 그려졌다.**
+   *
+   * 「확인필요」는 우리도 되는지 모른다는 뜻이지 안 된다는 뜻이 아니다.
+   * 마감은 되돌릴 수 없어서, 될지도 모르는 것을 감추는 쪽이 더 나쁘다.
+   * 카드에 판정 배지가 이미 붙으므로 사장님이 헷갈릴 일도 없다. 챗봇의
+   * 공고 검색도 같은 기준이다(project/CLAUDE.md 「챗봇이 읽는 것」).
+   *
+   * 「대상아님」은 뺀다. 이건 모르는 게 아니라 아는 것이다.
+   *
+   * 줄 세우기는 **신청가능을 먼저, 그 안에서 마감 순**이다. 마감 순으로만
+   * 하면 처음 한 장(URGENT_INIT)이 D-0 확인필요가 되는데, 오늘 마감인데
+   * 자격도 알아봐야 하는 것을 맨 앞에 두면 할 수 있는 일이 없다. */
+  const URGENT_RANK = { '신청가능': 0, '조건부': 1, '확인필요': 2 }
   const urgentItems = useMemo(
     () => allItems
-      .filter(r => r.status === '신청가능' && r.dDay !== null && r.dDay <= 7)
-      .sort((a, b) => a.dDay - b.dDay || b.score - a.score),
-    [allItems]
+      .filter(r => r.status !== '대상아님' && r.dDay !== null && r.dDay <= 7)
+      .sort((a, b) =>
+        (URGENT_RANK[a.status] ?? 3) - (URGENT_RANK[b.status] ?? 3)
+        || a.dDay - b.dDay
+        || b.score - a.score),
+    [allItems] // eslint-disable-line react-hooks/exhaustive-deps
   )
   const applicableItems = useMemo(
     () => allItems.filter(r => r.status === '신청가능').sort((a, b) => b.score - a.score),
