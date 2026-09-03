@@ -374,6 +374,14 @@ export default function CommercialAnalysisView({ profile }) {
   const debounceRef  = useRef(null)
   const addressInput = useRef(null)
   const autoAnalyzeTriggered = useRef(false)
+  /* 지금 화면에 찍힌 핀이 **어느 업종의** 결과인지.
+   *
+   * 업종을 바꾸면 recommendPins 는 아직 이전 업종 것이다. 한 커밋 안에서
+   * 도는 effect 들은 모두 같은 render 의 state 를 보므로, 아래 「추천 요청
+   * 시작」에서 setRecommendPins([]) 를 불러도 그 커밋의 자동 분석은 옛 핀을
+   * 그대로 본다 — 카페 자리를 분석해놓고 음식점 결과라고 내놓는다.
+   * ref 는 render 를 안 기다리므로 이걸로 갈라낸다. */
+  const pinsCategory = useRef(null)
 
   /* 펼친 지도는 화면을 통째로 덮는다(`fixed inset-0`, z-index 9999).
      나가는 길이 오른쪽 위 아이콘 하나뿐이라 못 찾고 갇히는 일이 있었다.
@@ -429,15 +437,38 @@ export default function CommercialAnalysisView({ profile }) {
     setLlmSummary(null)
   }, [recommendCategory])
 
+  /* 자동 분석. **추천 핀이 도착한 뒤에만** 돈다.
+   *
+   * 전에는 조건이 `apiData` 뿐이었다. 그런데 apiData 는 업종을 고르기 전부터
+   * 지도 한가운데 좌표로 이미 받아둔 것이 있어서, 업종을 고르는 순간 곧바로
+   * 한 번 돌아버렸다. 두 가지가 같이 망가진다.
+   *
+   *   1. **추천 1위 자리가 아니라 지도 한가운데를 분석한다.** 업종 모드는
+   *      「이 업종에 좋은 자리를 찾아준다」는 화면인데 엉뚱한 자리를 읽는다.
+   *   2. **「분석 중」이 영영 안 꺼진다.** 아래 핀 effect 가 켜는 llmLoading 을
+   *      끄는 곳은 handleAskMaida 의 finally 하나뿐인데, 자동 분석이 핀보다
+   *      먼저 돌아 `autoAnalyzeTriggered` 를 써버리면 핀이 도착한 뒤로는
+   *      아무도 handleAskMaida 를 부르지 않는다. 추천 기준(가중치)을 바꿔
+   *      「적용」을 누르면 핀이 새로 오고, 반경·시설을 건드리면 apiData 가
+   *      새로 와서 이 effect 가 다시 도는데, 그때도 깃발이 이미 true 라 그냥
+   *      지나간다. 사장님 화면에는 「분석 중이에요...」가 박힌 채 버튼이
+   *      disabled 로 잠긴다 — 새로고침 말고는 길이 없다.
+   *
+   * 핀과 recommendLoading 을 조건에 넣으면 순서가 뒤집힐 수 없다. 핀이 도착한
+   * 그 flush 에서 핀 effect 와 이 effect 가 같이 돌므로, 켜는 쪽과 끄는 쪽이
+   * 언제나 짝이 된다. */
   useEffect(() => {
-    if (!apiData || autoAnalyzeTriggered.current || inputMode !== 'category' || !recommendCategory) return
+    if (autoAnalyzeTriggered.current) return
+    if (inputMode !== 'category' || !recommendCategory) return
+    if (!apiData || recommendLoading || !recommendPins.length) return
+    if (pinsCategory.current !== recommendCategory) return   // 아직 이전 업종의 핀이다
     autoAnalyzeTriggered.current = true
     // setTimeout(0): 이 render의 모든 effect가 끝난 뒤 호출해야
     // handleAskMaidaRef.current가 최신 ftScore로 업데이트된 상태가 된다.
     // (handleAskMaidaRef sync effect는 이 effect보다 코드 뒤에 선언되어 있어
     //  같은 render에서는 stale 클로저를 가리킨다)
     setTimeout(() => { handleAskMaidaRef.current?.() }, 0)
-  }, [apiData, inputMode, recommendCategory]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [apiData, inputMode, recommendCategory, recommendPins.length, recommendLoading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 추천 핀이 도착하면 바로 "분석 중" 로딩 표시 (LLM 완료 전에도 사용자가 기다림을 인지)
   useEffect(() => {
@@ -449,6 +480,15 @@ export default function CommercialAnalysisView({ profile }) {
   // 업종 모드: 업종 선택·가중치 적용 시 /api/recommend 호출 → 지도에 핀 표시
   useEffect(() => {
     if (inputMode !== 'category' || !recommendCategory) return
+    /* 판을 새로 시작하므로 자동 분석 깃발을 다시 세운다. 전에는 업종이
+       바뀔 때만 세워서, 지도 모드로 나갔다 업종 모드로 돌아오면 핀은 다시
+       오는데 분석은 안 돌았다 — 「분석 중」만 켜지고 끝이다.
+
+       지난 판의 llmLoading 도 여기서 끈다. 추천이 실패하거나 결과가 0건이면
+       핀이 안 오고, 그러면 자동 분석도 안 돌아서 켜뒀던 것을 끌 사람이 없다. */
+    autoAnalyzeTriggered.current = false
+    pinsCategory.current = null
+    setLlmLoading(false)
     setRecommendLoading(true)
     setRecommendPins([])
     fetch(apiUrl('/api/recommend'), {
@@ -459,13 +499,14 @@ export default function CommercialAnalysisView({ profile }) {
       .then(r => r.json())
       .then(data => {
         const locs = data.recommendations?.[0]?.locations ?? []
+        pinsCategory.current = locs.length ? recommendCategory : null
         setRecommendPins(locs.map((l, i) => ({ ...l, rank: i + 1 })))
         if (locs[0]) {
           // 1위 위치로 지도 중심 이동
           setPosition({ lat: locs[0].lat, lng: locs[0].lng })
         }
       })
-      .catch(() => setRecommendPins([]))
+      .catch(() => { pinsCategory.current = null; setRecommendPins([]) })
       .finally(() => setRecommendLoading(false))
   }, [inputMode, recommendCategory, appliedWeights])
 

@@ -48,7 +48,7 @@ React 18 + Vite 6 + Tailwind. Vercel 이 이 폴더를 빌드해서 배포한다
 | 파일 | 담당 |
 |---|---|
 | `pages/District.jsx` | 대윤 — 세무일정 (사업자에게만 보이는 「내 매장 현황」) |
-| `components/sections/CommercialAnalysisView.jsx` | 성현 — 상권분석 (사업자가 아닌 사람) |
+| `components/sections/CommercialAnalysisView.jsx` | **성현·대윤 둘 다.** 성현이 상권분석 전부, 대윤이 09-03 에 업종 모드의 자동 분석이 안 끝나던 것을 고쳤다 |
 | `components/ui/DocumentStepDrawer.jsx` | 서희 — 서류 상세 창 |
 | `pages/Onboarding.jsx` · `pages/NoticeDetail.jsx` | 서희 |
 | `pages/MissionControl.jsx` · `ui/ChatBubble.jsx` · `utils/llm/chatRetrieval.js` | **서희·대윤 둘 다.** 서희가 챗봇 전체, 대윤이 09-02 에 공고·세무를 RAG 에 붙였다 |
@@ -171,6 +171,42 @@ React 18 + Vite 6 + Tailwind. Vercel 이 이 폴더를 빌드해서 배포한다
 말풍선 아래 「근거」 줄은 **모델이 말한 것이 아니라 실제로 프롬프트에
 들어간 것**(`_retrieved`)으로 그린다. 그래서 모델이 없는 사업명을 지어내면
 근거에 안 뜬다. 공고는 눌러서 상세로 갈 수 있게 `openNoticeById` 를 문다.
+
+## 업종 모드의 「분석 중」이 안 꺼졌다
+
+`CommercialAnalysisView` 의 업종 모드는 업종을 고르면 자리를 추천해주고
+그 자리를 마이다가 바로 분석한다. **추천 기준(유동인구·상권활성화·경쟁강도
+가중치)을 조절해 「적용」을 누른 뒤로는 「분석 중이에요...」가 영영 안
+꺼졌다.** 버튼이 `disabled` 라 새로고침 말고는 빠져나갈 길이 없었다.
+반경·시설을 건드려도 같은 자리에 빠진다.
+
+`llmLoading` 을 **켜는 곳과 끄는 곳이 갈라져 있어서**다.
+
+    켜기   핀이 도착하면 (effect)
+    끄기   handleAskMaida 의 finally — 이것 하나뿐
+
+둘을 이어주는 것이 `autoAnalyzeTriggered` 깃발 하나인데, 자동 분석의 조건이
+`apiData` 뿐이었다. **apiData 는 업종을 고르기 전부터 지도 한가운데 좌표로
+받아둔 것이 있다.** 그래서 업종을 고르는 순간 핀보다 먼저 돌아 깃발을
+써버리고, 정작 핀이 도착해 로딩을 켠 뒤로는 아무도 끄지 않는다. 추천 기준을
+조절하면 apiData 가 새로 와서 이 effect 가 다시 도는데 깃발이 이미 서 있어
+그냥 지나간다.
+
+같은 이유로 **추천 1위 자리가 아니라 지도 한가운데를 분석하고 있었다.**
+업종에 맞는 자리를 찾아주는 화면인데 엉뚱한 자리를 읽었다.
+
+`appliedWeights` 는 「적용」을 누를 때만 바뀌는 `useState` 라 추천이 한 번씩만
+다시 도는데, 그 한 번마다 깃발이 어긋났다.
+
+지금은 자동 분석이 **핀이 도착한 뒤에만** 돈다. 켜는 쪽과 끄는 쪽이 같은
+커밋에서 짝이 된다. 추천을 새로 시작할 때마다 깃발을 다시 세우고 지난
+`llmLoading` 도 끈다 — 추천이 실패하거나 결과가 0건이면 핀이 안 와서
+자동 분석도 안 돌기 때문이다.
+
+**한 커밋 안의 effect 는 모두 같은 render 의 state 를 본다.** 업종을 바꿀 때
+`setRecommendPins([])` 를 불러도 그 커밋의 자동 분석은 옛 핀을 그대로 보므로,
+카페 자리를 분석해놓고 음식점 결과라고 내놓는다. 핀이 어느 업종 것인지를
+`pinsCategory` ref 에 적어 갈라낸다 — ref 는 render 를 안 기다린다.
 
 ## 관심공고를 화면에 붙일 때
 
