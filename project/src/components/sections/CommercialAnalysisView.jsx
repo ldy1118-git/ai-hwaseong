@@ -561,8 +561,10 @@ export default function CommercialAnalysisView({ profile }) {
       .then(r => r.json())
       .then(d => {
         if (d.address) {
-          const parts = [d.address.suburb || d.address.quarter, d.address.city || d.address.county].filter(Boolean)
-          setAddress(parts.join(' '))
+          const a = d.address
+          const dong = a.suburb || a.quarter || a.neighbourhood || a.village || a.town || a.hamlet
+          const city = a.city || a.county
+          setAddress([dong, city].filter(Boolean).join(' '))
         }
       })
       .catch(() => {})
