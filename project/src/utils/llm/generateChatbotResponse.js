@@ -1,7 +1,16 @@
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
+import { SchemaType } from '@google/generative-ai'
 import { generateText, GROQ_MODEL } from './llmProvider.js'
-import { todayKR } from '../today.js'
+import { todayKR, todayISO } from '../today.js'
 import { nextMockChatbotResponse, delay } from '../../mocks/index.js'
+import {
+  detectIntent,
+  retrieveContext,
+  retrieveNotices, formatNoticeContext,
+  retrieveTax,     formatTaxContext,
+  formatFavoriteContext,
+} from './chatRetrieval.js'
+
+export { retrieveContext }
 
 const MOCK = localStorage.getItem('mars-mock') === 'true'
 
@@ -33,6 +42,7 @@ const RESPONSE_SCHEMA = {
     answer:          { type: SchemaType.STRING },
     retrieved_terms: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
     retrieved_docs:  { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+    retrieved_notices: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
     confidence:      { type: SchemaType.STRING },
     followup:        { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
   },
@@ -40,49 +50,13 @@ const RESPONSE_SCHEMA = {
 }
 
 // ════════════════════════════════════════════════════════════════
-// RAG: 키워드 기반 컨텍스트 검색
+// RAG: 무엇을 읽을지는 chatRetrieval.js 가 고른다
+//
+// 예전에는 이 파일 안에 scoreText() 가 있었다. 2글자만 겹쳐도 점수를
+// 쌓고 이름이 길수록 높은 점수가 나와서, 「이번 달 마감 임박한 공고」에
+// '사업장현황신고'가 딸려왔다. 코퍼스도 용어·서류뿐이라 공고를 묻는
+// 질문에는 아예 답할 자료가 없었다. 둘 다 chatRetrieval.js 로 옮겼다.
 // ════════════════════════════════════════════════════════════════
-
-function scoreText(question, ...candidates) {
-  const q = question.replace(/[?!。\s,]+/g, '').toLowerCase()
-  let score = 0
-  for (const candidate of candidates) {
-    if (!candidate) continue
-    const c = candidate.replace(/[·\s]+/g, '').toLowerCase()
-    // 완전 포함
-    if (q.includes(c) || c.includes(q)) { score += 3; continue }
-    // 부분 2글자 이상 공통
-    for (let len = 2; len <= c.length; len++) {
-      for (let start = 0; start <= c.length - len; start++) {
-        if (q.includes(c.slice(start, start + len))) { score += 1; break }
-      }
-    }
-  }
-  return score
-}
-
-/**
- * terms.json의 terms[]와 documents[]에서 질문과 관련된 항목을 검색
- * @returns {{ terms: object[], docs: object[] }}
- */
-export function retrieveContext(question, termsData) {
-  const termsArr = termsData?.terms || []
-  const docsArr  = termsData?.documents || []
-
-  const scoredTerms = termsArr
-    .map(t => ({ ...t, _score: scoreText(question, t.term, ...(t.aliases || [])) }))
-    .filter(t => t._score > 0)
-    .sort((a, b) => b._score - a._score)
-    .slice(0, 3)
-
-  const scoredDocs = docsArr
-    .map(d => ({ ...d, _score: scoreText(question, d.name, ...(d.aliases || [])) }))
-    .filter(d => d._score > 0)
-    .sort((a, b) => b._score - a._score)
-    .slice(0, 3)
-
-  return { terms: scoredTerms, docs: scoredDocs }
-}
 
 function formatTermContext(terms) {
   if (!terms.length) return ''
@@ -174,14 +148,40 @@ function buildUserContext({ profile, journey } = {}) {
   return lines.join('\n')
 }
 
+/**
+ * @param {string} question
+ * @param {Array}  history   [{role:'user'|'bot', text}]
+ * @param {object} termsData data/terms.json
+ * @param {object} userContext
+ *   profile  — 온보딩 프로필. 세무일정 계산과 답변 구체화에 같이 쓴다
+ *   journey  — getJourney() 결과
+ *   matches  — fetchMatches() 의 results[]. **이게 있어야 공고를 답할 수 있다.**
+ *              없으면 예전처럼 용어·서류만 보고 답한다 (화면이 안 깨진다)
+ */
 export async function generateChatbotResponseV1(question, history, termsData, userContext = {}) {
   if (MOCK) { await delay(800); return nextMockChatbotResponse() }
-  const { terms, docs } = retrieveContext(question, termsData)
 
-  const termCtx    = formatTermContext(terms)
-  const docCtx     = formatDocContext(docs)
-  const hasContext = terms.length > 0 || docs.length > 0
-  const ctxBlock   = buildUserContext(userContext)
+  const { profile, matches } = userContext
+  const today  = todayISO()
+  const intent = detectIntent(question)
+
+  // ── 무엇을 읽을지 고른다 ──────────────────────────────────────
+  const { terms, docs } = retrieveContext(question, termsData)
+  const notices = retrieveNotices(question, matches, intent, today)
+  // 세무는 질문이 세무 쪽일 때만 넣는다. 늘 넣으면 서류 발급을 물었는데
+  // 답 끝에 부가세 신고기한이 따라붙는다.
+  const taxes   = intent.tax ? retrieveTax(profile, today) : []
+  const favCtx  = intent.favorite ? formatFavoriteContext() : ''
+
+  const blocks = [
+    formatTermContext(terms),
+    formatDocContext(docs),
+    formatNoticeContext(notices, today),
+    formatTaxContext(taxes, today),
+    favCtx,
+  ].filter(Boolean)
+
+  const ctxBlock = buildUserContext(userContext)
 
   const systemPrompt = `${SYSTEM_BASE}${ctxBlock}
 
@@ -189,16 +189,28 @@ export async function generateChatbotResponseV1(question, history, termsData, us
 1. 아래 RAG 데이터에 있는 내용은 그것을 근거로 답변하세요.
 2. RAG 데이터에 없는 금액·날짜·URL·절차는 추측하지 말고 "마이다도 이 부분은 공고나 담당 기관에서 직접 확인하시는 게 좋을 것 같아요!"라고 하세요.
 3. confidence 필드: RAG 데이터로 충분히 답변 가능하면 "high", 부분적이면 "medium", 없으면 "low".
-4. retrieved_terms/retrieved_docs는 실제로 답변에 활용한 항목 이름만 기재.
+4. retrieved_terms/retrieved_docs/retrieved_notices는 실제로 답변에 활용한 항목 이름만 기재. 공고는 제목을 그대로 적으세요.
 5. followup은 사장님이 이어서 물어볼 법한 질문 1~2개. 마이다 말투로 작성.
 6. 오늘 날짜는 ${todayKR()}.
 7. RAG 데이터에 url이 있으면 answer에 반드시 포함하세요 (예: "https://..." 형태로).
 8. RAG 데이터에 caution이 있으면 answer에 자연스럽게 안내하세요.
 9. RAG 데이터에 "⚠ 발급 정보 미검증" 표시가 있으면 answer에 "⚠ 발급처·수수료 정보는 아직 마이다가 검증 못 한 내용이라, 접수 기관에 한 번 더 확인해 주세요!"를 포함하세요.
 10. "사장님 현황" 블록이 있으면 그 업종·지역·단계에 맞게 답변을 구체화하세요.
-${hasContext ? `\n${termCtx}\n${docCtx}` : '\n=== RAG 데이터 없음 — 위 규칙 2번 적용 ==='}
 
-응답 JSON 구조: {"answer":"답변 텍스트","retrieved_terms":["사용한 용어명"],"retrieved_docs":["사용한 서류명"],"confidence":"high|medium|low","followup":["후속질문1","후속질문2"]}`
+지원사업을 안내할 때:
+11. **공고는 아래 목록에 있는 것만 말하세요.** 목록에 없는 사업명을 지어내면 안 됩니다. 사장님이 그 이름으로 검색하다 하루를 버립니다.
+12. 목록에 있는 공고를 소개하되 판정이 "신청가능"인 것부터 적으세요. 한 건마다 이 모양으로 씁니다.
+    📌 공고 제목
+       마감 D-n (마감일이 없으면 "마감일 미정") · 판정
+       무엇을 지원하는지 한 줄
+13. 판정이 "확인필요"면 그렇게 밝히고, "확인필요"에 적힌 것을 **사장님이 무엇을 확인해야 하는지**로 한 줄 풀어 적으세요(예: "제조업 위주 사업이라 카페도 되는지 문의처에 물어봐야 해요"). 되는 것처럼 말하지 마세요.
+14. 마감일이 "마감일 미정"인 공고에 날짜를 지어 붙이지 마세요.
+15. 목록에 공고가 하나도 없으면 "지금 조건에 맞는 건 못 찾았어요"라고 솔직히 말하고, 프로필을 채우면 더 잘 찾는다고 안내하세요. 이때 confidence 는 "low" 입니다.
+16. 목록 앞뒤로 사장님에게 건네는 한 마디를 잊지 마세요. 목록만 툭 던지지 않습니다.
+
+${blocks.length ? blocks.join('\n\n') : '=== RAG 데이터 없음 — 위 규칙 2번 적용 ==='}
+
+응답 JSON 구조: {"answer":"답변 텍스트","retrieved_terms":["사용한 용어명"],"retrieved_docs":["사용한 서류명"],"retrieved_notices":["사용한 공고 제목"],"confidence":"high|medium|low","followup":["후속질문1","후속질문2"]}`
 
   const text = await generateText({
     systemPrompt,
@@ -208,11 +220,26 @@ ${hasContext ? `\n${termCtx}\n${docCtx}` : '\n=== RAG 데이터 없음 — 위 �
     responseSchema: RESPONSE_SCHEMA,
   })
 
+  // 실제로 무엇을 읽고 답했는지. 화면이 이걸로 출처를 그린다 —
+  // 「출처 표기 ON」이라고 뱃지를 달아놓고 출처를 안 보여주고 있었다.
+  const retrieved = {
+    terms,
+    docs,
+    notices,
+    taxes,
+    // 사장님이 실제로 열어볼 수 있게 공고 번호를 같이 준다.
+    noticeRefs: notices.map(n => ({ id: n.notice_id, title: n.notice_title })),
+  }
+
   try {
     const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
     const parsed = JSON.parse(cleaned)
-    return { ...parsed, _raw: text, _retrieved: { terms, docs } }
+    return { ...parsed, _raw: text, _retrieved: retrieved }
   } catch {
-    return { answer: text, retrieved_terms: [], retrieved_docs: [], confidence: 'unknown', followup: [], _raw: text }
+    // JSON 이 깨져도 답변 본문은 살린다. 파싱 실패가 곧 응답 실패는 아니다.
+    return {
+      answer: text, retrieved_terms: [], retrieved_docs: [], retrieved_notices: [],
+      confidence: 'unknown', followup: [], _raw: text, _retrieved: retrieved,
+    }
   }
 }

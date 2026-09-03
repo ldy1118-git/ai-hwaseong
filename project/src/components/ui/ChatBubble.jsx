@@ -95,8 +95,68 @@ function parseText(text, terms) {
   )
 }
 
+/* ── RAG 신뢰도 ───────────────────────────────────────────
+ *
+ * 모델은 "high"/"medium"/"low" 라는 **문자열**을 돌려준다(프롬프트 규칙 3).
+ * 그런데 여기서 `Math.round(confidence * 100)` 을 하고 있었다. 문자열에
+ * 100을 곱하면 NaN 이라, 배포된 화면의 모든 답변 아래에
+ * 「RAG 신뢰도 NaN%」가 붙어 있었다.
+ *
+ * 없는 퍼센트를 지어내지 않는다. 모델이 준 세 단계를 그대로 말로 적는다. */
+const CONFIDENCE = {
+  high:   { label: '근거 충분',   dot: 'bg-emerald-400' },
+  medium: { label: '근거 부분적', dot: 'bg-amber-400'   },
+  low:    { label: '근거 부족',   dot: 'bg-warm-gray'   },
+}
+
+function ConfidenceBadge({ value }) {
+  const c = CONFIDENCE[value]
+  if (!c) return null   // 'unknown' — 판단할 수 없으면 아무 말도 안 한다
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${c.dot}`} />
+      <span className="text-[12px] text-warm-text">{c.label}</span>
+    </span>
+  )
+}
+
+/* ── 답의 근거 ────────────────────────────────────────────
+ *
+ * 공고는 눌러서 상세로 갈 수 있게 한다. 제목만 적어두면 사장님이 그걸
+ * 다시 목록에서 찾아야 한다. */
+function Sources({ sources, onOpenNotice }) {
+  if (!sources) return null
+  const { notices = [], names = [] } = sources
+  if (!notices.length && !names.length) return null
+
+  // gap 이 10px 이상이어야 한다. `.tap` 이 위아래로 5px 씩 덮개를 까는데
+  // 그보다 좁으면 줄바꿈됐을 때 아래윗줄 것이 겹쳐서, 제대로 눌러도 다른
+  // 공고가 열린다(project/CLAUDE.md 「누를 자리를 넓힐 때」).
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
+      <span className="text-[12px] text-warm-text flex-shrink-0">근거</span>
+      {notices.map(n => (
+        <button
+          key={n.id}
+          onClick={() => onOpenNotice?.(n.id)}
+          className="tap max-w-[15rem] truncate text-[12px] text-navy underline decoration-navy/30
+                     underline-offset-2 hover:decoration-navy transition-colors"
+          title={n.title}
+        >
+          📄 {n.title}
+        </button>
+      ))}
+      {names.map((n, i) => (
+        <span key={i} className="text-[12px] text-warm-text bg-warm-gray/15 rounded px-1.5 py-0.5">
+          {n}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 /* ── 메시지 말풍선 ────────────────────────────────────── */
-export default function ChatBubble({ message }) {
+export default function ChatBubble({ message, onOpenNotice }) {
   const isMars = message.role === 'mars'
 
   /* 사용자 – 오른쪽, navy 배경 */
@@ -120,13 +180,11 @@ export default function ChatBubble({ message }) {
                       whitespace-pre-line">
         {parseText(message.text, message.terms ?? {})}
 
-        {/* RAG 신뢰도 뱃지 */}
-        {message.confidence !== undefined && (
-          <div className="mt-2 pt-2 border-t border-warm-gray/20 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-            <span className="text-[12px] text-warm-text">
-              RAG 신뢰도 {Math.round(message.confidence * 100)}%
-            </span>
+        {/* 무엇을 읽고 답했는지 + 그걸로 충분했는지 */}
+        {(CONFIDENCE[message.confidence] || message.sources) && (
+          <div className="mt-2 pt-2 border-t border-warm-gray/20">
+            <ConfidenceBadge value={message.confidence} />
+            <Sources sources={message.sources} onOpenNotice={onOpenNotice} />
           </div>
         )}
       </div>

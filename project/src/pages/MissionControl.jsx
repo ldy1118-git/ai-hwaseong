@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Header from '../components/layout/Header'
 import ChatBubble from '../components/ui/ChatBubble'
 import MarsAvatar from '../components/ui/MarsAvatar'
 import { generateChatbotResponseV1 } from '../utils/llm/generateChatbotResponse'
 import { getJourney } from '../utils/journey'
+import { fetchMatches, DEFAULT_PROFILE } from '../utils/api'
+import { openNoticeById } from '../utils/openNotice'
 import termsData from '../data/terms.json'
 
 // API 키는 서버에만 둔다. VITE_ 환경변수는 빌드 결과물에 그대로 박혀서
@@ -40,6 +43,28 @@ function buildTermsDict(retrievedTermNames) {
     if (found) dict[found.term] = found.easy
   }
   return dict
+}
+
+/* ── 답의 근거 ────────────────────────────────────────────
+ *
+ * 화면 오른쪽 위에 「출처 표기 ON」이라고 붙여놓고 정작 무엇을 읽고
+ * 답했는지는 아무 데도 안 보여주고 있었다. 노란 용어 하이라이트가
+ * 전부였다 — 그건 뜻풀이지 출처가 아니다.
+ *
+ * 공고는 제목만 적지 않고 **실제로 열 수 있게** 번호를 같이 단다.
+ * 모델이 지어낸 제목은 여기서 걸러진다 — `_retrieved` 에 실제로 들어간
+ * 것만 남기므로, 프롬프트에 없던 사업명을 말했으면 출처에 안 뜬다. */
+function buildSources(result) {
+  const r = result?._retrieved
+  if (!r) return null
+  const notices = (r.noticeRefs ?? []).slice(0, 4)
+  const names   = [
+    ...(r.terms ?? []).map(t => t.term),
+    ...(r.docs  ?? []).map(d => d.name),
+    ...(r.taxes ?? []).map(e => e.title),
+  ].filter(Boolean)
+  if (!notices.length && !names.length) return null
+  return { notices, names }
 }
 
 /* ── 마이다 생각 중 버블 ──────────────────────────────── */
@@ -117,7 +142,25 @@ export default function MissionControl() {
     try { return JSON.parse(localStorage.getItem('mars-fit-profile') ?? 'null') } catch { return null }
   })[0]
   const journey  = useState(() => { try { return getJourney() } catch { return null } })[0]
-  const userCtx  = { profile, journey }
+  const navigate = useNavigate()
+
+  /* 매칭된 공고를 미리 받아둔다.
+   *
+   * **이게 챗봇이 지원사업을 답할 수 있는 유일한 근거다.** 없으면 마이다는
+   * 용어·서류만 보고 답해서, 입력창 위 추천 칩 「지금 신청 가능한 지원사업
+   * 알려줘」에 "공고나 담당 기관에서 직접 확인하세요"로 답한다.
+   *
+   * `fetchMatches` 는 3분 캐시가 붙어 있어서(utils/api.js) 홈에서 넘어온
+   * 직후면 요청이 아예 안 나간다. 실패해도 빈 배열로 두고 화면은 그대로
+   * 돈다 — 공고를 못 받았다고 챗봇 전체가 멈출 이유는 없다. */
+  const [matches, setMatches] = useState([])
+  useEffect(() => {
+    let alive = true
+    fetchMatches(profile ?? DEFAULT_PROFILE)
+      .then(d => { if (alive) setMatches(d?.results ?? []) })
+      .catch(() => { /* 용어·서류만으로 답한다 */ })
+    return () => { alive = false }
+  }, [profile])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -138,7 +181,9 @@ export default function MissionControl() {
         text: m.text,
       }))
 
-      const result = await generateChatbotResponseV1(trimmed, history, termsData, userCtx)
+      const result = await generateChatbotResponseV1(
+        trimmed, history, termsData, { profile, journey, matches },
+      )
 
       setMessages(prev => [...prev, {
         id:         Date.now() + 1,
@@ -147,6 +192,8 @@ export default function MissionControl() {
         terms:      buildTermsDict(result.retrieved_terms ?? []),
         followup:   result.followup  ?? [],
         confidence: result.confidence,
+        // 무엇을 읽고 답했는지. 「출처 표기 ON」 뱃지의 실체다.
+        sources:    buildSources(result),
       }])
     } catch (err) {
       setMessages(prev => [...prev, {
@@ -159,6 +206,20 @@ export default function MissionControl() {
     } finally {
       setLoading(false)
     }
+  }
+
+  /* 근거로 붙은 공고를 연다.
+   *
+   * 공고는 매일 아침 갱신되고 마감된 것은 목록에서 사라진다. 대화가 길어진
+   * 사이에 마감됐으면 `openNoticeById` 가 false 를 준다. 그때 창을 띄우지
+   * 않고 마이다가 말하게 두는 이유는, 이 화면에서 사장님이 보고 있는 것이
+   * 대화이기 때문이다 — 대화 중에 브라우저 경고창이 튀어나오면 말이 끊긴다. */
+  async function openNotice(noticeId) {
+    if (await openNoticeById(noticeId, navigate)) return
+    setMessages(prev => [...prev, {
+      id: Date.now(), role: 'mars', terms: {}, followup: [],
+      text: '앗, 그 공고는 접수가 끝나서 목록에서 빠졌어요. 대신 지금 열려 있는 것들을 찾아드릴까요?',
+    }])
   }
 
   function handleKeyDown(e) {
@@ -195,7 +256,10 @@ export default function MissionControl() {
             style={{ paddingBottom: '9rem' }}>
         {messages.map(msg => (
           <div key={msg.id}>
-            <ChatBubble message={msg} />
+            <ChatBubble
+              message={msg}
+              onOpenNotice={id => openNotice(id)}
+            />
             {msg.role === 'mars' && (
               <FollowupChips
                 questions={msg.followup}
