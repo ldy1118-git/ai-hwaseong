@@ -117,9 +117,10 @@ function LeafletMap({ position, onMove, radii, markers, sizeKey, recommendPins =
         zIndexOffset: 1000,
       }).addTo(recommendRef.current)
       m.bindPopup(
-        `<b>${pin.rank}위 추천 상권</b><br>` +
-        `동종업종 ${pin.count}개 · 경쟁 ${pin.competition ?? '-'}<br>` +
-        `전체 상가 ${pin.total ?? '-'}개`
+        `<b>${pin.rank}위 추천 상권</b>` +
+        (pin.address ? `<br><span style="color:#7a6a58">${pin.address}</span>` : '') +
+        `<br>동종업종 ${pin.count}개 · 경쟁 ${pin.competition ?? '-'}` +
+        `<br>전체 상가 ${pin.total ?? '-'}개`
       )
       m.on('click', () => onMoveRef.current({ lat: pin.lat, lng: pin.lng }))
     })
@@ -497,14 +498,31 @@ export default function CommercialAnalysisView({ profile }) {
       body: JSON.stringify({ categories: [recommendCategory], top_n: 3, weights: appliedWeights }),
     })
       .then(r => r.json())
-      .then(data => {
+      .then(async data => {
         const locs = data.recommendations?.[0]?.locations ?? []
         pinsCategory.current = locs.length ? recommendCategory : null
-        setRecommendPins(locs.map((l, i) => ({ ...l, rank: i + 1 })))
-        if (locs[0]) {
-          // 1위 위치로 지도 중심 이동
-          setPosition({ lat: locs[0].lat, lng: locs[0].lng })
-        }
+        const pins = locs.map((l, i) => ({ ...l, rank: i + 1 }))
+        setRecommendPins(pins)  // 주소 없이 먼저 핀 표시
+        if (locs[0]) setPosition({ lat: locs[0].lat, lng: locs[0].lng })
+
+        // 각 핀 좌표를 역지오코딩해서 주소 추가
+        const withAddr = await Promise.all(pins.map(async pin => {
+          try {
+            const r = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${pin.lat}&lon=${pin.lng}&format=json`,
+              { headers: { 'Accept-Language': 'ko' } }
+            )
+            const d = await r.json()
+            if (d.address) {
+              const a = d.address
+              const dong = a.suburb || a.quarter || a.neighbourhood || a.village || a.town || a.hamlet
+              const city = a.city || a.county
+              return { ...pin, address: [dong, city].filter(Boolean).join(' ') }
+            }
+          } catch {}
+          return pin
+        }))
+        setRecommendPins(withAddr)
       })
       .catch(() => { pinsCategory.current = null; setRecommendPins([]) })
       .finally(() => setRecommendLoading(false))
