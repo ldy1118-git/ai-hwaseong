@@ -407,7 +407,9 @@ export default function CommercialAnalysisView({ profile }) {
         body: JSON.stringify({ lat: position.lat, lng: position.lng, radii: effectiveRadii }),
       })
         .then(r => r.json())
-        .then(setApiData)
+        // 어느 좌표의 자료인지 같이 적는다. 자동 분석이 옛 좌표의 수치로
+        // 새 자리를 설명하는 것을 막는다 — 아래 자동 분석 effect 참고.
+        .then(d => setApiData({ ...d, _at: `${position.lat},${position.lng}` }))
         .catch(() => {})
     }, 300)
   }, [position.lat, position.lng, effectiveRadii])
@@ -446,14 +448,12 @@ export default function CommercialAnalysisView({ profile }) {
    *
    *   1. **추천 1위 자리가 아니라 지도 한가운데를 분석한다.** 업종 모드는
    *      「이 업종에 좋은 자리를 찾아준다」는 화면인데 엉뚱한 자리를 읽는다.
-   *   2. **「분석 중」이 영영 안 꺼진다.** 아래 핀 effect 가 켜는 llmLoading 을
-   *      끄는 곳은 handleAskMaida 의 finally 하나뿐인데, 자동 분석이 핀보다
-   *      먼저 돌아 `autoAnalyzeTriggered` 를 써버리면 핀이 도착한 뒤로는
-   *      아무도 handleAskMaida 를 부르지 않는다. 추천 기준(가중치)을 바꿔
-   *      「적용」을 누르면 핀이 새로 오고, 반경·시설을 건드리면 apiData 가
-   *      새로 와서 이 effect 가 다시 도는데, 그때도 깃발이 이미 true 라 그냥
-   *      지나간다. 사장님 화면에는 「분석 중이에요...」가 박힌 채 버튼이
-   *      disabled 로 잠긴다 — 새로고침 말고는 길이 없다.
+   *   2. **「분석 중」이 영영 안 꺼졌다.** 그때는 핀이 도착하면 llmLoading 을
+   *      켜는 effect 가 따로 있었는데, 끄는 곳은 handleAskMaida 의 finally
+   *      하나뿐이었다. 자동 분석이 핀보다 먼저 돌아 `autoAnalyzeTriggered`
+   *      를 써버리면 핀이 도착한 뒤로는 아무도 handleAskMaida 를 부르지
+   *      않는다. 지금은 그 effect 를 없애고 llmLoading 의 주인을 하나로
+   *      두었다(아래 `analyzing`).
    *
    * 핀과 recommendLoading 을 조건에 넣으면 순서가 뒤집힐 수 없다. 핀이 도착한
    * 그 flush 에서 핀 effect 와 이 effect 가 같이 돌므로, 켜는 쪽과 끄는 쪽이
@@ -463,20 +463,17 @@ export default function CommercialAnalysisView({ profile }) {
     if (inputMode !== 'category' || !recommendCategory) return
     if (!apiData || recommendLoading || !recommendPins.length) return
     if (pinsCategory.current !== recommendCategory) return   // 아직 이전 업종의 핀이다
+    /* 핀이 도착하면 지도가 1위 자리로 옮겨가는데, 그 자리의 상권 자료는
+       300ms 디바운스 뒤에야 받아온다. 이걸 안 보면 **옛 자리의 수치로 새
+       자리를 설명한다** — 추천해준 자리를 분석하는 화면인데. */
+    if (apiData._at !== `${position.lat},${position.lng}`) return
     autoAnalyzeTriggered.current = true
     // setTimeout(0): 이 render의 모든 effect가 끝난 뒤 호출해야
     // handleAskMaidaRef.current가 최신 ftScore로 업데이트된 상태가 된다.
     // (handleAskMaidaRef sync effect는 이 effect보다 코드 뒤에 선언되어 있어
     //  같은 render에서는 stale 클로저를 가리킨다)
     setTimeout(() => { handleAskMaidaRef.current?.() }, 0)
-  }, [apiData, inputMode, recommendCategory, recommendPins.length, recommendLoading]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 추천 핀이 도착하면 바로 "분석 중" 로딩 표시 (LLM 완료 전에도 사용자가 기다림을 인지)
-  useEffect(() => {
-    if (inputMode !== 'category' || !recommendPins.length || !recommendCategory) return
-    setLlmAsked(true)
-    setLlmLoading(true)
-  }, [recommendPins.length, inputMode, recommendCategory]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [apiData, inputMode, recommendCategory, recommendPins.length, recommendLoading, position.lat, position.lng]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 업종 모드: 업종 선택·가중치 적용 시 /api/recommend 호출 → 지도에 핀 표시
   useEffect(() => {
@@ -489,7 +486,6 @@ export default function CommercialAnalysisView({ profile }) {
        핀이 안 오고, 그러면 자동 분석도 안 돌아서 켜뒀던 것을 끌 사람이 없다. */
     autoAnalyzeTriggered.current = false
     pinsCategory.current = null
-    setLlmLoading(false)
     setRecommendLoading(true)
     setRecommendPins([])
     fetch(apiUrl('/api/recommend'), {
@@ -633,6 +629,19 @@ export default function CommercialAnalysisView({ profile }) {
 
   const handleAskMaidaRef = useRef(handleAskMaida)
   useEffect(() => { handleAskMaidaRef.current = handleAskMaida }, [handleAskMaida])
+
+  /* 「분석 중」은 상태로 따로 들고 있지 않고 계산한다.
+   *
+   * 전에는 핀이 도착하면 llmLoading 을 켜는 effect 가 따로 있었다. 끄는 곳은
+   * handleAskMaida 의 finally 하나뿐이라, 그 사이가 한 번이라도 어긋나면
+   * 버튼이 「분석 중이에요...」로 잠긴 채 영영 안 풀렸다 — disabled 라
+   * 새로고침 말고는 길이 없었다.
+   *
+   * 지금은 llmLoading 을 handleAskMaida 만 쓴다. 켜면 반드시 끈다.
+   * 추천을 받아오는 동안에도 곧 분석이 이어지므로 같이 「분석 중」으로
+   * 보여준다. 계산값이라 잠길 수가 없다. */
+  const analyzing = llmLoading ||
+    (inputMode === 'category' && !!recommendCategory && recommendLoading)
 
   const handleSaveCandidate = useCallback(() => {
     // ftScore 를 0-100 창업 적합도로 변환 (4000=65, 8000=92)
@@ -1016,16 +1025,16 @@ export default function CommercialAnalysisView({ profile }) {
           </div>
         </div>
 
-        <button onClick={handleAskMaida} disabled={llmLoading || !apiData}
+        <button onClick={handleAskMaida} disabled={analyzing || !apiData}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm
                      transition-all disabled:opacity-50 bg-navy text-white hover:bg-navy/90 active:scale-[0.99]">
           <Sparkles size={14} />
-          {llmLoading ? '분석 중이에요...' : '이 위치 상권 물어보기'}
+          {analyzing ? '분석 중이에요...' : '이 위치 상권 물어보기'}
         </button>
 
-        {llmAsked && (
+        {(llmAsked || analyzing) && (
           <div>
-            {llmLoading ? (
+            {analyzing ? (
               <div className="space-y-3 animate-pulse">
                 {[0.9, 0.75, 0.85].map((w, i) => (
                   <div key={i} className="flex items-center gap-2">
