@@ -1,0 +1,35 @@
+{
+ "notice_id": "PBLN_000000000126182",
+ "title": "[경기] 화성시 2026년 하반기 지역서점 인증(갱신) 신청 접수 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126182",
+ "summary": "등 확인\n 다. 현장실사: 인증신청 자격 등 확인\n * 판단이 어려운 경우, 추가 자료(면적 표기 도면 등)를 요청할 수 있음\n 라. 인증심사 및 결정:\n신청서류 및 현장 실사 결과에 따라 인증요건 및 기준 충족\n여부 확인 후 적격/부적격 판단\n 마. 인증서 발급: 인증서 교부\n4. 인증혜택\n 가. 관내 공공도서관 및 유관 기관 도서 구입 시 인증 지역서점 우선 활용 권고\n 나. 화성시 인증 지역서점 활성화 지원 사업(작가 초청 강연 등) 참여 기회 제공\n5. 인증 유효기간: 인증일로부터 2년(2년마다 갱신 심사)\n ※ 2026년 하반기 인증 지역서점 유효기간:\n2026. 9. 30. ~ 2028. 9. 29.\n -\n유효기간 중 폐업되었거나 수시 및 정기 실사에서 인증 심사 기준에 미달(미충족\n) 또는 서점",
+ "apply_period": {
+  "start": "2026-09-01",
+  "end": "2026-09-15"
+ },
+ "eligibility": {
+  "business_status": [
+   "운영중"
+  ],
+  "regions": [
+   "화성시",
+   "화성특례시"
+  ]
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "매출 증빙자료",
+   "type": "common",
+   "confidence": "confirmed"
+  }
+ ],
+ "apply_method": "이메일 접수(chana@korea.kr)",
+ "contact": "화성시 도서관정책과 도서관정책팀 031-5189-2109, chana@korea.kr",
+ "organizer": "경기도",
+ "operator": "기초자치단체"
+}
