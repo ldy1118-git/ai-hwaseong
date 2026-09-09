@@ -1,0 +1,32 @@
+{
+ "notice_id": "PBLN_000000000126320",
+ "title": "2026년 전시회 부스 지원 참여 소상공인 모집 공고(고카프 킨텍스 더 파이널 시즌 PART 2)",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126320",
+ "summary": "소상공인의 오프라인 판로 개척 및 전시회 활용력 강화를 위해 전시회 부스 지원 사업에 참여할 소상공인을 다음과 같이 모집하오니 많은 관심과 참여 바랍니다. ☞ AX 아카데미 교육을 수강한 연간 프리미엄 멤버십 소상공인 - 대표자 제외 상시 근로자 수 5인 또는 10인 미만의 소상공인(제조업ㆍ운수업ㆍ광업 10인 미만 / 그 외 5인 미만) - 각 전시회 참여에 적합한 품목을 보유한 소상공인 ☞ 공동관 부스 및 기본 집기 지원(약 230만원 상당)",
+ "apply_period": {
+  "start": "2026-09-08",
+  "end": "2026-10-16"
+ },
+ "eligibility": {
+  "requirements_unknown": "AX 아카데미 교육을 수강한 연간 프리미엄 멤버십 소상공인 - 대표자 제외 상시 근로자 수 5인 또는 10인 미만의 소상공인(제조업ㆍ운수업ㆍ광업 10인 미만 / 그 외 5인 미만) - 각 전시회 참여에 적합한…"
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_url": "https://heemangfdn.or.kr/layout/res/home.php?go=page1.1",
+ "apply_method": "온라인 접수 (중소상공인희망재단)",
+ "contact": "중소상공인희망재단 디지털혁신사업부 070-4267-8256, pjh@heemangfdn.or.kr",
+ "organizer": "중소벤처기업부",
+ "operator": "중소상공인희망재단"
+}
