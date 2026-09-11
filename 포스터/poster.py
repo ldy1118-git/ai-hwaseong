@@ -567,44 +567,58 @@ print('저장:', OUT)
 
 
 # ── HTML 미리보기 ──────────────────────────────────────────────
-def emit_html():
+def emit_html(debug=True, out='preview.html', unit='px'):
+    """같은 좌표를 HTML 로 다시 그린다.
+
+    debug=True  글상자 경계를 빨간 점선으로 — 넘침을 눈으로 잡으려고
+    debug=False 인쇄용. 이걸 크로미움으로 PDF 로 찍는다(print.html)
+
+    **단위를 조심할 것.** 좌표는 전부 mm 로 계산해 두었다. 미리보기는
+    1px = 1mm 로 두고 900x1200 화면에 찍으면 되지만, PDF 는 페이지가
+    900mm x 1200mm 라 px 로 내보내면 900px 이 238mm 밖에 안 돼서 내용이
+    왼쪽 위 27% 에만 몰린다. 인쇄용은 접미사를 mm 로 바꿔 내보낸다.
+    """
     import html as _h
+    U = unit
+    PADU = '0.5mm' if U == 'mm' else '2px'
     o = ['<!doctype html><meta charset=utf-8><style>',
          'body{margin:0;background:#999}',
-         f'#p{{position:relative;width:{W}px;height:{H}px;overflow:hidden;',
+         f'#p{{position:relative;width:{W}{U};height:{H}{U};overflow:hidden;',
          "font-family:'Noto Sans CJK KR',sans-serif}",
          '#p>*{position:absolute;box-sizing:border-box}',
+         '@page{size:%dmm %dmm;margin:0}' % (W, H),
+         '@media print{body{background:#fff}}',
          '</style><div id=p>']
     for r in OPS:
         if r['k'] == 'box':
-            st = [f"left:{r['x']}px", f"top:{r['y']}px",
-                  f"width:{r['w']}px", f"height:{r['h']}px",
+            st = [f"left:{r['x']}{U}", f"top:{r['y']}{U}",
+                  f"width:{r['w']}{U}", f"height:{r['h']}{U}",
                   f"background:#{r['fill']}" if r['fill'] else 'background:transparent']
             if r['line']:
-                st.append(f"border:{r['lw']*0.353:.2f}px solid #{r['line']}")
+                st.append(f"border:{r['lw']*0.353:.2f}{U} solid #{r['line']}")
             if r['shape'] == 'oval':
                 st.append('border-radius:50%')
             elif r['shape'] == 'round':
-                st.append(f"border-radius:{min(r['w'],r['h'])*(r['adj'] or .1)*2:.1f}px")
+                st.append(f"border-radius:{min(r['w'],r['h'])*(r['adj'] or .1)*2:.1f}{U}")
             inner = ''
             if r.get('txt'):
                 st += ['display:flex', 'flex-direction:column',
                        'align-items:center', 'justify-content:center',
-                       f"font-size:{r['tsize']*0.3528:.2f}px", f"color:#{r['tcolor']}",
+                       f"font-size:{r['tsize']*0.3528:.2f}{U}", f"color:#{r['tcolor']}",
                        'font-weight:700' if r['tbold'] else '', 'text-align:center',
-                       'padding:0 2px', 'line-height:1.2']
+                       f'padding:0 {PADU}', 'line-height:1.2']
                 inner = ''.join(f'<div>{_h.escape(t)}</div>' for t in r['txt'])
             o.append(f'<div style="{";".join(x for x in st if x)}">{inner}</div>')
         elif r['k'] == 'pic':
-            o.append(f"<img src=\"file://{r['path']}\" style=\"left:{r['x']}px;"
-                     f"top:{r['y']}px;width:{r['w']}px;height:{r['h']}px\">")
+            o.append(f"<img src=\"file://{r['path']}\" style=\"left:{r['x']}{U};"
+                     f"top:{r['y']}{U};width:{r['w']}{U};height:{r['h']}{U}\">")
         else:
             al = {'LEFT': 'left', 'CENTER': 'center', 'RIGHT': 'right'}[r['align']]
-            st = [f"left:{r['x']}px", f"top:{r['y']}px", f"width:{r['w']}px",
-                  f"font-size:{r['size']*0.3528:.2f}px", f"color:#{r['color']}",
+            st = [f"left:{r['x']}{U}", f"top:{r['y']}{U}", f"width:{r['w']}{U}",
+                  f"font-size:{r['size']*0.3528:.2f}{U}", f"color:#{r['color']}",
                   f'text-align:{al}', f"line-height:{r['line_sp']}",
                   'font-weight:700' if r['bold'] else 'font-weight:400',
-                  'outline:0.3px dashed rgba(220,0,0,.30)']
+                  'outline:0.3px dashed rgba(220,0,0,.30)' if debug else '']
             body = []
             for i, parts in enumerate(r['rec']):
                 sp = []
@@ -612,17 +626,17 @@ def emit_html():
                     ss = []
                     if op.get('bold', r['bold']): ss.append('font-weight:700')
                     if 'color' in op: ss.append(f"color:#{op['color']}")
-                    if 'size' in op: ss.append(f"font-size:{op['size']*0.3528:.2f}px")
+                    if 'size' in op: ss.append(f"font-size:{op['size']*0.3528:.2f}{U}")
                     sp.append(f'<span style="{";".join(ss)}">{_h.escape(t)}</span>')
                 mt = 0 if i == 0 else r['size'] * r['space'] * 0.3528
-                body.append(f'<div style="margin-top:{mt:.1f}px">{"".join(sp)}</div>')
-            o.append(f'<div style="{";".join(st)}">{"".join(body)}</div>')
+                body.append(f'<div style="margin-top:{mt:.2f}{U}">{"".join(sp)}</div>')
+            o.append(f'<div style="{";".join(x for x in st if x)}">{"".join(body)}</div>')
     o.append('</div>')
-    io.open(f'{S}/preview.html', 'w', encoding='utf-8').write('\n'.join(o))
-    print('미리보기:', f'{S}/preview.html')
+    io.open(f'{S}/{out}', 'w', encoding='utf-8').write('\n'.join(o))
+    print('HTML:', f'{S}/{out}')
 
-
-emit_html()
+emit_html(debug=True,  out='preview.html')
+emit_html(debug=False, out='print.html', unit='mm')
 
 print('\n섹션 배치')
 cols = {}
