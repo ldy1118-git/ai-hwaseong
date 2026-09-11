@@ -40,6 +40,10 @@ H_FONT, B_FONT = '나눔스퀘어_ac Bold', '맑은 고딕'
 # 환산하면 22~28pt(중앙값 24)이다. 처음에 19~21pt 로 잡아 20% 작았다.
 SCALE = 1.22
 
+# 숫자를 잰 날. 공고는 매일 06:11 에 새로 받으므로 건수가 바뀐다.
+# 「오늘」이라고 쓰면 인쇄한 뒤에는 어느 날인지 알 수 없다.
+ASOF = '2026-09-11'
+
 W, H = 900, 1200
 HEAD_H, FOOT_H = 150, 26
 L_X, R_X, COL_W = 12, 460, 428
@@ -353,7 +357,7 @@ text(IN_X + 6, cy + 5, IN_W - 12, 24,
 cy += 40
 cy = formula(IN_X, cy, IN_W, ['매칭 점수 =  Σ( wᵢ × vᵢ )  ÷  Σ wᵢ  × 100'], size=24) + 10
 cy = table(IN_X, cy, IN_W, [78, 196, 52, 74],
-           ['판정', '무슨 뜻인가', '조건값 vᵢ', '오늘 74건'],
+           ['판정', '무슨 뜻인가', '조건값 vᵢ', f'{ASOF} · 74건'],
            [[('신청가능', {'pill': GREEN}), '조건이 모두 맞는다',
              ('1.0', {'bold': True, 'color': GREEN}), '31건'],
             [('확인필요', {'pill': ORANGE}), '공고문만으로는 판단이 서지 않는다',
@@ -385,7 +389,7 @@ ty = para(tx, ty + 4, tw, [
 cy = max(cy + 150, ty) + 10
 
 cy = para(IN_X, cy, IN_W, [
-    [('오늘 74건에서 조건 309개를 판정했다', {'bold': True, 'color': NAVY}),
+    [(f'{ASOF} 기준 74건에서 조건 309개를 판정했다', {'bold': True, 'color': NAVY}),
      ' — 충족 247 · 확인필요 46 · 불충족 16. 공고마다 서류도 같이 붙는다'
      '(195개 · 52종).'],
     [('줄 세우기는 접수중 먼저, 그 안에서 점수순이다.', {'bold': True, 'color': NAVY}),
@@ -405,11 +409,11 @@ IN_X, IN_W = R_X + PAD, COL_W - PAD * 2
 cy, hd = section_open(R_X, y, COL_W, '서류는 계산해서 알려준다')
 cy = para(IN_X, cy, IN_W, [
     [('찾아주는 데서 끝내지 않는다.', {'bold': True, 'color': NAVY}),
-     ' 판정이 끝나면 「그래서 뭘 내야 하나」가 남는다. 공고마다 낼 서류가 다르고, '
-     '오늘 74건에 서류가 195개 · 52종 붙어 있다.'],
+     ' 판정이 끝나면 「그래서 뭘 내야 하나」가 남는다. 공고마다 서류가 다르고 '
+     f'{ASOF} 기준 74건에 195개 · 52종이 붙어 있다.'],
 ], size=20) + 10
 
-sw = shot(f"{CROP}/apply.png", IN_X, cy, 178)
+sw = shot(f"{CROP}/apply.png", IN_X, cy, 170)
 tx, tw = IN_X + sw + 16, IN_W - sw - 16
 
 ty = para(tx, cy - 1, tw,
@@ -439,7 +443,7 @@ ty = para(tx, ty + 2, tw,
 ty = para(tx, ty + 3, tw, [
     '「발급 절차 보기」를 누르면 사장님이 홈택스·정부24 를 따로 찾아 들어갈 일이 없다.',
 ], size=17)
-cy = max(cy + 178, ty) + 10
+cy = max(cy + 170, ty) + 10
 
 # 실제로 연결되는 곳
 box(IN_X, cy, IN_W, 42, fill=TINT, line=None, shape=MSO_SHAPE.ROUNDED_RECTANGLE, adj=0.10)
@@ -460,7 +464,7 @@ cy = para(IN_X, cy, IN_W, [
     [('체크한 것은 공고마다 따로 남는다.', {'bold': True, 'color': NAVY}),
      ' 발급 3개월 이내 서류만 인정된다는 것도 같이 적는다.'],
 ], size=19)
-y = section_close(hd, cy) + 12
+y = section_close(hd, cy) + 10
 
 # ④ 상권 추천 알고리즘
 cy, hd = section_open(R_X, y, COL_W, '상권 추천 알고리즘')
@@ -475,7 +479,7 @@ cy = formula(IN_X, cy, IN_W,
              ['유동인구 = 학교×220 + 카페×90 + 음식점×55',
               '+ 역 승하차×0.15 + 아파트 세대×0.08'], size=19) + 10
 
-sw3 = shot(f"{CROP}/map.png", IN_X, cy, 168)
+sw3 = shot(f"{CROP}/map.png", IN_X, cy, 150)
 tx, tw = IN_X + sw3 + 16, IN_W - sw3 - 16
 ty = para(tx, cy - 1, tw,
           [[('가중치를 사장님이 직접 조절한다', {'bold': True, 'color': NAVY, 'size': 20})]],
@@ -491,15 +495,15 @@ ty = para(tx, ty + 5, tw, [
     '화성시 평균으로 떨어뜨리고 「이 자리 매출이 아닙니다」라고 밝힌다.'], size=18)
 ty = para(tx, ty + 9, tw, [
     [('경쟁강도 기준도 업종마다 다르다 — ', {'bold': True, 'color': NAVY}),
-     '같은 「10개」라도 카페는 붐비고 음식점은 한산하다. 카페 8·20, '
-     '음식점 15·40, 소매업 10·30 이 경계다.']], size=18)
+     '카페는 「10개」면 붐비고 음식점은 한산하다. 카페 8·20, 음식점 15·40, '
+     '소매업 10·30 이 경계다.']], size=18)
 ty = para(tx, ty + 9, tw, [
     [('격자에 얹는 것 — ', {'bold': True, 'color': NAVY}),
-     '상가 30,297 · 학교 188 · 지하철역 5 · 아파트 47개 행정동. '
-     '반경은 300 · 500 · 1000m 로 바꿔 볼 수 있다.']], size=18)
+     '상가 30,297 · 학교 188 · 역 5 · 아파트 47개 행정동. 반경은 300 · 500 · '
+     '1000m 로 바꾼다.']], size=18)
 
-cy = max(cy + 168, ty)
-y = section_close(hd, cy) + 12
+cy = max(cy + 150, ty)
+y = section_close(hd, cy) + 10
 
 # ⑤ 매일 도는 공고 수집
 cy, hd = section_open(R_X, y, COL_W, '매일 도는 공고 수집')
@@ -526,12 +530,12 @@ cy = bullet(IN_X, cy, IN_W, [
      'Actions 는 대신 빌드 검사를 맡는다 — main 에 올리면 사람 손 없이 '
      'Vercel 이 그대로 실서비스에 올리기 때문이다.'],
     [('총량으로 검증하지 않는다.', {'bold': True, 'color': NAVY}),
-     ' 마감된 공고가 빠지면 딸린 서류도 같이 빠져 「데이터가 깎였다」로 잘못 읽힌다. '
+     ' 마감된 공고가 빠지면 딸린 서류도 같이 빠져 「깎였다」로 잘못 읽힌다. '
      '양쪽에 다 있는 공고만 골라 [서류·조건·본문]을 견준다.'],
     [('걸리면 커밋하지 않고 관리자 카카오톡으로 알린다.', {'bold': True, 'color': NAVY}),
      ' 로그 파일에만 적어두면 아무도 안 본다.'],
 ], size=19)
-y = section_close(hd, cy) + 12
+y = section_close(hd, cy) + 10
 
 # ⑦ 지금 돌아가고 있다
 cy, hd = section_open(R_X, y, COL_W, '지금 돌아가고 있다')
@@ -540,14 +544,19 @@ STATS = [('74', '공고 · 실시간'), ('12', '조건축'), ('18', '세무 항�
 bw = (IN_W - 4 * 8) / 5
 bx = IN_X
 for v, lab in STATS:
-    box(bx, cy, bw, 40, fill=TINT, line=None, shape=MSO_SHAPE.ROUNDED_RECTANGLE, adj=0.14)
-    text(bx, cy + 5, bw, 22, v, size=34, color=NAVY, bold=True, font=H_FONT,
+    box(bx, cy, bw, 36, fill=TINT, line=None, shape=MSO_SHAPE.ROUNDED_RECTANGLE, adj=0.14)
+    text(bx, cy + 3, bw, 22, v, size=34, color=NAVY, bold=True, font=H_FONT,
          align=PP_ALIGN.CENTER)
-    text(bx, cy + 24, bw, 16, lab, size=14, color=MUTED, align=PP_ALIGN.CENTER)
+    text(bx, cy + 22, bw, 16, lab, size=14, color=MUTED, align=PP_ALIGN.CENTER)
     bx += bw + 8
-cy += 42
+cy += 38
+cy = para(IN_X, cy, IN_W, [
+    [('세무 신고기한도 같이 챙긴다. ', {'bold': True, 'color': NAVY}),
+     ('프로필 네 값(사업자 형태·과세유형·직원·원천세 주기)으로 18개 항목 중 '
+      '해당분만 계산해, D-7·D-3·D-1 에 인앱과 카카오톡으로 알린다.')],
+], size=18) + 5
 cy = para(IN_X, cy, IN_W,
-          ['카카오 로그인 없이도 전부 쓸 수 있다  ·  기기 저장이 원본, 서버는 통로'],
+          [f'카카오 로그인 없이도 전부 쓸 수 있다  ·  숫자는 모두 {ASOF} 실측'],
           size=16, color=MUTED, align=PP_ALIGN.CENTER)
 y = section_close(hd, cy)
 

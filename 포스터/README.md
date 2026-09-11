@@ -31,14 +31,28 @@
 색은 양식의 네이비 `#003670` 그대로다 — Mars-Fit 브랜드 네이비(`#2a3c77`)와
 거의 같아서 화면 사진과 잘 붙는다.
 
-## 숫자는 그때그때 잰 값이다
+## 숫자에는 기준일이 붙어 있다
 
-공고 74건, 조건 309개 판정, 서류 195개·52종, 상가 30,297 …… 전부 그날
-`/api/match` 와 `pjrx.kr/health` 에서 받은 실측값이다. **공고는 매일
-바뀌므로 인쇄 직전에 한 번 다시 재는 것이 좋다.**
+공고 74건, 조건 309개 판정, 서류 195개·52종, 상가 30,297 …… 전부
+`/api/match` 와 `pjrx.kr/health` 에서 받은 실측값이다.
 
-    curl -s https://ai-hwaseong-ten.vercel.app/api/health
-    curl -s https://pjrx.kr/health
+**「오늘」이라고 쓰지 않는다.** 인쇄한 뒤에는 그 「오늘」이 언제인지 알 수
+없다. 기준일은 `poster.py` 맨 위 `ASOF` 한 곳에 있고 포스터 네 군데에 찍힌다.
+
+공고는 매일 06:11 에 새로 받으므로 건수가 바뀐다. **인쇄 직전에 다시 재고
+`ASOF` 를 그날로 고칠 것.**
+
+    curl -s https://ai-hwaseong-ten.vercel.app/api/health     # 공고 수
+    curl -s https://pjrx.kr/health                            # 상가·학교·역·아파트
+
+    # 판정 분포와 서류 수 (운영중 음식점 프로필 기준)
+    curl -s -X POST https://ai-hwaseong-ten.vercel.app/api/match \
+      -H 'Content-Type: application/json' \
+      -d '{"user_profile":{"age":45,"region":"화성시","business_status":"운영중",
+           "category":"음식점","career_experience":"있음","asset_group":"일반",
+           "business_period_months":24,"marital_status":"기혼",
+           "living_with_parents":false,"entity_type":"개인",
+           "vat_type":"일반과세","has_employee":true}}'
 
 ## 화면 사진
 
