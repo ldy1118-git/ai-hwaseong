@@ -196,6 +196,47 @@ def formula(x, y, w, lines, size=23):
     return y + hh
 
 
+def table(x, y, w, widths, head, rows, size=19, head_size=16):
+    """판정 표. 셀은 str 또는 (str, {서식}).
+
+    글줄 셋을 나란히 늘어놓으면 「판정 이름 / 뜻 / 값 / 건수」가 섞여 읽힌다.
+    칸을 그어야 무엇이 무엇에 대응하는지가 한눈에 잡힌다.
+    """
+    HEAD_H, ROW_H = 15, 21
+    total = sum(widths)
+    xs, acc = [], x
+    for cw in widths:
+        xs.append(acc); acc += cw / total * w
+    xs.append(x + w)
+
+    box(x, y, w, HEAD_H, fill=NAVY, line=None,
+        shape=MSO_SHAPE.ROUNDED_RECTANGLE, adj=0.14)
+    for i, h in enumerate(head):
+        text(xs[i] + 5, y + 3.6, xs[i + 1] - xs[i] - 10, 10, h, size=head_size,
+             color=RGBColor(0xC7, 0xD4, 0xE6),
+             align=PP_ALIGN.LEFT if i == 1 else PP_ALIGN.CENTER)
+
+    cy = y + HEAD_H
+    for r, row in enumerate(rows):
+        if r:
+            box(x + 4, cy, w - 8, 0.4, fill=LINE)
+        for i, cell in enumerate(row):
+            t, o = (cell, {}) if isinstance(cell, str) else cell
+            cw = xs[i + 1] - xs[i]
+            if o.get('pill'):
+                b, rec = box(xs[i] + 6, cy + 4.0, cw - 12, 13, fill=o['pill'],
+                             shape=MSO_SHAPE.ROUNDED_RECTANGLE, adj=0.40)
+                fill_shape(b, rec, [t], 16)
+            else:
+                text(xs[i] + 5, cy + 5.0, cw - 10, 12, t, size=o.get('size', size),
+                     color=o.get('color', INK), bold=o.get('bold', False),
+                     align=PP_ALIGN.LEFT if i == 1 else PP_ALIGN.CENTER)
+        cy += ROW_H
+    box(x, y, w, cy - y, fill=None, line=LINE, lw=1.0,
+        shape=MSO_SHAPE.ROUNDED_RECTANGLE, adj=0.045)
+    return cy
+
+
 def para(x, y, w, lines, size=20, **kw):
     """문단 묶음. 끝 y 를 돌려준다.
 
@@ -283,13 +324,13 @@ for i, st in enumerate(STEPS):
     sx += sw + sgap
 cy += 32
 
-w1 = shot(f"{CROP}/onboard.png", IN_X + 22, cy, 206)
-w2 = shot(f"{CROP}/home_list.png", IN_X + 22 + w1 + 22, cy, 206)
-text(IN_X + 22, cy + 209, w1, 14, '등록증을 올리면 자동으로 읽는다',
+w1 = shot(f"{CROP}/onboard.png", IN_X + 22, cy, 232)
+w2 = shot(f"{CROP}/home_list.png", IN_X + 22 + w1 + 22, cy, 232)
+text(IN_X + 22, cy + 235, w1, 14, '등록증을 올리면 자동으로 읽는다',
      size=15, color=MUTED, align=PP_ALIGN.CENTER)
-text(IN_X + 22 + w1 + 22, cy + 209, w2, 14, '내 조건으로 걸러진 목록 · 긴급 마감',
+text(IN_X + 22 + w1 + 22, cy + 235, w2, 14, '내 조건으로 걸러진 목록 · 긴급 마감',
      size=15, color=MUTED, align=PP_ALIGN.CENTER)
-cy += 230
+cy += 256
 cy = para(IN_X, cy, IN_W, [
     [('사진 한 장이면 시작된다.', {'bold': True, 'color': NAVY}),
      ' 사업자등록증을 찍으면 상호·업종·개업일을 읽어 프로필을 채운다. '
@@ -311,17 +352,19 @@ text(IN_X + 6, cy + 5, IN_W - 12, 24,
      size=17, color=NAVY, align=PP_ALIGN.CENTER, line_sp=1.30, space=0.10)
 cy += 40
 cy = formula(IN_X, cy, IN_W, ['매칭 점수 =  Σ( wᵢ × vᵢ )  ÷  Σ wᵢ  × 100'], size=24) + 10
+cy = table(IN_X, cy, IN_W, [78, 196, 52, 74],
+           ['판정', '무슨 뜻인가', '조건값 vᵢ', '오늘 74건'],
+           [[('신청가능', {'pill': GREEN}), '조건이 모두 맞는다',
+             ('1.0', {'bold': True, 'color': GREEN}), '31건'],
+            [('확인필요', {'pill': ORANGE}), '공고문만으로는 판단이 서지 않는다',
+             ('0.5', {'bold': True, 'color': ORANGE}), '27건'],
+            [('대상아님', {'pill': MUTED}), '맞지 않는 조건이 분명히 있다',
+             ('0.0', {'bold': True, 'color': MUTED}), '16건']]) + 9
 
-sw2 = shot(f"{CROP}/judge.png", IN_X, cy, 200)
+
+sw2 = shot(f"{CROP}/judge.png", IN_X, cy, 150)
 tx, tw = IN_X + sw2 + 16, IN_W - sw2 - 16
 ty = para(tx, cy - 1, tw,
-          [[('3단으로 판정한다', {'bold': True, 'color': NAVY, 'size': 21})]], size=21)
-ty = para(tx, ty + 3, tw, [
-    [('신청가능', {'bold': True, 'color': GREEN}), '  조건이 다 맞는다'],
-    [('확인필요', {'bold': True, 'color': ORANGE}), '  우리도 모른다'],
-    [('대상아님', {'bold': True, 'color': MUTED}), '  확실히 아니다'],
-], size=19, space=0.36)
-ty = para(tx, ty + 9, tw,
           [[('「확인필요」를 지우지 않는다.', {'bold': True, 'color': NAVY})]], size=20)
 ty = para(tx, ty + 4, tw, [
     '모르는 것을 아는 척도, 모르는 척도 하지 않는다. 업종이 못 박힌 공고는 '
@@ -339,21 +382,12 @@ ty = para(tx, ty + 11, tw,
 ty = para(tx, ty + 4, tw, [
     '하나라도 있으면 그 공고는 대상아님이 되어 목록에서 사라진다. '
     '애매한 것은 여기 넣지 않고 확인필요로 남긴다.'], size=18)
-cy = max(cy + 200, ty) + 10
+cy = max(cy + 150, ty) + 10
 
-box(IN_X, cy, IN_W, 30, fill=TINT, line=None,
-    shape=MSO_SHAPE.ROUNDED_RECTANGLE, adj=0.14)
-text(IN_X + 6, cy + 6, IN_W - 12, 20,
-     [[('조건 하나의 값 vᵢ  ', {'color': MUTED, 'size': 17}),
-       ('충족 1.0', {'bold': True, 'color': GREEN}), ('   ·   ', {'color': MUTED}),
-       ('확인필요 0.5', {'bold': True, 'color': ORANGE}), ('   ·   ', {'color': MUTED}),
-       ('불충족 0.0', {'bold': True, 'color': MUTED})]],
-     size=19, color=NAVY, align=PP_ALIGN.CENTER)
-cy += 38
 cy = para(IN_X, cy, IN_W, [
     [('오늘 74건에서 조건 309개를 판정했다', {'bold': True, 'color': NAVY}),
-     ' — 충족 247 · 확인필요 46 · 불충족 16. 결과는 신청가능 31 · 확인필요 27 · '
-     '대상아님 16 으로 갈렸고, 공고마다 서류도 같이 붙는다(195개 · 52종).'],
+     ' — 충족 247 · 확인필요 46 · 불충족 16. 공고마다 서류도 같이 붙는다'
+     '(195개 · 52종).'],
     [('줄 세우기는 접수중 먼저, 그 안에서 점수순이다.', {'bold': True, 'color': NAVY}),
      ' 판정을 점수보다 먼저 보면, 화성시 사업이 서류 한 줄로 확인필요가 되는 순간 '
      '전국 공고 수십 건 아래로 밀린다. 확인필요는 이미 0.5 로 반영돼 있다.'],
