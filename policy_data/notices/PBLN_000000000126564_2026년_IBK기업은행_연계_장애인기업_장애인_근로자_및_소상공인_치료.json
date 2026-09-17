@@ -1,0 +1,31 @@
+{
+ "notice_id": "PBLN_000000000126564",
+ "title": "2026년 IBK기업은행 연계 장애인기업(장애인 근로자 및 소상공인) 치료비 지원사업 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126564",
+ "summary": "자 또는 근로자는 사업체가 IBK기업은행 계좌를 보유하여야함.\n\n□ (지원규모) 총 4개사 내외, 총 예산 20백만원\n\n□ (지원금액) 1인당 5백만원 한도(업체별 5백만원 한도)\n\f제26-169호\n\nⅡ 지원내용\n\n□ (질환구분, 지원금액)\n 구분 내용 지원금액 한도\n 보건복지부 고시 기준(1,413개)\n 희귀질환 https://helpline.kdca.go.kr/cdchelp/ph/supbiz/se\n lectMdepSupList.do?menu=B0102 500만원 한도\n\n 중증질환 암, 심장질환, 뇌혈관 질환 등으로 투병 중인 자\n\n 체외수정 및 인공수정 시술 중 정부 지원을 모 (체외) 100만원 한도\n 난임시술\n 두 소진한 자* (인공) 50만원 한도\n\n* 정부지원 소진 기준 : 체외수정(신선ㆍ동결 2",
+ "apply_period": {
+  "start": "2026-09-16",
+  "end": "2026-09-28"
+ },
+ "eligibility": {
+  "requirements_unknown": "장애인기업확인서 발급업체 대표 및 해당기업 장애인 근로자 -소득기준 : ‘25년도 근로(사업)소득 70백만원 이하(세전) - 지원기준 : ① 본인(장애인) ② 배우자 ③ 미혼자녀 - 지원범위 : 업체당 2명 이내…"
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_method": "이메일 접수(ldi@debc.or.kr)\r\n※ 이메일 주소 모두 영문",
+ "contact": "기업성장부 IBK기업은행 치료비 지원 담당자 02-2181-6530",
+ "organizer": "중소벤처기업부",
+ "operator": "장애인기업종합지원센터"
+}

@@ -1,0 +1,63 @@
+{
+ "notice_id": "PBLN_000000000126503",
+ "title": "[경기] 화성시 2026년 2차 미래 모빌리티 테스트베드 실증지원 사업 참여기업 추가모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126503",
+ "summary": "□ (신청자격) 아래 항목을 모두 충족하는 기업\n❍ 화성시 소재(본사, 공장, 연구소 중 1개소 이상), 업태가 제조업인 중소 기업\n❍ 모빌리티 산업 공급망 內 속한 기업\n❍ 2026. 1. 1. 이후 측정·시험·평가 분야 계약 및 완료·진행·예정 중인 기업\n ※ 완료, 진행 중인 기업은 소급 적용하여 지원\n\n□ (지원제한)\n❍ 무역 및 수출대행업체, 단순 유통, 도·소매 업체, 타사 명의 참가\n❍ 정부, 지자체 또는 유관기관으로부터 동일 건에 대해 중복 지원받는 경우\n❍ 공고 마감일 기준, 국세·지방세, 세외수입 체납 기업(완납시 지원 가능)\n❍ 허위 또는 부정한 방법으로 신청한 경우\n❍ 제출서류 작성·구비가 불성실하거나 마감기한 이후 신청서를 접수한 경우\n❍ 지원금 및 기업부담금 산정 시 부가세와 송금 ",
+ "apply_period": {
+  "start": "2026-09-15",
+  "end": "2026-10-19"
+ },
+ "eligibility": {
+  "requirements_unknown": "아래 항목을 모두 충족하는 기업 - 화성시 소재(본사, 공장, 연구소 중 1개소 이상), 업태가 제조업인 중소 기업 - 모빌리티 산업 공급망 內 속한 기업 - 2026. 1. 1. 이후 측정ㆍ시험ㆍ평가 분야 계약…",
+  "regions": [
+   "화성시",
+   "화성특례시"
+  ]
+ },
+ "documents": [
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: [서식2] 사업신청서"
+  },
+  {
+   "name": "계획서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: [서식3] 계획서"
+  },
+  {
+   "name": "[서식4] 개인정보이용동의서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "[서식5] 성실참여 확약서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "국세납세증명서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 국세 완납증명서"
+  },
+  {
+   "name": "지방세납세증명서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 지방세 완납증명서"
+  }
+ ],
+ "apply_url": "https://platform.hsbiz.or.kr/business/detail/N/1310",
+ "apply_method": "온라인 접수 (화성시 기업지원 플랫폼)",
+ "contact": "화성산업진흥원 (사업 문의) 031-278-4395, seoyj@hsbiz.or.kr (기업지원플랫폼 시스템 문의) 031-278-4392, namhee@hsbiz.or.kr",
+ "organizer": "경기도",
+ "operator": "화성산업진흥원"
+}
