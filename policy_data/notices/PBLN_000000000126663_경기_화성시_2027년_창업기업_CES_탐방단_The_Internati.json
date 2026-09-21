@@ -1,0 +1,37 @@
+{
+ "notice_id": "PBLN_000000000126663",
+ "title": "[경기] 화성시 2027년 창업기업 CES 탐방단(The International Consumer Electronics Show) 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126663",
+ "summary": "7년이내 본사가 화성특례시에 소재한 기술창업 또는 지식창업 5개사\n*기술창업: 기계, 전기·전자, 화학, 바이오, AI, 정보통신, 식품, 섬유, 재료, 환경, 에너지 등\n*지식창업: 교육, 지식콘텐츠, 로컬콘텐츠, 마케팅홍보, 디자인, 문화서비스, App개발 등\n -\n공고일 기준 창업후 7년이 경과하지 않은 사업체를 보유하고 있는 사업자(개인 또는 법인)\n -\n창업일은 개인사업자의 경우 사업개시일(사업자등록증상의 개업일), 법인기업의 경우\n 법인 등기부등본상 회사성립연월일을 기준\n ❍ 우대\n대상\n - 공고일 기준 3년이내 본사 소재지가 화성시인 창업기업\n - H-스타트업 창업경진대회(제품·서비스 개발부문) 본선 진출자\n※ 참가제한:\n「중소기업창업지원법」 시행령 제4조에 따라 창업에서 제외되는 업종과\n 사행",
+ "apply_period": {
+  "start": "2026-09-18",
+  "end": "2026-10-08"
+ },
+ "eligibility": {
+  "entity_types": [
+   "개인"
+  ],
+  "regions": [
+   "화성시",
+   "화성특례시"
+  ]
+ },
+ "documents": [
+  {
+   "name": "사업자등록증",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "소상공인 대상 사업은 사업자 확인을 위해 대부분 요구한다"
+  },
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "estimated",
+   "reason": "공고 붙임 서식을 사용한다"
+  }
+ ],
+ "apply_method": "이메일 접수 (info@hstrade.or.kr)\r\n※ 모든 제출서류는 PDF로 순서대로 합본하여 파일 1개로 제출\r\n※ 지원사업 신청서 한글 원본파일 반드시 별도 제출",
+ "contact": "화성시수출업무지원센터 031-350-7951, 화성시청 기업지원과 031-5189-2102",
+ "organizer": "경기도",
+ "operator": "기초자치단체"
+}
