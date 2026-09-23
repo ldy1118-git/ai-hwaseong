@@ -1,0 +1,42 @@
+{
+ "notice_id": "PBLN_000000000126761",
+ "title": "2026년 4차 온라인 인력지원 지원기업 추가 모집 공고(농식품 수출지원사업)",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126761",
+ "summary": "한국농수산식품유통공사(aT)는 국내 유망 농식품기업의 해외 온라인 시장 진출 활성화를 위해 온라인 마케팅 전담인력 지원사업을 추진하고자 하오니 참가를 희망하는 기업의 많은 신청 바랍니다. ☞ 해외 온라인몰 점포(계정) 운영(예정) 중견ㆍ중소 농식품기업 - 점포(계정) : 신청기업의 국내법인(또는 위탁운영업체) 명의로 온라인 B2BㆍB2C 플랫폼에 개설한 점포 ☞ 참가기업의 해외 온라인몰 점포 운영에 필요한 인력 고용비 및 교육 프로그램 지원 - 인력 고용 : 근무수당의 70-80%(지원한도 : 1,600,000원/월), 최대 6개월 지원 - 교육 제공 : 기업별 고용된 코디네이터 대상 해외 플랫폼 1:1 맞춤형 컨설팅 제공",
+ "apply_period": {
+  "start": "2026-09-22",
+  "end": "2026-10-01"
+ },
+ "eligibility": {
+  "requirements_unknown": "해외 온라인몰 점포(계정) 운영(예정) 중견ㆍ중소 농식품기업 - 점포(계정) : 신청기업의 국내법인(또는 위탁운영업체) 명의로 온라인 B2BㆍB2C 플랫폼에 개설한 점포"
+ },
+ "documents": [
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 온라인인력지원 사업 신청서"
+  },
+  {
+   "name": "지방세납세증명서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 지방세 납세증명서"
+  },
+  {
+   "name": "필 ⑤ 무역통계정보제공동의서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "기업신용평가 등급확인서",
+   "type": "common",
+   "confidence": "confirmed"
+  }
+ ],
+ "apply_url": "https://global.at.or.kr/front/bizReq/brView.do?proj_id=8222&proj_detail_id=0",
+ "apply_method": "온라인 접수 (aT수출종합지원시스템)",
+ "contact": "한국농수산식품유통공사 수출지원사업 061-931-0979(또는 0977) / jechoi@at.or.kr",
+ "organizer": "농림축산식품부",
+ "operator": "한국농수산식품유통공사"
+}
