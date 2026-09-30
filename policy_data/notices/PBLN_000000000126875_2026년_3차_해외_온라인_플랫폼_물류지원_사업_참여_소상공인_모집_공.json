@@ -1,0 +1,49 @@
+{
+ "notice_id": "PBLN_000000000126875",
+ "title": "2026년 3차 해외 온라인 플랫폼 물류지원 사업 참여 소상공인 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126875",
+ "summary": "이 안 되는 기업(요건 미흡 등)을 대상으로 정부\n③ 허위 대출 약속\n 지원을 받아주겠다며 대가를 요구하는 경우\n 제3자가 정부 공무원이나 공공기관 직원의 명함을 임의로\n④ 정부기관 등 사칭\n 사용하거나 허위로 정책자금 관련 기관 직원을 사칭하는 경우\n 정부, 공공기관 직원과의 인적 네트워크를 통해 정부지원이\n⑤ 부정청탁\n 가능하도록 하겠다고 약속하고, 착수금 등을 요구하는 경우\n 성공 조건부 계약을 체결하고, 수수료를 선지급 받은 후\n⑥ 계약불이행\n 대출 실패 시 선지급금 반환청구에 응하지 않는 경우\n\n▪ 정부 지원사업은 본인 신청을 원칙으로 하며 제 자가 개입하여 허위서류\n 3\n\n 등을 통해 신청 등을 진행하는 경우, 선정 이후에도 지원이 취소되는 등\n 불이익이 발생할 수 있으므로 사업 선정 보장 등을 ",
+ "apply_period": {
+  "start": "2026-09-29",
+  "end": "2026-10-16"
+ },
+ "eligibility": {
+  "business_status": [
+   "운영중"
+  ]
+ },
+ "documents": [
+  {
+   "name": "중소기업 소상공인 확인서 국세",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "지방세납세증명서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 지방세 완납증명서"
+  },
+  {
+   "name": "제공 동의서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "사업자등록증명",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 사업자등록증명원"
+  },
+  {
+   "name": "4대보험료 완납증명원",
+   "type": "common",
+   "confidence": "confirmed"
+  }
+ ],
+ "apply_url": "https://www.sbiz24.kr/#/pbanc/831",
+ "apply_method": "온라인 접수 (소상공인24)",
+ "contact": "(사업문의) 스마트지원실 온라인판로팀 042-363-7825, 7826 (소상공인24 시스템 문의) 1644-5302 (중소기업확인서(소상공인) 발급 문의) 1357",
+ "organizer": "중소벤처기업부",
+ "operator": "소상공인시장진흥공단"
+}
