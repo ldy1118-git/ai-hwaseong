@@ -1,0 +1,61 @@
+{
+ "notice_id": "PBLN_000000000126915",
+ "title": "[경기] 화성시 2026년 2차 스마트 물류비 지원사업 참가기업 모집 공고",
+ "source_url": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126915",
+ "summary": "관내 사업장 또는 공장이 소재하고 전년도 수출액 2,000만불\n이하인 중소 제조업체 200사 내외",
+ "apply_period": {
+  "start": "2026-10-01",
+  "end": "2026-10-23"
+ },
+ "eligibility": {
+  "requirements_unknown": "관내 사업장 또는 공장이 소재하고 전년도 수출액 2,000만불이하인 중소 제조업체 - 「중소기업 기본법」 제2조에 따른 화성시 관내 본사 또는 공장 소재 중소 제조기업으로 전년도 수출실적 2,000만불 이하 기업 …",
+  "regions": [
+   "화성시",
+   "화성특례시"
+  ]
+ },
+ "documents": [
+  {
+   "name": "신청서",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 지원금 신청서"
+  },
+  {
+   "name": "기업 정보제공 동의서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "사업자등록증명",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 사업자등록증명원"
+  },
+  {
+   "name": "공장등록증",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "지방세 납세 증명서",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "수출실적 증빙자료",
+   "type": "common",
+   "confidence": "confirmed"
+  },
+  {
+   "name": "통장 사본",
+   "type": "common",
+   "confidence": "confirmed",
+   "reason": "공고문 표기: 통장사본"
+  }
+ ],
+ "apply_method": "이메일 접수(info@hstrade.or.kr)",
+ "contact": "화성시 수출업무지원센터 031-350-7954, info@hstrade.or.kr",
+ "organizer": "경기도",
+ "operator": "기초자치단체"
+}
